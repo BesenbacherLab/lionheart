@@ -34,7 +34,7 @@ To install this, it requires an installation of `nim` so we can use `nimble inst
 $ curl https://nim-lang.org/choosenim/init.sh -sSf | sh
 
 # Add to ~/.bashrc
-export PATH=/home/users/astar/gis/odinokovd/.nimble/bin:$PATH
+export PATH=/home/<username>/.nimble/bin:$PATH
 
 $ source ~/.bashrc
 
@@ -100,7 +100,3 @@ $ lionheart extract_features --bam_file {bam_file} --resources_dir {resources_di
 $ lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds max_j spec_0.95 spec_0.99 sens_0.95 sens_0.99 0.5 --identifier {sample_id}
 
 ```
-
-## Project TODO
-
-- Add workflow / steps we used when aligning etc.
