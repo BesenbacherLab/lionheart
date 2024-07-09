@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "detectcancer"
+version = "0.1.0"
+description = ""
+authors = ["Ludvig <ludvig@clin.au.dk>"]
+readme = "README.md"
+packages = [{include = "detectcancer"}]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+utipy = "^1.0.1"
+scikit-learn = "1.0.2"
+pandas = "1.5.3"
+numpy = "1.26.4"
+joblib = "1.2.0"
+statsmodels = "0.14.1"
+rich = "^13.7.1"
+scipy = "^1.7.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+detect = "detectcancer.cli:main"

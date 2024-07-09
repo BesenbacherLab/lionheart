@@ -1,0 +1,23 @@
+name: lionheart
+channels:
+  - main
+  - gwforg
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.9
+  - gwf=2.0.5
+  - htslib=1.15.1
+  - joblib=1.2.0
+  - numpy=1.26.4
+  - pandas=1.5.3
+  - pip=24.0
+  - scipy=1.7.3
+  - statsmodels=0.14.1
+  - pip:
+    - nattrs==0.1.1
+    - pytest==7.1.2
+    - scikit-learn==1.0.2
+    - utipy==1.0.2
+    - poetry==1.8.2
