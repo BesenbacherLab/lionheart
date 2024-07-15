@@ -19,6 +19,8 @@ from lionheart.utils.dual_log import setup_logging
 joblib_dump_version = "1.4.0"
 
 
+# TODO Allow using a custom model!
+
 def parse_thresholds(thresholds: List[str]) -> Dict[str, Union[bool, List[float]]]:
     """
     Parse the threshold names.
@@ -56,7 +58,7 @@ def setup_parser(parser):
         "--resources_dir",
         required=True,
         type=str,
-        help="Path to directory with framework resources, such as the the trained model.",
+        help="Path to directory with framework resources, such as the trained model.",
     )
     parser.add_argument(
         "--out_dir",

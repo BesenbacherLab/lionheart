@@ -9,7 +9,7 @@ class BinaryPreparer:
 
     @staticmethod
     def prepare_targets(
-        targets: Optional[Union[list, np.ndarray]] = None
+        targets: Optional[Union[list, np.ndarray]] = None,
     ) -> Optional[np.ndarray]:
         """
         Ensure targets have the right format for binary classification evaluation.
@@ -43,7 +43,7 @@ class BinaryPreparer:
 
     @staticmethod
     def prepare_probabilities(
-        probabilities: Optional[Union[list, np.ndarray]] = None
+        probabilities: Optional[Union[list, np.ndarray]] = None,
     ) -> Optional[np.ndarray]:
         """
         Ensure probabilities have the right format for binary classification evaluation.
@@ -63,7 +63,7 @@ class BinaryPreparer:
 
             assert probabilities.ndim <= 2
             if probabilities.ndim == 2:
-                if not probabilities.shape[1] in [1, 2]:
+                if probabilities.shape[1] not in [1, 2]:
                     raise ValueError(
                         (
                             "Second dimension of `probabilities` must have size "
@@ -82,7 +82,7 @@ class BinaryPreparer:
 
     @staticmethod
     def prepare_predictions(
-        predictions: Optional[Union[list, np.ndarray]] = None
+        predictions: Optional[Union[list, np.ndarray]] = None,
     ) -> Optional[np.ndarray]:
         """
         Ensure predictions have the right format for binary classification evaluation.
