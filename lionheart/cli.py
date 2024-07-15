@@ -1,6 +1,6 @@
 import argparse
 from argparse import RawTextHelpFormatter
-from lionheart.commands import extract_features, predict
+from lionheart.commands import collect_samples, extract_features, predict
 
 
 def main():
@@ -34,6 +34,15 @@ Start by *extracting* the features from a BAM file. Then *predict* whether a sam
     )
     # Delegate the argument setup to the respective command module
     predict.setup_parser(parser_c2)
+
+    # Command3
+    parser_c3 = subparsers.add_parser(
+        "collect",
+        help="Collect predictions and/or features",
+        description="Collect predictions and/or extracted features for multiple samples.",
+    )
+    # Delegate the argument setup to the respective command module
+    collect_samples.setup_parser(parser_c3)
 
     args = parser.parse_args()
     if hasattr(args, "func"):

@@ -67,6 +67,41 @@ class DatasetOutputPaths:
             if path is not None
         }
 
+    @staticmethod
+    def create_default(dataset_dir: pathlib.Path, mask_type: Optional[str] = "DHS"):
+        if not isinstance(dataset_dir, pathlib.Path):
+            raise TypeError(
+                f"`dataset_dir` must have type `pathlib.Path`. Got: {type(dataset_dir)}."
+            )
+
+        return DatasetOutputPaths(
+            dataset=(
+                dataset_dir / mask_type / "feature_dataset.npy"
+                if mask_type is not None
+                else dataset_dir / "feature_dataset.npy"
+            ),
+            # Shared for mask types
+            coverage_stats=dataset_dir / "coverage_stats.json",
+            feature_readme=dataset_dir / "feature_description.txt",
+            gc_factor_ids=dataset_dir / "gc_correction_factors.identifiers.csv",
+            gc_bin_midpoints=dataset_dir / "gc_bin_midpoints.npy",
+            gc_correction_factors=dataset_dir / "gc_correction_factor.npy",
+            insert_size_mean_correction_factors=dataset_dir
+            / "insert_size.mean_shift_correction_factors.npy",
+            insert_size_noise_correction_factors=dataset_dir
+            / "insert_size.noise_correction_factors.npy",
+            insert_size_skewness_correction_factors=dataset_dir
+            / "insert_size.skewness_correction_factors.npy",
+            insert_size_observed_bias=dataset_dir / "insert_size.observed_bias.npy",
+            insert_size_target_bias=dataset_dir / "insert_size.target_bias.npy",
+            insert_size_optimal_params=dataset_dir / "insert_size.optimal_params.csv",
+            insert_size_bin_midpoints=dataset_dir / "insert_size.bin_midpoints.npy",
+            insert_size_factor_ids=dataset_dir
+            / "insert_size.correction_factors.identifiers.csv",
+            megabin_normalization_offset_combinations=dataset_dir
+            / "megabin_normalization_offset_combinations.csv",
+        )
+
 
 def _load_sample_chrom_coverage(path: pathlib.Path) -> np.ndarray:
     return np.asarray(scipy.sparse.load_npz(path).todense(), dtype=np.float64).flatten()
