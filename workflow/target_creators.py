@@ -22,6 +22,18 @@ def to_strings(ls):
     return [str(s) for s in ls]
 
 
+def log_context(call: str):
+    escaped_call = call.replace('"', r"\"").replace("'", r"\'").strip()
+    return f"""
+printf '%s\n' '---'
+date
+printf "JobID: $SLURM_JOB_ID \n"
+printf "Command:\n{escaped_call}\n"
+printf '%s' '---\n\n'
+{call}
+"""
+
+
 def extract_features(
     gwf: Workflow,
     # scripts_path: Union[str, pathlib.Path],
@@ -126,9 +138,11 @@ def extract_features(
             memory=memory,
             cores=cores,
         )
-        << f"""
+        << log_context(
+            f"""
         lionheart extract_features --bam_file {bam_file} --resources_dir {resources_dir} --out_dir {out_dir} {app_args}--n_jobs {cores}
         """
+        )
     )
 
 
@@ -222,9 +236,11 @@ def predict_sample(
             walltime=walltime,
             memory=memory,
         )
-        << f"""
+        << log_context(
+            f"""
         lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {' '.join(thresholds)} --identifier {sample_id}
         """
+        )
     )
 
 
