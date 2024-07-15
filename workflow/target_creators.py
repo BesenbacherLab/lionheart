@@ -14,29 +14,8 @@ from gwf import Workflow
 # TODO: If we update the ROC curve, change the note in docstring for `thresholds`
 
 
-def to_strings(ls):
-    """
-    Convert a list of elements to strings
-    by applying `str()` to each element.
-    """
-    return [str(s) for s in ls]
-
-
-def log_context(call: str):
-    escaped_call = call.replace('"', r"\"").replace("'", r"\'").strip()
-    return f"""
-printf '%s\n' '---'
-date
-printf "JobID: $SLURM_JOB_ID \n"
-printf "Command:\n{escaped_call}\n"
-printf '%s' '---\n\n'
-{call}
-"""
-
-
 def extract_features(
     gwf: Workflow,
-    # scripts_path: Union[str, pathlib.Path],
     sample_id: str,
     bam_file: Union[str, pathlib.Path],
     resources_dir: Union[str, pathlib.Path],
@@ -148,7 +127,6 @@ def extract_features(
 
 def predict_sample(
     gwf: Workflow,
-    # scripts_path: Union[str, pathlib.Path],
     sample_id: str,
     sample_dir: Union[str, pathlib.Path],
     resources_dir: Union[str, pathlib.Path],
@@ -245,6 +223,9 @@ def predict_sample(
 
 
 def legalize_target_name(target_name):
+    """
+    Ensure the target name is valid.
+    """
 
     # First check if target name is legal.
     if re.match(r"^[a-zA-Z_][a-zA-Z0-9._]*$", target_name):
@@ -267,3 +248,26 @@ def legalize_target_name(target_name):
             result += "_"
 
     return result
+
+
+def to_strings(ls):
+    """
+    Convert a list of elements to strings
+    by applying `str()` to each element.
+    """
+    return [str(s) for s in ls]
+
+
+def log_context(call: str):
+    """
+    Add call context to the `gwf` log files (found at `.gwf/logs/<target_name>.stdout`).
+    """
+    escaped_call = call.replace('"', r"\"").replace("'", r"\'").strip()
+    return f"""
+printf '%s\n' '---'
+date
+printf "JobID: $SLURM_JOB_ID \n"
+printf "Command:\n{escaped_call}\n"
+printf '%s' '---\n\n'
+{call}
+"""
