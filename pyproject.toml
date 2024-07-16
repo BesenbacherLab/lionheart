@@ -16,6 +16,7 @@ joblib = "1.2.0"
 statsmodels = "0.14.1"
 rich = "^13.7.1"
 scipy = "^1.7.3"
+rich-argparse = "^1.5.2"
 
 [build-system]
 requires = ["poetry-core"]
@@ -23,3 +24,6 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 lionheart = "lionheart.cli:main"
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
