@@ -296,6 +296,7 @@ def main(args):
         meta_data_paths=meta_data_paths,
         task="binary_classification",
         model_dict=model_dict,
+        labels_to_use=["0_Control(Control)", "0_Cancer(Cancer)"],
         feature_sets=[0],
         train_only_datasets=train_only,
         k=args.k,
