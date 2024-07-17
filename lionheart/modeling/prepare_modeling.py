@@ -30,6 +30,7 @@ def prepare_modeling(
     aggregate_by_groups: bool = False,
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
+    expected_shape: Optional[Dict[int, int]] = None,
     mk_plots_dir: bool = True,
     seed: Optional[int] = 1,
     exp_name: str = "",
@@ -47,6 +48,11 @@ def prepare_modeling(
         their group ID.
         NOTE: This could lead to dataset leakage when the other labels of
         a dataset are tested on.
+
+
+    expected_shape
+        An optional dict mapping a dimension index to an expected shape.
+        A `ValueError` is thrown when the dimension expectations are not met.
 
     Returns
     -------
@@ -207,6 +213,7 @@ def prepare_modeling(
                 flatten_feature_sets=model_dict is None
                 or model_dict["expected_ndim"] <= 2,
                 name=dataset_name if dataset_name != "unnamed" else None,
+                expected_shape=expected_shape,
                 messenger=messenger,
             )
             for dataset_name, dataset_info in dataset_name_to_info.items()

@@ -235,7 +235,6 @@ def setup_parser(parser):
 
 
 def main(args):
-
     out_path = pathlib.Path(args.out_dir)
     dataset_dir = out_path / "dataset"
     resources_dir = pathlib.Path(args.resources_dir)
@@ -314,7 +313,6 @@ def main(args):
     mask_to_origin_mask_dirs = {}
 
     for mask_type in ["DHS", "ATAC"]:
-
         # Data frame with features indices for origins
         mask_to_origin_to_idx[mask_type] = pd.read_csv(
             paths[f"{mask_type}_origin_order"]
@@ -377,11 +375,11 @@ def main(args):
             )
 
     messenger("Start: Calculating features")
-    messenger(f"-------------", indent=4)
+    messenger("-------------", indent=4)
     with timer.time_step(indent=4, name_prefix="dataset_creation"):
         for mask_type in ["DHS", "ATAC"]:
             messenger(f"{mask_type} features", indent=4)
-            messenger(f"-------------", indent=4)
+            messenger("-------------", indent=4)
             with messenger.indentation(add_indent=8):
                 create_dataset_for_inference(
                     chrom_coverage_paths=coverage_by_chrom_paths,
@@ -402,7 +400,7 @@ def main(args):
                     n_jobs=args.n_jobs,
                     messenger=messenger,
                 )
-            messenger(f"-------------", indent=4)
+            messenger("-------------", indent=4)
 
     messenger("Start: Collecting features across ATAC and DHS")
     with timer.time_step(indent=4, name_prefix="stack_mask_types"):

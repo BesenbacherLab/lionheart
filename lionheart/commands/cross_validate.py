@@ -127,7 +127,6 @@ def setup_parser(parser):
 
 
 def main(args):
-
     out_path = pathlib.Path(args.out_dir)
 
     # Create output directory

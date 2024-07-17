@@ -12,14 +12,16 @@ import joblib
 import warnings
 from joblib import load as joblib_load
 from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
-
+from generalize.dataset import assert_shape
 from lionheart.modeling.roc_curves import ROCCurves
 from lionheart.utils.dual_log import setup_logging
+
 
 joblib_dump_version = "1.4.0"
 
 
 # TODO Allow using a custom model!
+
 
 def parse_thresholds(thresholds: List[str]) -> Dict[str, Union[bool, List[float]]]:
     """
@@ -193,6 +195,14 @@ def main(args):
             except:
                 messenger("Failed to load features.")
                 raise
+
+            # Check shape of sample dataset
+            # 10 feature sets, 489 cell types
+            assert_shape(
+                expected_n_dims=2,
+                expected_dim_sizes={0: 10, 1: 489},
+                x_name="Loaded features",
+            )
 
             features = np.expand_dims(features, axis=0)
             # Get first feature set (correlations)

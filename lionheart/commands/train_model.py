@@ -34,7 +34,9 @@ def setup_parser(parser):
         "--dataset_paths",
         type=str,
         nargs="*",
-        help="Path(s) to `feature_dataset.npy` file(s) containing the collected features.",
+        help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
+        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nOnly the first feature set is used.",
     )
     parser.add_argument(
         "--meta_data_paths",
@@ -55,7 +57,7 @@ def setup_parser(parser):
         required=True,
         help=(
             "Path to directory to store the collected features at. "
-            "A `log` directory will be placed in the same directory."
+            "\nA `log` directory will be placed in the same directory."
         ),
     )
     parser.add_argument(
@@ -293,6 +295,7 @@ def main(args):
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_by_groups=True,
         weight_per_dataset=True,
+        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
         num_jobs=args.num_jobs,
         seed=args.seed,
         messenger=messenger,
