@@ -281,6 +281,7 @@ def main(args):
             "tol": 0.0001,
             "random_state": args.seed,
         },
+        grid={"model__C": args.lasso_c},
     )
 
     transformers_fn = prepare_transformers_fn(
