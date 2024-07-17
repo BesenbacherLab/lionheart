@@ -35,6 +35,7 @@ def setup_parser(parser):
         "--dataset_paths",
         type=str,
         nargs="*",
+        default=[],
         help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
         "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used.",
@@ -43,6 +44,7 @@ def setup_parser(parser):
         "--meta_data_paths",
         type=str,
         nargs="*",
+        default=[],
         help="Path(s) to csv file(s) where the:"
         "\n  1) the first column contains the <b>sample IDs</b>"
         "\n  2) the second column contains the <b>label</b> (one of {<i>'control', 'cancer', 'exclude'</i>})"
