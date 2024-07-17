@@ -2,6 +2,7 @@ import pathlib
 from typing import Callable, List, Optional, Union, Dict
 from joblib import dump
 import numpy as np
+import pandas as pd
 from utipy import StepTimer, Messenger, check_messenger
 from generalize import Evaluator, train_full_model
 
@@ -156,7 +157,11 @@ def run_full_model_training(
         )
 
     # Print results
-    messenger(train_out["Evaluation"])
+    with pd.option_context(
+        "display.max_rows", None, "display.max_columns", None
+    ):  # more options can be specified also
+        for key, val in train_out["Evaluation"].items():
+            messenger(key, ":", val, indent=4)
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
@@ -183,6 +188,3 @@ def run_full_model_training(
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
-
-    timer.stamp()
-    messenger(f"Finished. Took: {timer.get_total_time()}")
