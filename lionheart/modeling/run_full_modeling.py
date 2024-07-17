@@ -157,11 +157,15 @@ def run_full_model_training(
         )
 
     # Print results
-    with pd.option_context(
-        "display.max_rows", None, "display.max_columns", None
-    ):  # more options can be specified also
-        for key, val in train_out["Evaluation"].items():
-            messenger(key, ":", val, indent=4)
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        # Extract scores
+        scores = train_out["Evaluation"]["Scores"].copy()
+        cols_to_move = ["Split", "Threshold Version", "AUC"]
+        col_order = cols_to_move + [x for x in scores.columns if x not in cols_to_move]
+        col_order = [x for x in col_order if x in scores.columns]
+
+        messenger(train_out["Evaluation"]["What"], indent=4)
+        messenger(scores[col_order])
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
