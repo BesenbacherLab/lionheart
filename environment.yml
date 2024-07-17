@@ -21,3 +21,4 @@ dependencies:
     - scikit-learn==1.0.2
     - utipy==1.0.2
     - poetry==1.8.2
+    - generalize
