@@ -105,7 +105,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=[0.995, 0.996, 0.997, 0.998],
+        default=[0.994, 0.995, 0.996, 0.997, 0.998],
         nargs="*",
         help="Target(s) for the explained variance of selected principal components. Used to select the most-explaining components."
         "\nWhen multiple targets are provided, they are used in grid search.",
