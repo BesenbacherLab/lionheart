@@ -301,7 +301,7 @@ def main(args):
         k=args.k,
         transformers=transformers_fn,
         aggregate_by_groups=args.aggregate_by_subjects,
-        weight_by_groups=True,
+        weight_loss_by_groups=True,
         weight_per_dataset=True,
         expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
         num_jobs=args.num_jobs,
