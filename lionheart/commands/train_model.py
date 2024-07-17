@@ -241,8 +241,8 @@ def main(args):
 
         # Extract dataset paths
         shared_features_dataset_paths = {
-            nm: path
-            for nm, path in zip(
+            nm: shared_features_dir / rel_path
+            for nm, rel_path in zip(
                 shared_features_paths["Dataset Name"],
                 shared_features_paths["Dataset Path"],
             )
@@ -250,8 +250,8 @@ def main(args):
 
         # Extract meta data paths
         shared_features_meta_data_paths = {
-            nm: path
-            for nm, path in zip(
+            nm: shared_features_dir / rel_path
+            for nm, rel_path in zip(
                 shared_features_paths["Dataset Name"],
                 shared_features_paths["Meta Data Path"],
             )
