@@ -92,6 +92,7 @@ def run_full_model_training(
         weight_loss_by_groups=weight_loss_by_groups,
         weight_per_dataset=weight_per_dataset,
         expected_shape=expected_shape,
+        mk_plots_dir=False,
         seed=seed,
         exp_name=exp_name,
         timer=timer,
