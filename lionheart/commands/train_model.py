@@ -26,6 +26,7 @@ Todos
 - Figure out train_only edge cases
 - Allow calculating thresholds from a validation dataset? Perhaps that is a separate script? 
     Then in predict() we can have an optional arg for setting custom path to a roc curve object?
+- Ensure Control is the negative label and Cancer is the positive label!
 """
 
 
@@ -188,6 +189,11 @@ def main(args):
         raise ValueError(
             "`--meta_data_paths` and `--dataset_paths` did not "
             "have the same number of paths."
+        )
+    if len(args.dataset_paths) == 0 and not args.use_included_features:
+        raise ValueError(
+            "When `--use_included_features` is not enabled, "
+            "at least 1 dataset needs to be specified."
         )
 
     dataset_paths = {}

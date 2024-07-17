@@ -9,6 +9,8 @@ from lionheart.modeling.prepare_modeling import prepare_modeling
 
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
 # TODO: Make this work with regression
+# TODO: Test single-dataset works
+# TODO: Write docstring for function
 
 
 def run_full_model_training(

@@ -22,6 +22,7 @@ Todos
 - Figure out train_only edge cases
 - Allow calculating thresholds from a validation dataset? Perhaps that is a separate script? 
     Then in predict() we can have an optional arg for setting custom path to a roc curve object?
+- Ensure Control is the negative label and Cancer is the positive label!
 """
 
 
@@ -39,7 +40,7 @@ def setup_parser(parser):
         help="Path(s) to csv file(s) where 1) the first column contains the sample IDs, "
         "and 2) the second contains their label, and 3) the (optional) third column contains subject ID "
         "(for when subjects have more than one sample). "
-        "When `dataset_paths` has multiple named paths, there must be "
+        "When `dataset_paths` has multiple paths, there must be "
         "one meta data path per dataset, in the same order.",
     )
     parser.add_argument(
@@ -140,7 +141,7 @@ def main(args):
     # Prepare logging messenger
     setup_logging(dir=str(out_path / "logs"), fname_prefix="collect_samples-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger(f"Running training of model")
+    messenger("Running training of model")
     messenger.now()
 
     # Init timestamp handler

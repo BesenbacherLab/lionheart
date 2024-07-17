@@ -24,6 +24,7 @@ def prepare_modeling(
     labels_to_use: Optional[List[str]] = None,
     feature_sets: Optional[List[int]] = None,  # None for 2D
     feature_indices: Optional[List[Union[Tuple[int, int], int]]] = None,
+    flatten_feature_sets: Union[bool, str] = "auto",
     train_only_labels: Optional[List[str]] = None,
     train_only_datasets: Optional[List[str]] = None,
     merge_datasets: Optional[Dict[str, List[str]]] = None,
@@ -197,6 +198,7 @@ def prepare_modeling(
         # Make index tuples
         if (
             feature_sets is not None
+            and len(feature_sets)
             and feature_indices is not None
             and isinstance(feature_sets[0], int)  # Not a tuple
         ):
@@ -204,14 +206,21 @@ def prepare_modeling(
                 (fs, fi) for fs in feature_sets for fi in feature_indices
             ]
 
+        # Either use user specified setting or figure it out ('auto')
+        assert isinstance(flatten_feature_sets, (bool, str))
+        flatten_feature_sets = (
+            flatten_feature_sets
+            if isinstance(flatten_feature_sets, bool)
+            else (model_dict is None or model_dict["expected_ndim"] <= 2)
+        )
+
         # Load all datasets
         datasets = [
             load_dataset(
                 path=paths[dataset_info["dataset_path_name"]],
                 indices=feature_indices,
                 feature_sets=feature_sets if feature_indices is None else None,
-                flatten_feature_sets=model_dict is None
-                or model_dict["expected_ndim"] <= 2,
+                flatten_feature_sets=flatten_feature_sets,
                 name=dataset_name if dataset_name != "unnamed" else None,
                 expected_shape=expected_shape,
                 messenger=messenger,
