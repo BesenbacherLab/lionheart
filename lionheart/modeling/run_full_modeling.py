@@ -171,9 +171,9 @@ def run_full_model_training(
         messenger(train_out["Evaluation"]["What"], indent=4)
         messenger("\n", scores[col_order])
 
+        messenger("Optimal hyperparameters:", indent=4)
         for key in model_dict["grid"].keys():
-            messenger("Optimal hyperparameters:\n", indent=4)
-            messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=4)
+            messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
