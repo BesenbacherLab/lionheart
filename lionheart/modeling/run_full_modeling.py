@@ -31,7 +31,6 @@ def run_full_model_training(
     weight_per_dataset: bool = False,
     expected_shape: Optional[Dict[int, int]] = None,
     num_jobs: int = 1,
-    num_threads: Optional[int] = None,
     seed: Optional[int] = 1,
     exp_name: str = "",
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
@@ -149,7 +148,6 @@ def run_full_model_training(
             add_channel_dim=model_dict["requires_channel_dim"],
             add_y_singleton_dim=False,
             num_jobs=num_jobs,
-            num_threads_torch=num_threads,
             seed=seed,
             identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             # NOTE: Outer loop (best_estimator_) fit failings always raise an error
