@@ -161,11 +161,14 @@ def run_full_model_training(
         # Extract scores
         scores = train_out["Evaluation"]["Scores"].copy()
         cols_to_move = ["Split", "Threshold Version", "AUC"]
+        cols_to_delete = ["Repetition", "Experiment"]
         col_order = cols_to_move + [x for x in scores.columns if x not in cols_to_move]
-        col_order = [x for x in col_order if x in scores.columns]
+        col_order = [
+            x for x in col_order if x in scores.columns and x not in cols_to_delete
+        ]
 
         messenger(train_out["Evaluation"]["What"], indent=4)
-        messenger(scores[col_order])
+        messenger("\n", scores[col_order])
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
