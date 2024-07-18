@@ -118,14 +118,15 @@ def collect_features(args, out_path, messenger, timer):
                     continue
 
                 elif file_path_extension == ".npy":
-                    collected_dataset = np.hstack(
+                    collected_dataset = np.stack(
                         [
                             np.load(
                                 paths[sample_path_key.split("__")[0] + "_" + file_type],
                                 allow_pickle=True,
                             ).astype(np.float32)
                             for sample_path_key in sample_path_collections.keys()
-                        ]
+                        ],
+                        axis=0,
                     )
                     np.save(paths[out_file_type], collected_dataset)
 
