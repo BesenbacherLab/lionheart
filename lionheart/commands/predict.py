@@ -17,7 +17,7 @@ from lionheart.modeling.roc_curves import ROCCurves
 from lionheart.utils.dual_log import setup_logging
 
 
-joblib_dump_version = "1.4.0"
+joblib_dump_version = "1.2.0"
 
 
 # TODO Allow using a custom model!
