@@ -245,7 +245,6 @@ def main(args):
                 )
 
             prediction_df = pd.DataFrame(thresholds)
-            prediction_df["ROC Curve"] = "Average (training data)"
             prediction_df["Probability"] = predicted_probability
             prediction_df.columns = [
                 "Threshold",
@@ -255,7 +254,9 @@ def main(args):
                 "Prediction",
                 "Probability",
             ]
+            prediction_df["ROC Curve"] = "Average (training data)"
             move_column_inplace(prediction_df, "Name", 0)
+            move_column_inplace(prediction_df, "ROC Curve", 1)
 
             if args.identifier is not None:
                 prediction_df["ID"] = args.identifier
