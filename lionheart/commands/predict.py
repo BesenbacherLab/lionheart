@@ -158,8 +158,6 @@ def main(args):
                 messenger("ROCCurves collection did not have the expected ROC curve.")
                 raise
 
-            print(roc)
-
             thresholds = []
 
             if thresholds_to_calculate["max_j"]:
@@ -220,6 +218,7 @@ def main(args):
 
             try:
                 pipeline = joblib_load(paths["model"])
+                messenger("Pipeline:\n", pipeline)
             except:
                 messenger("Model failed to be loaded.")
                 raise
