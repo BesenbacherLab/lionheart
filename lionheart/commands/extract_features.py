@@ -277,8 +277,8 @@ def main(args):
             "exclude_zero_indices": resources_dir
             / "exclude_bins"
             / "zero_coverage_bins_indices.npz",
-            "ATAC_origin_order": resources_dir / "ATAC.idx_to_origin.csv",
-            "DHS_origin_order": resources_dir / "DHS.idx_to_origin.csv",
+            "ATAC_cell_type_order": resources_dir / "ATAC.idx_to_cell_type.csv",
+            "DHS_cell_type_order": resources_dir / "DHS.idx_to_cell_type.csv",
         },
         in_dirs={
             "resources_dir": resources_dir,
@@ -308,22 +308,22 @@ def main(args):
     if args.ld_library_path is not None:
         paths.set_path("ld_library", args.ld_library_path, collection="in_dirs")
 
-    mask_to_origin_to_idx = {}
-    mask_to_origin_mask_dirs = {}
+    mask_to_cell_type_to_idx = {}
+    mask_to_cell_type_mask_dirs = {}
 
     for mask_type in ["DHS", "ATAC"]:
-        # Data frame with features indices for origins
-        mask_to_origin_to_idx[mask_type] = pd.read_csv(
-            paths[f"{mask_type}_origin_order"]
+        # Data frame with features indices for cell types
+        mask_to_cell_type_to_idx[mask_type] = pd.read_csv(
+            paths[f"{mask_type}_cell_type_order"]
         )
 
-        # Create expected paths to origin mask directories
+        # Create expected paths to cell type mask directories
         # Maintaining the insertion order is paramount
-        mask_to_origin_mask_dirs[mask_type] = OrderedDict(
+        mask_to_cell_type_mask_dirs[mask_type] = OrderedDict(
             [
-                (origin, paths["chromatin_masks"] / mask_type / origin)
-                for origin in mask_to_origin_to_idx[mask_type]["origin"]
-                if origin != "consensus"
+                (cell_type, paths["chromatin_masks"] / mask_type / cell_type)
+                for cell_type in mask_to_cell_type_to_idx[mask_type]["cell_type"]
+                if cell_type != "consensus"
             ]
         )
 
@@ -331,7 +331,7 @@ def main(args):
         paths.set_paths(
             {
                 (key + "_" + mask_type): path
-                for key, path in mask_to_origin_mask_dirs[mask_type].items()
+                for key, path in mask_to_cell_type_mask_dirs[mask_type].items()
             },
             collection="in_dirs",
         )
@@ -383,10 +383,10 @@ def main(args):
                 create_dataset_for_inference(
                     chrom_coverage_paths=coverage_by_chrom_paths,
                     chrom_insert_size_paths=insert_sizes_by_chrom_paths,
-                    origin_paths=mask_to_origin_mask_dirs[mask_type],
+                    cell_type_paths=mask_to_cell_type_mask_dirs[mask_type],
                     output_paths=output_path_collections[mask_type],
                     bins_info_dir_path=paths["bins_by_chromosome_dir"],
-                    origin_to_idx=mask_to_origin_to_idx[mask_type],
+                    cell_type_to_idx=mask_to_cell_type_to_idx[mask_type],
                     gc_correction_bin_edges_path=paths["gc_correction_bin_edges_path"],
                     insert_size_correction_bin_edges_path=paths[
                         "insert_size_correction_bin_edges_path"
