@@ -198,6 +198,7 @@ def main(args):
             # Check shape of sample dataset
             # 10 feature sets, 489 cell types
             assert_shape(
+                features,
                 expected_n_dims=2,
                 expected_dim_sizes={0: 10, 1: 489},
                 x_name="Loaded features",
