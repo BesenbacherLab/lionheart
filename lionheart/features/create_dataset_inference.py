@@ -4,7 +4,7 @@ Script for calculating features from binned coverages counted per chromosome for
 Features:
 
 Pearson R (and uncorrected p-value)
-Within-origin-mask fraction
+Within-cell_type-mask fraction
 Cosine similarity
 
 """
@@ -124,7 +124,7 @@ def load_bins(
     )
 
 
-def _load_origin_chrom_mask(path: pathlib.Path) -> np.ndarray:
+def _load_cell_type_chrom_mask(path: pathlib.Path) -> np.ndarray:
     # Load sparse array
     open_chromatin_mask = scipy.sparse.load_npz(path).todense()
     return np.asarray(open_chromatin_mask, dtype=np.float64).flatten()
@@ -132,59 +132,59 @@ def _load_origin_chrom_mask(path: pathlib.Path) -> np.ndarray:
 
 def _update_r_calculator(
     sample_cov,
-    origin,
+    cell_type,
     r_calculator,
-    origin_cov: Optional[np.ndarray] = None,
+    cell_type_cov: Optional[np.ndarray] = None,
     path: Optional[pathlib.Path] = None,
     chrom_r_calculator=None,
     exclude_indices=None,
     consensus_indices=None,  # Additional exclusion indices (*post* exclude_indices exclusion)
 ):
-    assert sum([origin_cov is None, path is None]) == 1
+    assert sum([cell_type_cov is None, path is None]) == 1
     if path is not None:
-        origin_cov = _load_origin_chrom_mask(path)
+        cell_type_cov = _load_cell_type_chrom_mask(path)
 
     if exclude_indices is not None:
-        origin_cov = np.delete(origin_cov, exclude_indices)
+        cell_type_cov = np.delete(cell_type_cov, exclude_indices)
 
     if consensus_indices is not None:
-        origin_cov = np.delete(origin_cov, consensus_indices)
+        cell_type_cov = np.delete(cell_type_cov, consensus_indices)
 
-    if len(sample_cov) != len(origin_cov):
+    if len(sample_cov) != len(cell_type_cov):
         raise RuntimeError(
-            f"The loaded overlap mask ({len(origin_cov)}) did not "
+            f"The loaded overlap mask ({len(cell_type_cov)}) did not "
             f"have the expected number of bins ({len(sample_cov)}). "
-            f"File: {origin} at {path}."
+            f"File: {cell_type} at {path}."
         )
 
     try:
-        r_calculator.add_data(x=sample_cov, y=origin_cov)
+        r_calculator.add_data(x=sample_cov, y=cell_type_cov)
     except ValueError as e:
         raise ValueError(
-            f"Failed to add data to Pearson R calculator: {origin} at {path}. {e}"
+            f"Failed to add data to Pearson R calculator: {cell_type} at {path}. {e}"
         )
 
     # TODO: Decide whether to include per-chromosome features
     if chrom_r_calculator is not None:
         try:
-            chrom_r_calculator.add_data(x=sample_cov, y=origin_cov)
+            chrom_r_calculator.add_data(x=sample_cov, y=cell_type_cov)
         except ValueError as e:
             raise ValueError(
                 "Failed to add data to chromosome-wise "
                 "Pearson R calculator: "
-                f"{origin} at {path}. {e}"
+                f"{cell_type} at {path}. {e}"
             )
 
-    return origin, r_calculator, chrom_r_calculator
+    return cell_type, r_calculator, chrom_r_calculator
 
 
 def create_dataset_for_inference(
     chrom_coverage_paths: Dict[str, pathlib.Path],
     chrom_insert_size_paths: Dict[str, pathlib.Path],
-    origin_paths: Dict[str, pathlib.Path],
+    cell_type_paths: Dict[str, pathlib.Path],
     output_paths: DatasetOutputPaths,
     bins_info_dir_path: pathlib.Path,
-    origin_to_idx: pd.DataFrame,
+    cell_type_to_idx: pd.DataFrame,
     gc_correction_bin_edges_path: pathlib.Path,
     insert_size_correction_bin_edges_path: pathlib.Path,
     consensus_dir_path: pathlib.Path,
@@ -203,18 +203,18 @@ def create_dataset_for_inference(
     # (somewhat) biggest to smallest
     chroms_ordered = sorted(chrom_coverage_paths.keys(), key=lambda x: int(x[3:]))
 
-    # Paths of origin masks per chromosome
-    origin_chromosome_beds = {
-        f"{origin}_{chrom}": pathlib.Path(f"{path}/{chrom}.npz")
-        for origin, path in origin_paths.items()
+    # Paths of cell_type masks per chromosome
+    cell_type_chromosome_beds = {
+        f"{cell_type}_{chrom}": pathlib.Path(f"{path}/{chrom}.npz")
+        for cell_type, path in cell_type_paths.items()
         for chrom in chroms_ordered
     }
 
     # Check that the masks exist to fail quickly
-    missing_masks = [p for p in origin_chromosome_beds.values() if not p.exists()]
+    missing_masks = [p for p in cell_type_chromosome_beds.values() if not p.exists()]
     if missing_masks:
         raise RuntimeError(
-            f"These ({len(missing_masks)}) origin mask arrays could not be found: "
+            f"These ({len(missing_masks)}) cell_type mask arrays could not be found: "
             f"{missing_masks}"
         )
 
@@ -269,14 +269,14 @@ def create_dataset_for_inference(
         chrom: f"{consensus_dir_path}/{chrom}.npz" for chrom in chroms_ordered
     }
 
-    messenger(f"Preparing feature calculators")
+    messenger("Preparing feature calculators")
 
     r_calculators: Dict[str, RunningPearsonR] = {}
     stats_calculator = RunningStats(ignore_nans=True)
     extra_calculator_names = ["consensus"]
 
-    for origin in list(origin_paths.keys()) + extra_calculator_names:
-        r_calculators[origin] = RunningPearsonR(ignore_nans=True)
+    for cell_type in list(cell_type_paths.keys()) + extra_calculator_names:
+        r_calculators[cell_type] = RunningPearsonR(ignore_nans=True)
 
     # Initialize Poisson distribution
     # In very rare cases with NaNs (like -9223372036854775808)
@@ -285,7 +285,7 @@ def create_dataset_for_inference(
     # see the size of the problem
     # Also, we only allow very few negatives in total,
     # so we don't miss systematic errors
-    messenger(f"Preparing outlier detector")
+    messenger("Preparing outlier detector")
     poiss = ZIPoissonPMF(handle_negatives="warn_truncate", max_num_negatives=50)
 
     megabin_offset_combination_averages_collection = {}
@@ -340,7 +340,7 @@ def create_dataset_for_inference(
                     chrom_bins_paths[chrom], messenger=messenger
                 )
 
-                consensus_overlap = _load_origin_chrom_mask(
+                consensus_overlap = _load_cell_type_chrom_mask(
                     consensus_chromosome_files[chrom]
                 )
 
@@ -422,7 +422,7 @@ def create_dataset_for_inference(
 
                     # Apply chromosome-level GC correction to entire chromosome
                     messenger(
-                        f"Correcting GC bias with chromosome-level correction factor",
+                        "Correcting GC bias with chromosome-level correction factor",
                     )
                     sample_cov = correct_bias(
                         coverages=sample_cov,
@@ -506,7 +506,8 @@ def create_dataset_for_inference(
 
                     # Apply chromosome-level insert size correction to entire chromosome
                     messenger(
-                        f"Reducing insert size bias with chromosome-level noise, skewness and mean-shift correction factors",
+                        "Reducing insert size bias with chromosome-level noise, "
+                        "skewness and mean-shift correction factors",
                     )
 
                     # Correct the noise
@@ -524,9 +525,7 @@ def create_dataset_for_inference(
                         coverages=sample_cov[sample_insert_sizes > 0],
                         correct_factors=insert_size_skewness_correction_factors_collection[
                             chrom
-                        ][
-                            "chromosome"
-                        ],
+                        ]["chromosome"],
                         bias_scores=sample_insert_sizes[sample_insert_sizes > 0],
                         bin_edges=insert_size_correction_bin_edges,
                     )
@@ -555,7 +554,7 @@ def create_dataset_for_inference(
                 # Scaling by _mean_ is probably the best version
                 # as it keeps the relative spread and keeps
                 # values positive (last part not too important at this stage)
-                messenger(f"Normalizing megabin averages")
+                messenger("Normalizing megabin averages")
                 with timer.time_step(indent=4):
                     # The `megabin_offset_combination_averages` has the centering average for
                     # all combinations of the megabin offsets (so one average per stride-sized bin)
@@ -602,8 +601,8 @@ def create_dataset_for_inference(
                     _,
                 ) = _update_r_calculator(
                     sample_cov=sample_cov,
-                    origin_cov=consensus_overlap,
-                    origin="consensus",
+                    cell_type_cov=consensus_overlap,
+                    cell_type="consensus",
                     r_calculator=r_calculators["consensus"],
                     exclude_indices=None,  # Already excluded
                 )
@@ -615,18 +614,18 @@ def create_dataset_for_inference(
                 res = Parallel(n_jobs=n_jobs)(
                     delayed(_update_r_calculator)(
                         sample_cov=sample_cov,
-                        path=origin_chromosome_beds[f"{origin}_{chrom}"],
-                        origin=origin,
-                        r_calculator=r_calculators[origin],
+                        path=cell_type_chromosome_beds[f"{cell_type}_{chrom}"],
+                        cell_type=cell_type,
+                        r_calculator=r_calculators[cell_type],
                         exclude_indices=exclude_indices,
                         consensus_indices=consensus_overlap_indices,
                     )
-                    for origin in origin_paths.keys()
+                    for cell_type in cell_type_paths.keys()
                 )
 
                 for r in res:
-                    (origin, r_calculator, _) = r
-                    r_calculators[origin] = r_calculator
+                    (cell_type, r_calculator, _) = r
+                    r_calculators[cell_type] = r_calculator
 
             # Free up memory
             del (
@@ -638,7 +637,7 @@ def create_dataset_for_inference(
             )
             gc.collect()
 
-    messenger(f"Initializing output array")
+    messenger("Initializing output array")
 
     # Prepare features array
     # 0) Pearson R and 1) p-value, 2) within-cell-mask fraction, 3) cosine similarity
@@ -649,12 +648,12 @@ def create_dataset_for_inference(
     features_arr = np.zeros(
         shape=(
             num_features,
-            (len(origin_paths) + 1),  # +1 is consensus
+            (len(cell_type_paths) + 1),  # +1 is consensus
         ),
         dtype=np.float64,
     )
 
-    messenger(f"Calculating Pearson R per origin")
+    messenger("Calculating Pearson R per cell_type")
 
     # Calculate features across the genome
     # 0) Pearson's R
@@ -669,11 +668,11 @@ def create_dataset_for_inference(
     # 8) xy_sum
     # 9) n
     with timer.time_step(indent=4, name_prefix="calc_genome_features"):
-        for origin_idx, origin in zip(
-            origin_to_idx["idx"],
-            origin_to_idx["origin"],
+        for cell_type_idx, cell_type in zip(
+            cell_type_to_idx["idx"],
+            cell_type_to_idx["cell_type"],
         ):
-            calculator = r_calculators[origin]
+            calculator = r_calculators[cell_type]
             r, p = calculator.pearson_r
             fraction_within = calculator.xy_sum / calculator.n
 
@@ -691,9 +690,9 @@ def create_dataset_for_inference(
                 calculator.n,
             ]
             for i, val in enumerate(feature_values):
-                features_arr[i, origin_idx] = val
+                features_arr[i, cell_type_idx] = val
 
-    messenger(f"Saving the output to disk")
+    messenger("Saving the output to disk")
 
     # Write array with values
     np.save(output_paths.dataset, features_arr)
@@ -816,7 +815,7 @@ def create_dataset_for_inference(
     if output_paths.feature_readme is not None:
         with open(output_paths.feature_readme, "w") as f:
             f.write(
-                f"""The features in the dataset are as follows:
+                """The features in the dataset are as follows:
         0) Pearson's R
         1) and its p-value
         2) The normalized dot product (i.e. within-mask fraction)
