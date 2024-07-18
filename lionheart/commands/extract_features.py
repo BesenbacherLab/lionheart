@@ -277,7 +277,6 @@ def main(args):
             "exclude_zero_indices": resources_dir
             / "exclude_bins"
             / "zero_coverage_bins_indices.npz",
-            "origin_order": resources_dir / "models" / "full_model" / "origins.csv",
             "ATAC_origin_order": resources_dir / "ATAC.idx_to_origin.csv",
             "DHS_origin_order": resources_dir / "DHS.idx_to_origin.csv",
         },

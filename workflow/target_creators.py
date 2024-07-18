@@ -1,5 +1,5 @@
 """
-Workflow target creators for extracting features and 
+Workflow target creators for extracting features and
 predicting cancer probability for a single BAM file.
 
 """
@@ -84,7 +84,6 @@ def extract_features(
         resources_dir / "DHS.idx_to_origin.csv",
         resources_dir / "exclude_bins" / "outlier_indices.npz",
         resources_dir / "exclude_bins" / "zero_coverage_bins_indices.npz",
-        resources_dir / "models" / "full_model" / "origins.csv",
     ]
 
     expected_output_files = [

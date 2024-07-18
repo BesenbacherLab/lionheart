@@ -114,20 +114,19 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
+    model_name = "CRUK_CUHK_C2i_D1_D2_DL_DLV_PRSTT"
+
     paths = IOPaths(
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
-            "model": resources_dir / "models" / "full_model" / "model.joblib",
-            "roc_curves": resources_dir
-            / "models"
-            / "full_model"
-            / "inference_ROC_curves.json",
+            "model": resources_dir / "models" / model_name / "model.joblib",
+            "roc_curves": resources_dir / "models" / model_name / "ROC_curves.json",
         },
         in_dirs={
             "resources_dir": resources_dir,
             "dataset_dir": sample_dir / "dataset",
             "models_dir": resources_dir / "models",
-            "full_model_dir": resources_dir / "models" / "full_model",
+            "full_model_dir": resources_dir / "models" / model_name,
             "sample_dir": sample_dir,
         },
         out_dirs={
@@ -156,7 +155,7 @@ def main(args):
                 raise
 
             try:
-                roc = rocs.get("full_model.all_training_data")  # TODO: Fix path
+                roc = rocs.get("Average")  # TODO: Fix path
             except:
                 messenger("ROCCurves collection did not have the expected ROC curve.")
                 raise
@@ -245,6 +244,7 @@ def main(args):
                 )
 
             prediction_df = pd.DataFrame(thresholds)
+            prediction_df["ROC Curve"] = "Average (training data)"
             prediction_df["Probability"] = predicted_probability
             prediction_df.columns = [
                 "Threshold",
@@ -259,7 +259,7 @@ def main(args):
             if args.identifier is not None:
                 prediction_df["ID"] = args.identifier
 
-            messenger(f"Saving predicted probability to disk")
+            messenger("Saving predicted probability to disk")
             prediction_df.to_csv(paths["prediction_path"], index=False)
 
     timer.stamp()
