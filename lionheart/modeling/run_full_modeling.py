@@ -162,11 +162,19 @@ def run_full_model_training(
             messenger=messenger,
         )
 
+    # Extract scores
+    scores = train_out["Evaluation"]["Scores"].copy()
+    cols_to_move = [
+        c for c in ["Split", "Threshold Version", "AUC"] if c in scores.columns
+    ]
+    col_order = cols_to_move + [c for c in scores.columns if c not in cols_to_move]
+
+    # Move the columns first for the saved evaluations
+    train_out["Evaluation"]["Scores"] = scores[col_order]
+
     # Print results
     with pd.option_context("display.max_rows", None, "display.max_columns", None):
-        # Extract scores
-        scores = train_out["Evaluation"]["Scores"].copy()
-        cols_to_move = ["Split", "Threshold Version", "AUC"]
+        # Remove columns from the messaging to log
         cols_to_delete = [
             "Repetition",
             "Experiment",
@@ -175,9 +183,8 @@ def run_full_model_training(
             "Seed",
             "Num Classes",
         ]
-        col_order = cols_to_move + [x for x in scores.columns if x not in cols_to_move]
         col_order = [
-            x for x in col_order if x in scores.columns and x not in cols_to_delete
+            c for c in col_order if c in scores.columns and c not in cols_to_delete
         ]
 
         messenger(train_out["Evaluation"]["What"], indent=4)
