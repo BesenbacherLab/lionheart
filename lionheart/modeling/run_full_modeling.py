@@ -207,7 +207,7 @@ def run_full_model_training(
             plot_path=paths["out_path"] / "ROC_curves.png",
         )
 
-        print(train_out["CV Results"])
+        print(pd.DataFrame(train_out["CV Results"]))
 
         # Save the predictions
         if train_out["Predictions"] is not None:
