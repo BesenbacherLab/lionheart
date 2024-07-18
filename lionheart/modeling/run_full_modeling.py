@@ -3,8 +3,12 @@ from typing import Callable, List, Optional, Union, Dict
 from joblib import dump
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import seaborn as sns
 from utipy import StepTimer, Messenger, check_messenger
 from generalize import Evaluator, train_full_model
+from generalize.evaluate.roc_curves import ROCCurves
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
 
@@ -162,7 +166,14 @@ def run_full_model_training(
         # Extract scores
         scores = train_out["Evaluation"]["Scores"].copy()
         cols_to_move = ["Split", "Threshold Version", "AUC"]
-        cols_to_delete = ["Repetition", "Experiment"]
+        cols_to_delete = [
+            "Repetition",
+            "Experiment",
+            "Task",
+            "Model",
+            "Seed",
+            "Num Classes",
+        ]
         col_order = cols_to_move + [x for x in scores.columns if x not in cols_to_move]
         col_order = [
             x for x in col_order if x in scores.columns and x not in cols_to_delete
@@ -174,6 +185,8 @@ def run_full_model_training(
         messenger("Optimal hyperparameters:", indent=4)
         for key in model_dict["grid"].keys():
             messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
+
+    print(train_out["Evaluation"].keys())
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
@@ -189,6 +202,12 @@ def run_full_model_training(
             identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
         )
 
+        # Plot ROC curves
+        plot_roc_curves(
+            roc_curves=train_out["Evaluation"]["ROC"],
+            plot_path=paths["out_path"] / "ROC_curves.png",
+        )
+
         # Save the predictions
         if train_out["Predictions"] is not None:
             messenger("Saving predictions", indent=2)
@@ -200,3 +219,42 @@ def run_full_model_training(
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
+
+
+def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
+    # Plotting with seaborn
+    plt.figure(figsize=(10, 8))
+    colors = mpl.colormaps["Dark2"].colors
+    sns.set(style="whitegrid")
+
+    roc_dict = {
+        path.replace("Repetition.0.Split.", ""): roc_curves.get(path)
+        for path in roc_curves.paths
+    }
+
+    # Plot each individual ROC curve
+    for color, (key, roc_) in zip(colors, roc_dict.items()):
+        plt.plot(
+            roc_.fpr,
+            roc_.tpr,
+            color=color,
+            lw=2 if key == "Average" else 1,
+            alpha=1.0 if key == "Average" else 0.6,
+            label=f"ROC curve {key} (AUC = {roc_.auc:.2f})",
+        )
+
+    # Plot the diagonal line
+    plt.plot([0, 1], [0, 1], linestyle="--", color="gray", lw=2)
+
+    # Customize the plot
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel("1 - Specificity", fontsize=14)
+    plt.ylabel("Sensitivity", fontsize=14)
+    plt.title("ROC Curves", fontsize=18)
+    plt.legend(loc="lower right", fontsize=12)
+    plt.grid(True)
+
+    # Save the plot to disk
+    plt.savefig(plot_path, dpi=300)
+    plt.show()
