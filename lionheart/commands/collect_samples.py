@@ -152,8 +152,8 @@ def collect_features(args, out_path, messenger, timer):
                         file_path = paths[
                             sample_path_key.split("__")[0] + "_" + file_type
                         ]
-                        with file_path.open("r") as f:
-                            json_data[file_path] = json.load(f)
+                        with file_path.open(file_path, "r") as f:
+                            json_data[str(file_path)] = json.load(f)
 
                     # Save the combined data as a new JSON file
                     with open(paths[out_file_type], "w") as f:
