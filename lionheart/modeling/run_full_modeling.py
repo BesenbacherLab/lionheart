@@ -187,8 +187,6 @@ def run_full_model_training(
         for key in model_dict["grid"].keys():
             messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
 
-    print(train_out["Evaluation"].keys())
-
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
         # Save the estimator
