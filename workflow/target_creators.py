@@ -64,7 +64,7 @@ def extract_features(
     cores
         The number of cores available to the target.
         Parallelization is used during feature calculation
-        across the many origin masks.
+        across the many cell type masks.
     """
     bam_file = pathlib.Path(bam_file).resolve()
     resources_dir = pathlib.Path(resources_dir).resolve()
@@ -78,8 +78,8 @@ def extract_features(
         resources_dir / "whole_genome.mappable.binned_10bp.bed.gz",
         resources_dir / "whole_genome.mappable.binned_10bp.gc_contents_bin_edges.npy",
         resources_dir / "whole_genome.mappable.binned_10bp.insert_size_bin_edges.npy",
-        resources_dir / "ATAC.idx_to_origin.csv",
-        resources_dir / "DHS.idx_to_origin.csv",
+        resources_dir / "ATAC.idx_to_cell_type.csv",
+        resources_dir / "DHS.idx_to_cell_type.csv",
         resources_dir / "exclude_bins" / "outlier_indices.npz",
         resources_dir / "exclude_bins" / "zero_coverage_bins_indices.npz",
     ]
