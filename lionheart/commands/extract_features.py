@@ -408,7 +408,7 @@ def main(args):
                 np.load(
                     output_path_collections[mask_type].dataset, allow_pickle=True
                 ).astype(np.float32)
-                for mask_type in ["DHS", "ATAC"]
+                for mask_type in ["ATAC", "DHS"]
             ]
         )
         np.save(paths["dataset_out_path"], feature_dataset)
