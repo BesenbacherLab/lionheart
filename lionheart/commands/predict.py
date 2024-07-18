@@ -250,12 +250,12 @@ def main(args):
                 "Threshold",
                 "Exp. Specificity",
                 "Exp. Sensitivity",
-                "Name",
+                "Threshold Name",
                 "Prediction",
                 "Probability",
             ]
             prediction_df["ROC Curve"] = "Average (training data)"
-            move_column_inplace(prediction_df, "Name", 0)
+            move_column_inplace(prediction_df, "Threshold Name", 0)
             move_column_inplace(prediction_df, "ROC Curve", 1)
 
             if args.identifier is not None:
