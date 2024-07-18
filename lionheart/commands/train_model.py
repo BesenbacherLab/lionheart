@@ -64,6 +64,14 @@ def setup_parser(parser):
         ),
     )
     parser.add_argument(
+        "--dataset_names",
+        type=str,
+        nargs="*",
+        help="Names of datasets."
+        "\nUse quotes (e.g. 'name of dataset 1') in case of whitespace."
+        "\nWhen passed, one name per specified dataset in the same order as `--dataset_paths`.",
+    )
+    parser.add_argument(
         "--use_included_features",
         action="store_true",
         help="Whether to use the included features in the model training."
@@ -175,7 +183,7 @@ def main(args):
     paths.mk_output_dirs(collection="out_dirs")
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="collect_samples-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="train_model-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
     messenger("Running training of model")
     messenger.now()
@@ -197,11 +205,20 @@ def main(args):
             "When `--use_included_features` is not enabled, "
             "at least 1 dataset needs to be specified."
         )
+    if args.dataset_names is not None and len(args.dataset_names) != len(
+        args.dataset_paths
+    ):
+        raise ValueError(
+            "When specifying `--dataset_names`, it must have one name per dataset "
+            "(i.e. same length as `--dataset_paths`)."
+        )
 
     dataset_paths = {}
     meta_data_paths = {}
     for path_idx, dataset_path in enumerate(args.dataset_paths):
         nm = f"new_dataset_{path_idx}"
+        if args.dataset_names is not None:
+            nm = args.dataset_names[path_idx]
         dataset_paths[nm] = dataset_path
         meta_data_paths[nm] = args.meta_data_paths[path_idx]
 
