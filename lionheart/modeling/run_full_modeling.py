@@ -253,7 +253,7 @@ def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
     plt.ylim([0.0, 1.05])
     plt.xlabel("1 - Specificity", fontsize=14)
     plt.ylabel("Sensitivity", fontsize=14)
-    plt.title("ROC Curves", fontsize=18)
+    plt.title("ROC Curves\n(Predicting *Training* Data)", fontsize=18)
     plt.legend(loc="lower right", fontsize=12)
     plt.grid(True)
 
