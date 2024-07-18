@@ -1,4 +1,4 @@
-# Workflow for remapping data (e.g. hg19 -> hg38).
+# Workflow for (re)mapping data (e.g. (hg19 BAM or FASTQ) -> hg38 BAM).
 # Adapted from Genome-Mapping-0.1.4 by Michael Knudsen @ MOMA.
 # Generalized by Ludvig Renbo Olsen @ MOMA.
 
@@ -22,9 +22,15 @@ ACCOUNT = ""  # Project account for slurm prioritization - may not apply to your
 SEQ_CENTER = ""  # Sequencing center for read group
 PLATFORM = "ILLUMINA"
 
-# Specify dict of sample_id -> bam_file path
-# You can write code to generate this dict
-bam_files = {"<sample_id_1>": "path/to/x.bam"}
+# Specify dict of {sample_id -> bam file path} and/or {sample_id -> fastq paths}
+# You can write code to generate these dicts
+
+# "<sample_id_1>": "path/to/x.bam"
+bam_files = {}
+
+# Pass the two FASTQ files as a tuple with r1 first, r2 second
+# "<sample_id_1>": ("path/to/x_r1.fq.gz", "path/to/x_r2.fq.gz")
+fastq_files = {}
 
 # Whether to run some additional metric collections
 # These are not required for cancer detection
@@ -38,9 +44,13 @@ COLLECT_WGS_METRICS = False
 if not SEQ_CENTER:
     raise ValueError("Please specify `SEQ_CENTER`.")
 
+# Check no overlap between BAM and FASTQ
+files = {"BAM": bam_files, "FASTQ": fastq_files}
+if set(bam_files.keys()).intersection(fastq_files):
+    raise ValueError("`bam_files` and `fastq_files` can't have overlapping sample IDs.")
+
 
 def legalize_target_name(target_name):
-
     # First check if target name is legal.
     if re.match(r"^[a-zA-Z_][a-zA-Z0-9._]*$", target_name):
         return target_name
@@ -65,7 +75,6 @@ def legalize_target_name(target_name):
 
 
 def fastq_info(filename):
-
     with gzip.open(filename, "rt") as handle:
         first_line = handle.readline()
 
@@ -76,10 +85,8 @@ def fastq_info(filename):
 
 
 def get_read_info(filename):
-
     bamfile = pysam.AlignmentFile(filename, "rb")
     for alignment in bamfile.fetch(until_eof=True):
-
         instrument, _, flowcell, lane = alignment.query_name.split(":")[:4]
         break
 
@@ -99,7 +106,6 @@ def trim_and_map(
     output_folder: pathlib.Path,
     tmp_folder: pathlib.Path,
 ):
-
     read_group = f"@RG\\tCN:{seq_center}\\tPL:{platform}\\tID:{instrument}.{lane}\\tSM:{sample}\\tLB:{library}\\tPU:{flowcell}.{lane}"
 
     inputs = [r1_file, r2_file]
@@ -157,7 +163,6 @@ def trim_and_map(
 def mark_duplicates(
     bam_files, sample, output_folder: pathlib.Path, tmp_folder: pathlib.Path
 ):
-
     inputs = bam_files
     outputs = {
         "bam_file": str(output_folder / f"{sample}.aligned.sorted.markdup.bam"),
@@ -200,7 +205,6 @@ def mark_duplicates(
 
 
 def index(bam_file):
-
     inputs = bam_file
     outputs = {"bam_index": str(bam_file) + ".bai"}
 
@@ -219,7 +223,6 @@ def index(bam_file):
 def collect_insert_size_metrics(
     bam_file, sample, output_folder: pathlib.Path, tmp_folder: pathlib.Path
 ):
-
     options = dict(cores="1", memory="8g", walltime="12:00:00")
     if ACCOUNT:
         options["account"] = ACCOUNT
@@ -262,7 +265,6 @@ def collect_insert_size_metrics(
 def collect_wgs_metrics(
     bam_file, sample, output_folder: pathlib.Path, tmp_folder: pathlib.Path
 ):
-
     options = dict(cores="1", memory="8g", walltime="12:00:00")
     if ACCOUNT:
         options["account"] = ACCOUNT
@@ -306,85 +308,94 @@ if ACCOUNT:
 gwf = gwf.Workflow(defaults=main_defaults)
 
 
-for sample_id, bam_path in bam_files.items():
-    # Name without .bam extension
-    bam_prefix: str = pathlib.Path(bam_path).name[:-4]
-    sample_output_dir = pathlib.Path(output_data_dir) / sample_id
-    tmp_dir = sample_output_dir / "tmp"
-    # Create output directory
-    mk_dir(sample_output_dir, f"output directory for {sample_id}", messenger=None)
-    mk_dir(tmp_dir, f"tmp directory for {sample_id}", messenger=None)
+for file_type, file_collection in files.items():
+    for sample_id, path_s in file_collection.items():
+        sample_output_dir = pathlib.Path(output_data_dir) / sample_id
+        tmp_dir = sample_output_dir / "tmp"
+        # Create output directory
+        mk_dir(sample_output_dir, f"output directory for {sample_id}", messenger=None)
+        mk_dir(tmp_dir, f"tmp directory for {sample_id}", messenger=None)
 
-    tmp_prefix = str(tmp_dir / bam_prefix)
-    instrument, flowcell, lane = get_read_info(
-        bam_path
-    )  # Currently issues a warning if the BAM file is not indexed (harmless)
+        if file_type == "BAM":
+            bam_path = path_s
+            # Name without .bam extension
+            bam_prefix: str = pathlib.Path(bam_path).name[:-4]
 
-    fq0_path = str(sample_output_dir / (bam_prefix + "_R0.fq.gz"))
-    fq1_path = str(sample_output_dir / (bam_prefix + "_R1.fq.gz"))
-    fq2_path = str(sample_output_dir / (bam_prefix + "_R2.fq.gz"))
+            tmp_prefix = str(tmp_dir / bam_prefix)
+            instrument, flowcell, lane = get_read_info(
+                bam_path
+            )  # Currently issues a warning if the BAM file is not indexed (harmless)
 
-    (
-        gwf.target(
-            legalize_target_name(f"bam2fastq_{sample_id}"),
-            inputs=[str(bam_path)],
-            outputs=[fq1_path, fq2_path],
+            fq0_path = str(sample_output_dir / (bam_prefix + "_R0.fq.gz"))
+            fq1_path = str(sample_output_dir / (bam_prefix + "_R1.fq.gz"))
+            fq2_path = str(sample_output_dir / (bam_prefix + "_R2.fq.gz"))
+
+            (
+                gwf.target(
+                    legalize_target_name(f"bam2fastq_{sample_id}"),
+                    inputs=[str(bam_path)],
+                    outputs=[fq1_path, fq2_path],
+                )
+                << f"""\
+            samtools collate -O {bam_path} {tmp_prefix} | samtools fastq -1 {fq1_path} -2 {fq2_path} -s {fq0_path}
+            """
+            )
+        elif file_type == "FASTQ":
+            fq1_path = path_s[0]
+            fq2_path = path_s[1]
+        else:
+            raise ValueError(f"Unknown file type: {file_type}.")
+
+        trim_and_map_target = gwf.target_from_template(
+            legalize_target_name(f"TrimAndMap_{sample_id}"),
+            trim_and_map(
+                r1_file=fq1_path,
+                r2_file=fq2_path,
+                sample=sample_id,
+                library="x",
+                instrument=instrument,
+                flowcell=flowcell,
+                lane=lane,
+                platform=PLATFORM,
+                seq_center=SEQ_CENTER,
+                output_folder=sample_output_dir,
+                tmp_folder=tmp_dir,
+            ),
         )
-        << f"""\
-    samtools collate -O {bam_path} {tmp_prefix} | samtools fastq -1 {fq1_path} -2 {fq2_path} -s {fq0_path}
-    """
-    )
 
-    trim_and_map_target = gwf.target_from_template(
-        legalize_target_name(f"TrimAndMap_{sample_id}"),
-        trim_and_map(
-            r1_file=fq1_path,
-            r2_file=fq2_path,
-            sample=sample_id,
-            library="x",
-            instrument=instrument,
-            flowcell=flowcell,
-            lane=lane,
-            platform=PLATFORM,
-            seq_center=SEQ_CENTER,
-            output_folder=sample_output_dir,
-            tmp_folder=tmp_dir,
-        ),
-    )
-
-    mark_duplicates_target = gwf.target_from_template(
-        legalize_target_name(f"MarkDuplicates_{sample_id}"),
-        mark_duplicates(
-            bam_files=[trim_and_map_target.outputs["bam_file"]],
-            sample=sample_id,
-            output_folder=sample_output_dir,
-            tmp_folder=tmp_dir,
-        ),
-    )
-
-    index_target = gwf.target_from_template(
-        legalize_target_name(f"Index_{sample_id}"),
-        index(bam_file=mark_duplicates_target.outputs["bam_file"]),
-    )
-
-    if COLLECT_INSERT_SIZES:
-        collect_insert_size_metrics_target = gwf.target_from_template(
-            legalize_target_name(f"CollectInsertSizeMetrics_{sample_id}"),
-            collect_insert_size_metrics(
-                bam_file=mark_duplicates_target.outputs["bam_file"],
+        mark_duplicates_target = gwf.target_from_template(
+            legalize_target_name(f"MarkDuplicates_{sample_id}"),
+            mark_duplicates(
+                bam_files=[trim_and_map_target.outputs["bam_file"]],
                 sample=sample_id,
                 output_folder=sample_output_dir,
                 tmp_folder=tmp_dir,
             ),
         )
 
-    if COLLECT_WGS_METRICS:
-        collect_wgs_metrics_target = gwf.target_from_template(
-            legalize_target_name(f"CollectWgsMetrics_{sample_id}"),
-            collect_wgs_metrics(
-                bam_file=mark_duplicates_target.outputs["bam_file"],
-                sample=sample_id,
-                output_folder=sample_output_dir,
-                tmp_folder=tmp_dir,
-            ),
+        index_target = gwf.target_from_template(
+            legalize_target_name(f"Index_{sample_id}"),
+            index(bam_file=mark_duplicates_target.outputs["bam_file"]),
         )
+
+        if COLLECT_INSERT_SIZES:
+            collect_insert_size_metrics_target = gwf.target_from_template(
+                legalize_target_name(f"CollectInsertSizeMetrics_{sample_id}"),
+                collect_insert_size_metrics(
+                    bam_file=mark_duplicates_target.outputs["bam_file"],
+                    sample=sample_id,
+                    output_folder=sample_output_dir,
+                    tmp_folder=tmp_dir,
+                ),
+            )
+
+        if COLLECT_WGS_METRICS:
+            collect_wgs_metrics_target = gwf.target_from_template(
+                legalize_target_name(f"CollectWgsMetrics_{sample_id}"),
+                collect_wgs_metrics(
+                    bam_file=mark_duplicates_target.outputs["bam_file"],
+                    sample=sample_id,
+                    output_folder=sample_output_dir,
+                    tmp_folder=tmp_dir,
+                ),
+            )
