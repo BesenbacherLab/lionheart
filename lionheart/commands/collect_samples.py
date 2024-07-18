@@ -105,7 +105,7 @@ def collect_features(args, out_path, messenger, timer):
     with timer.time_step(indent=4, name_prefix="stack_features"):
         first_sample_path_key = list(sample_path_collections.keys())[0]
         for out_file_type in output_file_paths.keys():
-            with timer.time_step(indent=8, name_prefix="out_file_type"):
+            with timer.time_step(indent=8, name_prefix=f"{out_file_type}"):
                 file_type = out_file_type[5:]  # remove prefix "out__"
                 messenger(f"Collecting {file_type}:", indent=8)
                 file_path_extension = (
