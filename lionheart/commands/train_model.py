@@ -15,6 +15,7 @@ from lionheart.modeling.transformers import prepare_transformers_fn
 from lionheart.modeling.run_full_modeling import run_full_model_training
 from lionheart.modeling.model_dict import create_model_dict
 from lionheart.utils.dual_log import setup_logging
+from lionheart.utils.global_vars import JOBLIB_VERSION
 
 """
 Todos
@@ -178,9 +179,9 @@ Train a model on a single dataset. This uses within-dataset cross-validation for
 
 def main(args):
     # Start by checking version of joblib
-    if joblib.__version__ != "1.2.0":
+    if joblib.__version__ != JOBLIB_VERSION:
         raise RuntimeError(
-            f"Currently, joblib must be version 1.2.0, got: {joblib.__version__}. "
+            f"Currently, joblib must be version {JOBLIB_VERSION}, got: {joblib.__version__}. "
             "Did you activate the correct conda environment?"
         )
 

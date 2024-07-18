@@ -15,9 +15,7 @@ from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
 from generalize.dataset import assert_shape
 from lionheart.modeling.roc_curves import ROCCurves
 from lionheart.utils.dual_log import setup_logging
-
-
-joblib_dump_version = "1.2.0"
+from lionheart.utils.global_vars import JOBLIB_VERSION
 
 
 # TODO Allow using a custom model!
@@ -208,11 +206,11 @@ def main(args):
             # Get first feature set (correlations)
             features = features[:, 0, :]
 
-            if joblib.__version__ != joblib_dump_version:
+            if joblib.__version__ != JOBLIB_VERSION:
                 # joblib sometimes can't load objects
                 # pickled with a different joblib version
                 messenger(
-                    f"Model was pickled with joblib=={joblib_dump_version}. "
+                    f"Model was pickled with joblib=={JOBLIB_VERSION}. "
                     f"The installed version is {joblib.__version__}. "
                     "Model loading *may* fail.",
                     add_msg_fn=warnings.warn,
