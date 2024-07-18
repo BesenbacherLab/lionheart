@@ -13,7 +13,7 @@ import warnings
 from joblib import load as joblib_load
 from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
 from generalize.dataset import assert_shape
-from lionheart.modeling.roc_curves import ROCCurves
+from generalize.evaluate.roc_curves import ROCCurves
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
 
