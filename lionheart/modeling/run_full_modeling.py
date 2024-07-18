@@ -189,6 +189,9 @@ def run_full_model_training(
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
+        # Avoid DEBUG messages from matplotlib
+        logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
         # Save the estimator
         dump(train_out["Estimator"], paths["model_path"])
 
@@ -201,13 +204,42 @@ def run_full_model_training(
             identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
         )
 
+        # Save CV optimization results
+        cv_results = pd.DataFrame(train_out["CV Results"]).loc[
+            :,
+            ["rank_test_score", "mean_test_score"]
+            + [f"param_{hparam}" for hparam in model_dict["grid"].keys()]
+            + ["mean_fit_time", "std_fit_time"],
+        ]
+        if "param_pca__kwargs" in cv_results.columns:
+            # Get target variance as it's own column
+            cv_results["param_PCA__target_variance"] = cv_results[
+                "param_pca__kwargs"
+            ].apply(lambda x: x["target_variance"])
+            del cv_results["param_pca__kwargs"]
+        cv_results.to_csv(paths["out_path"] / "grid_search_results.csv", index=False)
+
+        # Plot hyperparameters
+        if "param_model__C" in cv_results.columns:
+            plot_hparams(
+                cv_results,
+                hparam_col="param_model__C",
+                hparam_name="Lasso 'C'",
+                plot_path=paths["out_path"] / "hyperparameter.Lasso.C.png",
+            )
+        if "param_PCA__target_variance" in cv_results.columns:
+            plot_hparams(
+                cv_results,
+                hparam_col="param_PCA__target_variance",
+                hparam_name="PCA Target Variance",
+                plot_path=paths["out_path"] / "hyperparameter.PCA.target_variance.png",
+            )
+
         # Plot ROC curves
         plot_roc_curves(
             roc_curves=train_out["Evaluation"]["ROC"],
             plot_path=paths["out_path"] / "ROC_curves.png",
         )
-
-        print(pd.DataFrame(train_out["CV Results"]))
 
         # Save the predictions
         if train_out["Predictions"] is not None:
@@ -223,9 +255,6 @@ def run_full_model_training(
 
 
 def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
-    # Don't get DEBUG messages from matplotlib
-    logging.getLogger("matplotlib").setLevel(logging.WARNING)
-
     # Plotting with seaborn
     plt.figure(figsize=(10, 8))
     colors = mpl.colormaps["Dark2"].colors
@@ -260,5 +289,18 @@ def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
     plt.grid(True)
 
     # Save the plot to disk
+    plt.savefig(plot_path, dpi=300)
+    plt.show()
+
+
+def plot_hparams(
+    cv_results: pd.DataFrame, hparam_col: str, hparam_name: str, plot_path: pathlib.Path
+) -> None:
+    # Plot with seaborn.stripplot
+    plt.figure(figsize=(10, 6))
+    sns.stripplot(x=hparam_col, y="mean_test_score", data=cv_results, jitter=False)
+    plt.xlabel(hparam_name)
+    plt.ylabel("Balanced Accuracy")
+    plt.grid(True)
     plt.savefig(plot_path, dpi=300)
     plt.show()
