@@ -33,8 +33,6 @@ def extract_features(
     ----------
     gwf
         A `gwf` workflow to create targets for.
-    scripts_path
-        Path to the scripts directory with `extract_features.py`
     sample_id
         ID for current sample to use in target naming. Must be unique.
     bam_file
@@ -109,7 +107,7 @@ def extract_features(
 
     (
         gwf.target(
-            legalize_target_name(f"inference_extract_features_{sample_id}"),
+            legalize_target_name(f"lionheart_extract_features_{sample_id}"),
             inputs=to_strings(input_files),
             outputs=to_strings(expected_output_files),
             walltime=walltime,
@@ -138,6 +136,7 @@ def predict_sample(
         "sens_0.99",
         "0.5",
     ],
+    model_name="full_model",
     walltime: str = "00:59:00",
     memory: str = "3g",
 ):
@@ -149,14 +148,12 @@ def predict_sample(
     ----------
     gwf
         A `gwf` workflow to create targets for.
-    scripts_path
-        Path to the scripts directory with `extract_features.py`
     sample_id
         ID for current sample to use in target naming. Must be unique.
     sample_dir
         Path to the directory with the sample's features
         (NOTE: `out_dir` from `extract_features()`).
-        Expects a sub directory named `"datasets"` with the
+        Expects a sub directory named `"dataset"` with the
         `"feature_dataset.npy"` file.
     resources_dir
         Path to the directory with the framework resources.
@@ -188,26 +185,33 @@ def predict_sample(
         be more certain when predicting training data than test data,
         these thresholds are likely not too precise and should
         be taken with a grain of salt.
+    model_name
+        Name of model to use. Folder name within `resources_dir / models`.
     walltime
         A string specifying the available time for the target.
     memory
         The memory (RAM) available to the target.
     """
+    if model_name != "full_model":
+        # TODO: Allow giving a path to a trained model.
+        raise NotImplementedError(
+            "Specifying custom model names is not currently supported."
+        )
     sample_dir = pathlib.Path(sample_dir).resolve()
     resources_dir = pathlib.Path(resources_dir).resolve()
     out_dir = sample_dir if out_dir is None else pathlib.Path(out_dir).resolve()
 
     input_files = [
         sample_dir / "dataset" / "feature_dataset.npy",
-        resources_dir / "models" / "full_model" / "model.joblib",
-        resources_dir / "models" / "full_model" / "inference_ROC_curves.json",
+        resources_dir / "models" / model_name / "model.joblib",
+        resources_dir / "models" / model_name / "ROC_curves.json",
     ]
 
     expected_output_files = [out_dir / "prediction.csv"]
 
     (
         gwf.target(
-            legalize_target_name(f"inference_predict_{sample_id}"),
+            legalize_target_name(f"lionheart_predict_{sample_id}"),
             inputs=to_strings(input_files),
             outputs=to_strings(expected_output_files),
             walltime=walltime,
@@ -216,6 +220,83 @@ def predict_sample(
         << log_context(
             f"""
         lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {' '.join(thresholds)} --identifier {sample_id}
+        """
+        )
+    )
+
+
+def collect_samples(
+    gwf: Workflow,
+    sample_dirs: Optional[List[Union[str, pathlib.Path]]],
+    prediction_dirs: Optional[List[Union[str, pathlib.Path]]],
+    out_dir: Union[str, pathlib.Path] = None,
+    walltime: str = "00:59:00",
+    memory: str = "10g",
+):
+    """
+    Create target for collecting features and/or predictions across samples.
+
+    Parameters
+    ----------
+    gwf
+        A `gwf` workflow to create targets for.
+    sample_dirs
+        Paths to directories with extracted features
+        (NOTE: `out_dir` from `extract_features()`).
+        Expects directories to have a sub directory named `"dataset"`
+        with the `"feature_dataset.npy"` file.
+    prediction_dirs
+        Paths to directories with predictions
+        (NOTE: `out_dir` from `predict_sample()`).
+        Expects directories to have the `"prediction.csv"` file.
+    out_dir :  default=None
+        Directory to save output in.
+    walltime
+        A string specifying the available time for the target.
+    memory
+        The memory (RAM) available to the target.
+    """
+    if sample_dirs is None and prediction_dirs is None:
+        raise ValueError("Either `sample_dirs` or `prediction_dirs` must be specified.")
+
+    input_files = []
+    path_string = ""
+
+    # Prepare paths
+    out_dir = pathlib.Path(out_dir).resolve()
+
+    if sample_dirs is not None:
+        sample_dirs = [
+            pathlib.Path(sample_dir).resolve() / "dataset" for sample_dir in sample_dirs
+        ]
+        input_files += [
+            sample_dir / "feature_dataset.npy" for sample_dir in sample_dirs
+        ]
+        path_string += f"--feature_dirs {' '.join(to_strings(sample_dirs))} "
+
+    if prediction_dirs is not None:
+        prediction_dirs = [
+            pathlib.Path(pred_dir).resolve() for pred_dir in prediction_dirs
+        ]
+        input_files += [pred_dir / "prediction.csv" for pred_dir in prediction_dirs]
+        path_string += f"--prediction_dirs {' '.join(to_strings(prediction_dirs))} "
+
+    expected_output_files = [
+        out_dir / "predictions.csv",
+        out_dir / "feature_dataset.npy",
+    ]
+
+    (
+        gwf.target(
+            legalize_target_name("lionheart_collect_samples"),
+            inputs=to_strings(input_files),
+            outputs=to_strings(expected_output_files),
+            walltime=walltime,
+            memory=memory,
+        )
+        << log_context(
+            f"""
+        lionheart collect {path_string} --out_dir {out_dir}
         """
         )
     )
