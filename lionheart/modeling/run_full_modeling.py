@@ -278,8 +278,8 @@ def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
             roc_.fpr,
             roc_.tpr,
             color=color,
-            lw=2 if key == "Average" else 1,
-            alpha=1.0 if key == "Average" else 0.6,
+            lw=2 if key in ["Average", "Overall"] else 1,
+            alpha=1.0 if key in ["Average", "Overall"] else 0.6,
             label=f"{key} (AUC = {roc_.auc:.2f})",
         )
 
