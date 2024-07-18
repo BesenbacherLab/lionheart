@@ -1,5 +1,5 @@
 """
-Script that loads features from multiple samples and 
+Script that loads features from multiple samples and
 combines them to a numpy array.
 
 """
@@ -56,7 +56,8 @@ def collect_features(args, out_path, messenger, timer):
     if len(set(feature_dirs)) < len(feature_dirs):
         raise ValueError("Found duplicate elements in `--feature_dirs`.")
 
-    sample_paths = OrderedDict(
+    # NOTE: Values are DatasetOutputPaths objects!
+    sample_path_collections = OrderedDict(
         [
             (
                 f"{i}__{feature_dir}",
@@ -73,11 +74,11 @@ def collect_features(args, out_path, messenger, timer):
     ).get_path_dict(key_prefix="out__")
 
     feature_in_files = {
-        # Extract all paths from sample_paths.values()
+        # Extract all paths from sample_path_collections.values()
         k: v
         for path_dict in [
             sample_path_collection.get_path_dict(key_prefix=f"{i}_")
-            for i, sample_path_collection in enumerate(sample_paths.values())
+            for i, sample_path_collection in enumerate(sample_path_collections.values())
         ]
         for (k, v) in path_dict.items()
     }
@@ -102,14 +103,16 @@ def collect_features(args, out_path, messenger, timer):
 
     messenger("Start: Collecting features and correction factors across samples")
     with timer.time_step(indent=4, name_prefix="stack_features"):
-        first_sample_path_key = list(sample_paths.keys())[0]
+        first_sample_path_key = list(sample_path_collections.keys())[0]
         for out_file_type in output_file_paths.keys():
             with timer.time_step(indent=8, name_prefix="out_file_type"):
                 file_type = out_file_type[5:]  # remove prefix "out__"
                 messenger(f"Collecting {file_type}:", indent=8)
-                file_path_extension = sample_paths[first_sample_path_key][
-                    file_type
-                ].suffix
+                file_path_extension = (
+                    sample_path_collections[first_sample_path_key]
+                    .get_path_dict()[file_type]
+                    .suffix
+                )
 
                 if file_path_extension == ".txt":
                     continue
@@ -121,7 +124,7 @@ def collect_features(args, out_path, messenger, timer):
                                 paths[sample_path_key.split("__")[0] + "_" + file_type],
                                 allow_pickle=True,
                             ).astype(np.float32)
-                            for sample_path_key in sample_paths.keys()
+                            for sample_path_key in sample_path_collections.keys()
                         ]
                     )
                     np.save(paths[out_file_type], collected_dataset)
@@ -136,7 +139,7 @@ def collect_features(args, out_path, messenger, timer):
                                     sample_path_key.split("__")[0] + "_" + file_type
                                 ]
                             )
-                            for sample_path_key in sample_paths.keys()
+                            for sample_path_key in sample_path_collections.keys()
                         ],
                         ignore_index=True,
                     )
@@ -145,7 +148,7 @@ def collect_features(args, out_path, messenger, timer):
                 elif file_path_extension == ".json":
                     # Read json files
                     json_data = {}
-                    for sample_path_key in sample_paths.keys():
+                    for sample_path_key in sample_path_collections.keys():
                         file_path = paths[
                             sample_path_key.split("__")[0] + "_" + file_type
                         ]
@@ -211,7 +214,6 @@ def collect_predictions(args, out_path, messenger, timer):
 
 
 def main(args):
-
     if not args.feature_dirs and not args.prediction_dirs:
         raise ValueError(
             "At least one of `--feature_dirs` or `--prediction_dirs` must be specified."
