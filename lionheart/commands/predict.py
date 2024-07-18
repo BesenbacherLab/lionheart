@@ -158,6 +158,8 @@ def main(args):
                 messenger("ROCCurves collection did not have the expected ROC curve.")
                 raise
 
+            print(roc)
+
             thresholds = []
 
             if thresholds_to_calculate["max_j"]:
