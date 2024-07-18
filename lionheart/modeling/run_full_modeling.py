@@ -1,6 +1,7 @@
 import pathlib
 from typing import Callable, List, Optional, Union, Dict
 from joblib import dump
+import logging
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -222,6 +223,9 @@ def run_full_model_training(
 
 
 def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
+    # Don't get DEBUG messages from matplotlib
+    logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
     # Plotting with seaborn
     plt.figure(figsize=(10, 8))
     colors = mpl.colormaps["Dark2"].colors
@@ -240,7 +244,7 @@ def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
             color=color,
             lw=2 if key == "Average" else 1,
             alpha=1.0 if key == "Average" else 0.6,
-            label=f"ROC curve {key} (AUC = {roc_.auc:.2f})",
+            label=f"{key} (AUC = {roc_.auc:.2f})",
         )
 
     # Plot the diagonal line
