@@ -5,6 +5,7 @@ Command for training a new model on specified features.
 
 import logging
 import pathlib
+import joblib
 import numpy as np
 import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
@@ -176,6 +177,13 @@ Train a model on a single dataset. This uses within-dataset cross-validation for
 
 
 def main(args):
+    # Start by checking version of joblib
+    if joblib.__version__ != "1.2.0":
+        raise RuntimeError(
+            f"Currently, joblib must be version 1.2.0, got: {joblib.__version__}. "
+            "Did you activate the correct conda environment?"
+        )
+
     out_path = pathlib.Path(args.out_dir)
 
     # Create output directory
