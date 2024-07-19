@@ -343,6 +343,7 @@ for file_type, file_collection in files.items():
         elif file_type == "FASTQ":
             fq1_path = path_s[0]
             fq2_path = path_s[1]
+            instrument, flowcell, lane = fastq_info(fq1_path)
         else:
             raise ValueError(f"Unknown file type: {file_type}.")
 
