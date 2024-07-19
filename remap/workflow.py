@@ -4,6 +4,7 @@
 
 import gzip
 import re
+import os
 import gwf
 import pysam
 import pathlib
@@ -48,6 +49,18 @@ if not SEQ_CENTER:
 files = {"BAM": bam_files, "FASTQ": fastq_files}
 if set(bam_files.keys()).intersection(fastq_files):
     raise ValueError("`bam_files` and `fastq_files` can't have overlapping sample IDs.")
+
+
+def has_read_permission(filepath):
+    return os.access(str(filepath), os.R_OK)
+
+
+if not has_read_permission(GENOME_FASTA):
+    # Check read permissions for fasta file
+    # as the downstream error is difficult to interpret otherwise
+    raise PermissionError(
+        f"Lacks read permissions for `GENOME_FASTA` file: {GENOME_FASTA}"
+    )
 
 
 def legalize_target_name(target_name):
