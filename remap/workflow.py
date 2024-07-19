@@ -182,7 +182,7 @@ def mark_duplicates(
         "metrics_file": str(output_folder / f"{sample}.markdup_metrics.txt"),
     }
 
-    options = dict(cores="1", memory="32g", walltime="01:00:00")
+    options = dict(cores="1", memory="32g", walltime="02:00:00")
     if ACCOUNT:
         options["account"] = ACCOUNT
 
