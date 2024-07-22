@@ -6,9 +6,10 @@ from lionheart.commands import collect_samples, extract_features, predict, train
 
 # Add styles
 colors = {
-    "red": "#d32c30",
+    "red": "#d73236",
     "yellow_1": "#f0a639",
     "yellow_2": "#efa12d",
+    "yellow_3": "#e1972a",
     "light_yellow": "#f3b65b",
     "dark_orange": "#d9831c",
     "blue": "#1075ee",
@@ -21,6 +22,7 @@ styles = {
     "color_light_red": ("clr", colors["light_red"]),
     "color_yellow": ("cy", colors["yellow_1"]),
     "color_yellow2": ("cy2", colors["yellow_2"]),
+    "color_yellow3": ("cy3", colors["yellow_3"]),
     "color_light_yellow": ("cly", colors["light_yellow"]),
     "color_dark_orange": ("cdo", colors["dark_orange"]),
     "bold": ("b", "bold"),
@@ -64,17 +66,17 @@ class CustomRichHelpFormatter(RawTextRichHelpFormatter):
 
 
 lion_ascii = """<b><cy>    :::::       </cy><cr>                </cr><cy2> =##=</cy2><cy>:.   </cy></b>
-<b><cy>   -:</cy2><cly>.</cly><cy2>:-:...    </cy2><cr>               </cr><cy>       -.  </cy></b>
+<b><cy>   -:</cy2><cly>.</cly><cy>:</cy><cly>-</cly><cy>:...    </cy><cr>               </cr><cy>       -.  </cy></b>
 <b><cly>  :::</cly><cy2>- ......:                </cy2><cy>        -:  </cy></b>
-<b><cly> :.  </cly><cy2>-  ..    </cy2><cy>::</cy><cr>.........</cr><cy>.....:..  ..:-.  </cy></b>
-<b><cly> :-.</cly><cy2>:  .: . </cy2><cy>..</cy><cr>.             </cr><cy>  -</cy><cdo>.</cdo><cy>:::...    </cy></b>
-<b><cy2>   .:  .: :</cy2><cr>:              </cr><cy>    -           </cy></b>
+<b><cly> :.  </cly><cy2>-  </cy2><cy3>..    </cy3><cy>::</cy><cr>.........</cr><cy>.....:..  ..:-.  </cy></b>
+<b><cly> :-.</cly><cy2>:  </cy2><cy3>.:</cy3><cy2> . </cy2><cy>..</cy><cr>.             </cr><cy>  -</cy><cdo>.</cdo><cy>:::...    </cy></b>
+<b><cy2>   .:  </cy2><cy3>.:</cy3><cy2> :</cy2><cr>:              </cr><cy>    -           </cy></b>
 <b><cy2>     :.: </cy2><cy>.. </cy><cr>:           </cr><cy>      .:          </cy></b>
-<b><cy2>      : </cy2><cy>:. .</cy><cr>:       ..-</cr><cy2>. :</cy2><cy>:    -          </cy></b>
-<b><cy>       -   :</cy><cr>:.-.....</cr><cy2>   :  -</cy2><cy>...  :.        </cy></b>
-<b><cy>       -  - - </cy><cy2>:.        :  -  </cy2><cy>.:  :       </cy></b>
-<b><cy>       : :   </cy><cy2>:.:.:     .: :.   </cy2><cy>:.:        </cy></b>
-<b><cy>    .-:.:       </cy><cy2>.:    :...   </cy2><cy>.::..        </cy></b>
+<b><cy2>      : </cy2><cy>:. .</cy><cr>:       ..-</cr><cy3>. :</cy3><cy>:    -          </cy></b>
+<b><cy>       -   :</cy><cr>:.-.....</cr><cy3>   :  -</cy3><cy>...  :.        </cy></b>
+<b><cy>       -  - </cy><cy3>- :.        :  -  </cy3><cy>.:  :       </cy></b>
+<b><cy>       : :   </cy><cy3>:.:.:     .: :.   </cy3><cy>:.:        </cy></b>
+<b><cy>    .-:.:       </cy><cy3>.:    :...   </cy3><cy>.::..        </cy></b>
 
 """
 
