@@ -91,8 +91,8 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
-        "\nto use to extract the probability thresholds."
-        "\nThe output will have predictions for threshold based on"
+        "\nfor extracting the probability thresholds."
+        "\nThe output will have predictions for thresholds based on"
         "\nboth the training data ROC curves and these custom ROC curves.",
     )
     threshold_defaults = [
@@ -108,16 +108,16 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         default=threshold_defaults,
-        help="The probability thresholds to use. "
-        f"\nDefaults to these {len(threshold_defaults)} defaults:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`). "
+        help="The probability thresholds to use."
+        f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
+        "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nWhen passing specific float thresholds, the nearest threshold "
         "in the ROC curve is used. "
-        "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve, "
+        "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
         "\nwhich was fitted to the <b>training</b> data during model training.",
     )
     parser.add_argument(
