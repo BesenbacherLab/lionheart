@@ -3,7 +3,7 @@ Script that applies the model to the features of a singe sample and returns the 
 
 """
 
-from typing import Dict, List, Union
+from typing import Dict
 import logging
 import pathlib
 import numpy as np
@@ -16,34 +16,8 @@ from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
-
-
-# TODO Allow using a custom model!
-
-
-def parse_thresholds(thresholds: List[str]) -> Dict[str, Union[bool, List[float]]]:
-    """
-    Parse the threshold names.
-    """
-    thresh_dict = {
-        "max_j": False,
-        "sensitivity": [],
-        "specificity": [],
-        "numerics": [],
-    }
-
-    for thresh_name in thresholds:
-        if thresh_name == "max_j":
-            thresh_dict["max_j"] = True
-        elif thresh_name[:4] == "sens":
-            thresh_dict["sensitivity"].append(float(thresh_name.split("_")[1]))
-        elif thresh_name[:4] == "spec":
-            thresh_dict["specificity"].append(float(thresh_name.split("_")[1]))
-        elif thresh_name.replace(".", "").isnumeric():
-            thresh_dict["numerics"].append(float(thresh_name))
-        else:
-            raise ValueError(f"Could not parse passed threshold: {thresh_name}")
-    return thresh_dict
+from lionheart.utils.cli_utils import parse_thresholds, EpilogExamples
+from lionheart.utils.global_vars import INCLUDED_MODELS
 
 
 def setup_parser(parser):
@@ -58,7 +32,7 @@ def setup_parser(parser):
         "--resources_dir",
         required=True,
         type=str,
-        help="Path to directory with framework resources, such as the trained model.",
+        help="Path to directory with framework resources such as the trained model.",
     )
     parser.add_argument(
         "--out_dir",
@@ -71,8 +45,8 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--model_name",
-        choices=["full_model_001__18_07_24", "none"],
-        default=["full_model_001__18_07_24"],
+        choices=INCLUDED_MODELS + ["none"],
+        default=[INCLUDED_MODELS[0]],  # Newest model should be first in the list
         type=str,
         nargs="*",
         help="Name(s) of included trained model(s) to run. "
@@ -86,6 +60,7 @@ def setup_parser(parser):
         "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
+    # TODO: Since `validate` allows multiple datasets, how does one specify the curve from the collection?
     parser.add_argument(
         "--custom_roc_paths",
         type=str,
@@ -127,6 +102,38 @@ def setup_parser(parser):
         "E.g. the subject ID. Optional.",
     )
     parser.set_defaults(func=main)
+
+
+examples = EpilogExamples()
+examples.add_example(
+    description="Simplest example:",
+    example="""--sample_dir path/to/subject_1/
+--resources_dir path/to/resource/directory
+--out_dir path/to/output/directory""",
+)
+examples.add_example(
+    description="Using a custom model (trained with `lionheart train_model`):",
+    example="""--sample_dir path/to/subject_1/
+--resources_dir path/to/resource/directory
+--out_dir path/to/output/directory
+--custom_model_dirs path/to/model/directory""",
+)
+examples.add_example(
+    description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart validate`).
+This is useful when you have validated a model on your own data and want to use the found thresholds on new data.""",
+    example="""--sample_dir path/to/subject_1/
+--resources_dir path/to/resource/directory
+--out_dir path/to/output/directory
+--custom_roc_paths path/to/validation_ROC_curves.json""",
+)
+examples.add_example(
+    description="""Specifying custom probability thresholds for a specificity of ~0.975 and a sensitivity of ~0.8.""",
+    example="""--sample_dir path/to/subject_1/
+--resources_dir path/to/resource/directory
+--out_dir path/to/output/directory
+--thresholds spec_0.975 sens_0.8""",
+)
+EPILOG = examples.construct()
 
 
 def main(args):

@@ -55,7 +55,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--resources_dir",
         type=str,
-        help="Path to directory with framework resources, such as the included features.",
+        help="Path to directory with framework resources such as the included features.",
     )
     parser.add_argument(
         "--use_included_features",

@@ -16,6 +16,7 @@ from lionheart.modeling.run_full_modeling import run_full_model_training
 from lionheart.modeling.model_dict import create_model_dict
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
+from lionheart.utils.cli_utils import EpilogExamples
 
 """
 Todos
@@ -61,7 +62,7 @@ def setup_parser(parser):
         type=str,
         required=True,
         help=(
-            "Path to directory to store the collected features at. "
+            "Path to directory to store the trained model in."
             "\nA `log` directory will be placed in the same directory."
         ),
     )
@@ -83,7 +84,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--resources_dir",
         type=str,
-        help="Path to directory with framework resources, such as the included features. "
+        help="Path to directory with framework resources such as the included features. "
         "\nRequired when --use_included_features is specified.",
     )
     parser.add_argument(
@@ -151,30 +152,23 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
-EPILOG = (
-    """<h1>Examples:</h1>
-
-Simple example using defaults:
-
-"""
-    + """<b>$ %(prog)s</b>
---dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
+examples = EpilogExamples()
+examples.add_example(
+    description="Simple example using defaults:",
+    example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
 --out_dir path/to/output/directory
 --use_included_features
---resources_dir path/to/resource/directory
-""".replace("\n", " ")
-    + """
-
-Train a model on a single dataset. This uses within-dataset cross-validation for hyperparameter optimization:
-
-"""
-    + """<b>$ %(prog)s</b>
---dataset_paths path/to/dataset/feature_dataset.npy
---meta_data_paths path/to/dataset/meta_data.csv
---out_dir path/to/output/directory
-""".replace("\n", " ")
+--resources_dir path/to/resource/directory""",
 )
+# TODO Implement this:
+examples.add_example(
+    description="Train a model on a single dataset. This uses within-dataset cross-validation for hyperparameter optimization:",
+    example="""--dataset_paths path/to/dataset/feature_dataset.npy
+--meta_data_paths path/to/dataset/meta_data.csv
+--out_dir path/to/output/directory""",
+)
+EPILOG = examples.construct()
 
 
 def main(args):

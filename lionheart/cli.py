@@ -9,7 +9,7 @@ from lionheart.commands import (
     validate,
     cross_validate,
 )
-
+from lionheart.utils.global_vars import REPO_URL
 
 # Add styles
 colors = {
@@ -95,6 +95,12 @@ lionheart_ascii = """<b>........................................  </b>
 <b>........................................  </b>
 """
 
+README_STRING = f"""See usage guide in the GitHub README: {REPO_URL}"""
+
+
+def wrap_description(d):
+    return f"{lionheart_ascii}\n{d}\n\n{README_STRING}"
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -110,7 +116,7 @@ Across Cell-<b>T</b>ypes
 
 Detect Cancer from whole genome sequenced plasma cell-free DNA.
 
-Start by <b>extracting</b> the features from a BAM file. Then <b>predict</b> whether a sample is from a cancer patient or not.
+Start by <b>extracting</b> the features from a BAM file (hg38 only). Then <b>predict</b> whether a sample is from a cancer patient or not.
 
 Easily <b>train</b> a new model on your own data or perform <b>cross-validation</b> to compare against the paper.
         """,
@@ -127,8 +133,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_ef = subparsers.add_parser(
         "extract_features",
         help="Extract features from a BAM file",
-        description=f"{lionheart_ascii}\nEXTRACT FEATURES from a BAM file.",
+        description=wrap_description("EXTRACT FEATURES from a BAM file."),
         formatter_class=parser.formatter_class,
+        epilog=extract_features.EPILOG,
     )
     # Delegate the argument setup to the respective command module
     extract_features.setup_parser(parser_ef)
@@ -137,8 +144,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_ps = subparsers.add_parser(
         "predict_sample",
         help="Predict cancer status of a sample",
-        description=f"{lionheart_ascii}\nPREDICT whether a sample is cancer or control.",
+        description=wrap_description("PREDICT the cancer status of a sample."),
         formatter_class=parser.formatter_class,
+        epilog=predict.EPILOG,
     )
     # Delegate the argument setup to the respective command module
     predict.setup_parser(parser_ps)
@@ -147,7 +155,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_cl = subparsers.add_parser(
         "collect",
         help="Collect predictions and/or features across samples",
-        description=f"{lionheart_ascii}\nCOLLECT predictions and/or extracted features for multiple samples.",
+        description=wrap_description(
+            "COLLECT predictions and/or extracted features for multiple samples."
+        ),
         formatter_class=parser.formatter_class,
     )
     # Delegate the argument setup to the respective command module
@@ -157,7 +167,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_tm = subparsers.add_parser(
         "train_model",
         help="Train a model on your own data and/or the included features",
-        description=f"{lionheart_ascii}\nTRAIN A MODEL on your extracted features and/or the included features.",
+        description=wrap_description(
+            "TRAIN A MODEL on your extracted features and/or the included features."
+        ),
         formatter_class=parser.formatter_class,
         epilog=train_model.EPILOG,
     )
@@ -168,8 +180,11 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_va = subparsers.add_parser(
         "validate",
         help="Validate a trained model on one or more validation datasets",
-        description=f"{lionheart_ascii}\nVALIDATE your trained model one or more validation datasets, such as the included validation dataset.",
+        description=wrap_description(
+            "VALIDATE your trained model one or more validation datasets, such as the included validation dataset."
+        ),
         formatter_class=parser.formatter_class,
+        epilog=validate.EPILOG,
     )
     # Delegate the argument setup to the respective command module
     validate.setup_parser(parser_va)
@@ -178,8 +193,10 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_cv = subparsers.add_parser(
         "cross_validate",
         help="Cross-validate the cancer detection model on your own data and/or the included features",
-        description=f"{lionheart_ascii}\nCROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
-        "Use your extracted features and/or the included features.",
+        description=wrap_description(
+            "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
+            "Use your extracted features and/or the included features."
+        ),
         formatter_class=parser.formatter_class,
     )
     # Delegate the argument setup to the respective command module

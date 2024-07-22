@@ -24,6 +24,7 @@ from lionheart.features.create_dataset_inference import (
 )
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 from lionheart.utils.dual_log import setup_logging
+from lionheart.utils.cli_utils import EpilogExamples
 
 
 @dataclass
@@ -177,7 +178,8 @@ def setup_parser(parser):
         required=True,
         type=str,
         help=(
-            "Path to `.bam` file for a single sample. Model is trained on files with 1-3x depth."
+            "Path to a `.bam` file (hg38) for a single sample."
+            "\nThe included model is mainly trained on files with 0.3-3x depth but may generalize beyond that."
         ),
     )
     parser.add_argument(
@@ -185,8 +187,7 @@ def setup_parser(parser):
         required=True,
         type=str,
         help=(
-            "Path to directory with framework resources, such as the binned bed file, "
-            "outlier indices, open chromatin masks, and GC bin edges."
+            "Path to directory with framework resources." "\nMust be downloaded first."
         ),
     )
     parser.add_argument(
@@ -194,44 +195,58 @@ def setup_parser(parser):
         type=str,
         required=True,
         help=(
-            "Path to directory to store the output at. "
-            "This directory should be exclusive to the current sample. "
-            "A `log` directory will be placed in the same directory."
+            "Path to directory to store the output at."
+            "\nThis directory should be <b>exclusive to the current sample</b>."
+            "\nA `log` directory will be placed in the same directory."
         ),
     )
     parser.add_argument(
         "--mosdepth_path",
         type=str,
         help=(
-            "Path to mosdepth application. Note that we use a modified "
-            "version of mosdepth - the original version will not work here. "
-            "Path example: If you have downloaded the forked mosdepth repository to your "
-            "user directory and compiled mosdepth as specified, "
-            "supply something like '/home/<username>/mosdepth/mosdepth'."
+            "Path to (modified) `mosdepth` application. "
+            "\n<b>NOTE</b>: We use a modified version of `mosdepth` - "
+            "the original version will not work here. "
+            "\n<b>Example</b>: If you have downloaded the forked `mosdepth` "
+            "repository to your user directory and"
+            "\ncompiled it as specified, "
+            "supply something like `'/home/<username>/mosdepth/mosdepth'`."
         ),
     )
     parser.add_argument(
         "--ld_library_path",
         type=str,
         help=(
-            "You may need to specify the LD_LIBRARY_PATH, which is "
-            "the path to the `lib` directory in the directory of your "
-            "anaconda environment. "
-            "Supply something like '/home/<username>/anaconda3/envs/<env_name>/lib/'."
+            "You may need to specify the `LD_LIBRARY_PATH`."
+            "\nThis is the path to the `lib` directory in the directory of your "
+            "`conda` environment."
+            "\nSupply something like `'/home/<username>/anaconda3/envs/<env_name>/lib/'`."
         ),
     )
     parser.add_argument(
         "--keep_intermediates",
         action="store_true",
         help=(
-            "Keep all intermediate files. Otherwise, removes all but the "
-            "features and GC correction factor."
+            "Whether to keep all intermediate files."
+            "\nOtherwise, we only keep the features, statistics and correction factors."
         ),
     )
     parser.add_argument(
         "--n_jobs", type=int, default=1, help="Number of cores to utilize."
     )
     parser.set_defaults(func=main)
+
+
+examples = EpilogExamples()
+examples.add_example(
+    example="""--bam_file path/to/subject_1/<file_name>.bam
+--resources_dir path/to/resource/directory
+--out_dir path/to/output/directory
+--mosdepth_path /home/<username>/mosdepth/mosdepth
+--ld_library_path /home/<username>/anaconda3/envs/<env_name>/lib/
+--n_jobs 10""",
+)
+EPILOG = examples.construct()
 
 
 def main(args):
