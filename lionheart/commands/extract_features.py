@@ -24,7 +24,7 @@ from lionheart.features.create_dataset_inference import (
 )
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.cli_utils import EpilogExamples
+from lionheart.utils.cli_utils import Examples
 
 
 @dataclass
@@ -237,7 +237,7 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
-examples = EpilogExamples()
+examples = Examples()
 examples.add_example(
     example="""--bam_file path/to/subject_1/<file_name>.bam
 --resources_dir path/to/resource/directory

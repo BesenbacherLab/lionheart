@@ -16,7 +16,7 @@ from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
-from lionheart.utils.cli_utils import parse_thresholds, EpilogExamples
+from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS
 
 
@@ -104,33 +104,33 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
-examples = EpilogExamples()
+examples = Examples()
 examples.add_example(
     description="Simplest example:",
-    example="""--sample_dir path/to/subject_1/
+    example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
---out_dir path/to/output/directory""",
+--out_dir path/to/subject_1/predictions""",
 )
 examples.add_example(
     description="Using a custom model (trained with `lionheart train_model`):",
-    example="""--sample_dir path/to/subject_1/
+    example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
---out_dir path/to/output/directory
+--out_dir path/to/subject_1/predictions
 --custom_model_dirs path/to/model/directory""",
 )
 examples.add_example(
     description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart validate`).
 This is useful when you have validated a model on your own data and want to use the found thresholds on new data.""",
-    example="""--sample_dir path/to/subject_1/
+    example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
---out_dir path/to/output/directory
+--out_dir path/to/subject_1/predictions
 --custom_roc_paths path/to/validation_ROC_curves.json""",
 )
 examples.add_example(
     description="""Specifying custom probability thresholds for a specificity of ~0.975 and a sensitivity of ~0.8.""",
-    example="""--sample_dir path/to/subject_1/
+    example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
---out_dir path/to/output/directory
+--out_dir path/to/subject_1/predictions
 --thresholds spec_0.975 sens_0.8""",
 )
 EPILOG = examples.construct()

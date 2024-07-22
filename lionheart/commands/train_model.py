@@ -16,7 +16,7 @@ from lionheart.modeling.run_full_modeling import run_full_model_training
 from lionheart.modeling.model_dict import create_model_dict
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
-from lionheart.utils.cli_utils import EpilogExamples
+from lionheart.utils.cli_utils import Examples
 
 """
 Todos
@@ -152,7 +152,7 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
-examples = EpilogExamples()
+examples = Examples()
 examples.add_example(
     description="Simple example using defaults:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy

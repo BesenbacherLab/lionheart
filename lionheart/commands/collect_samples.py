@@ -14,6 +14,7 @@ from utipy import Messenger, StepTimer, IOPaths
 
 from lionheart.utils.dual_log import setup_logging
 from lionheart.features.create_dataset_inference import DatasetOutputPaths
+from lionheart.utils.cli_utils import Examples
 
 
 def setup_parser(parser):
@@ -48,6 +49,18 @@ def setup_parser(parser):
         ),
     )
     parser.set_defaults(func=main)
+
+
+# TODO: Add more examples
+examples = Examples()
+examples.add_example(
+    description="Simplest example:",
+    example="""--feature_dirs path/to/subject_1/features path/to/subject_2/features
+--prediction_dirs path/to/subject_1/predictions path/to/subject_2/predictions
+--out_dir path/to/output/directory
+""",
+)
+EPILOG = examples.construct()
 
 
 def collect_features(args, out_path, messenger, timer):

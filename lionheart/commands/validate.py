@@ -16,8 +16,10 @@ from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
-from lionheart.utils.cli_utils import parse_thresholds, EpilogExamples
+from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS
+
+# TODO Not implemented
 
 
 def setup_parser(parser):
@@ -76,7 +78,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--model_dir",
         type=str,
-        help="Path(s) to a directory with a custom model to use. "
+        help="Path( to a directory with a custom model to use. "
         "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
@@ -113,14 +115,22 @@ def setup_parser(parser):
     )
     parser.set_defaults(func=main)
 
+
 # TODO: Add more examples
-examples = EpilogExamples()
+examples = Examples()
 examples.add_example(
-    description="Simplest example:",
+    description="Validate your model on included validation dataset:",
+    example="""--out_dir path/to/model_validation
+--resources_dir path/to/resource/directory
+--model_dir path/to/new_model
+--use_included_validation
+""",
+)
+examples.add_example(
+    description="Validate included model on your dataset:",
     example=f"""--dataset_paths path/to/dataset_1/feature_dataset.npy 
 --meta_data_paths path/to/dataset_1/meta_data.csv 
 --out_dir path/to/output/directory
---use_included_validation
 --resources_dir path/to/resource/directory
 --model_name {INCLUDED_MODELS[0]}
 """,

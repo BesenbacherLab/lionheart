@@ -64,7 +64,7 @@ NOTE: Current version has an old model, so only the feature extraction works.
 
 ### Via `gwf` workflow
 
-We provide a simple workflow for submitting jobs to slurm via the `gwf` package. Make a copy of the `workflow` directory (to a different location), change the paths and list the samples to run for.
+We provide a simple workflow for submitting jobs to slurm via the `gwf` package. Make a copy of the `workflow` directory (to a different location), open `workflow.py`, change the paths and list the samples to run for.
 
 The first time running a workflow it's required to first set the `gwf` backend to slurm or one of the other ![backends](https://gwf.app/reference/backends/):
 
