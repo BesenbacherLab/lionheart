@@ -139,9 +139,9 @@ def main(args):
     paths.mk_output_dirs(collection="out_dirs")
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="collect_samples-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="cross-validate model-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running training of model")
+    messenger("Running cross-validation of model")
     messenger.now()
 
     # Init timestamp handler

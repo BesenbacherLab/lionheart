@@ -1,7 +1,14 @@
 import re
 import argparse
 from rich_argparse import RawTextRichHelpFormatter
-from lionheart.commands import collect_samples, extract_features, predict, train_model
+from lionheart.commands import (
+    collect_samples,
+    extract_features,
+    predict,
+    train_model,
+    validate,
+    cross_validate,
+)
 
 
 # Add styles
@@ -130,7 +137,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_ps = subparsers.add_parser(
         "predict_sample",
         help="Predict cancer status of a sample",
-        description=f"{lionheart_ascii}\PREDICT whether a sample is cancer or control.",
+        description=f"{lionheart_ascii}\nPREDICT whether a sample is cancer or control.",
         formatter_class=parser.formatter_class,
     )
     # Delegate the argument setup to the respective command module
@@ -140,7 +147,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_cl = subparsers.add_parser(
         "collect",
         help="Collect predictions and/or features across samples",
-        description=f"{lionheart_ascii}\COLLECT predictions and/or extracted features for multiple samples.",
+        description=f"{lionheart_ascii}\nCOLLECT predictions and/or extracted features for multiple samples.",
         formatter_class=parser.formatter_class,
     )
     # Delegate the argument setup to the respective command module
@@ -158,6 +165,16 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     train_model.setup_parser(parser_tm)
 
     # Command 5
+    parser_va = subparsers.add_parser(
+        "validate",
+        help="Validate a trained model on one or more validation datasets",
+        description=f"{lionheart_ascii}\nVALIDATE your trained model one or more validation datasets, such as the included validation dataset.",
+        formatter_class=parser.formatter_class,
+    )
+    # Delegate the argument setup to the respective command module
+    validate.setup_parser(parser_va)
+
+    # Command 6
     parser_cv = subparsers.add_parser(
         "cross_validate",
         help="Cross-validate the cancer detection model on your own data and/or the included features",
@@ -166,7 +183,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         formatter_class=parser.formatter_class,
     )
     # Delegate the argument setup to the respective command module
-    train_model.setup_parser(parser_cv)
+    cross_validate.setup_parser(parser_cv)
 
     args = parser.parse_args()
     if hasattr(args, "func"):
