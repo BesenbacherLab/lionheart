@@ -1,17 +1,10 @@
-........................................
-_    _ ____ _  _ _  _ ____ ____ ____ ___
-|    | |  | |\ | |__| |___ |__| |__/  |
-|___ | |__| | \| |  | |___ |  | |  \  |
-
-........................................
-
 # LIONHEART Cancer Detector
 
 Run the feature extraction and learned model from [paper ref] on your own data.
 
 Developed for hg38.
 
-The code was developed and implemented by @ludvigolsen.
+The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
 ## Installation
 
