@@ -4,7 +4,7 @@ Run the feature extraction and learned model from [paper ref] on your own data.
 
 Developed for hg38.
 
-The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
+The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen). Concept and method 
 
 ## Installation
 
@@ -92,6 +92,12 @@ With many samples, this can take a while. `gwf` allows seeing a status of the su
 ### CLI
 
 ```
+# Start by skimming the help page
+$ lionheart -h
+
+# Or read the usage guide
+$ lionheart guide_me
+
 # `mosdepth_path` is the path to the customized `mosdepth` installation
 # E.g. "/home/<username>/mosdepth/mosdepth"
 # `ld_library_path` is the path to the `lib` folder in the conda environment
