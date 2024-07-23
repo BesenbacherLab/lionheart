@@ -1,23 +1,26 @@
 from typing import Dict, List, Union
 import re
+import shutil
 from rich_argparse import RawTextRichHelpFormatter
 from lionheart.utils.global_vars import REPO_URL
 
 
 # Add styles
 CLI_COLORS = {
-    "red": "#d73236",
-    "yellow_1": "#f0a639",
+    "bg_dark": "#181818",
+    "red": "#d2212d",  # "#d6000c",  # "#d73236",
+    "yellow_1": "#c49700",  # "#f0a639",
     "yellow_2": "#efa12d",
     "yellow_3": "#e1972a",
     "light_yellow": "#f3b65b",
     "dark_orange": "#d9831c",
     "blue": "#1075ee",
     "green": "#4ca526",
-    "light_red": "#f08a8a",  # "#ed8282" # "#ea8080" # "#ff6b6f",
+    "light_red": "#fa5750",  # "#f08a8a",  # "#ed8282" # "#ea8080" # "#ff6b6f",
 }
 
 CLI_STYLES = {
+    "bg_dark": ("bgd", "on " + CLI_COLORS["bg_dark"]),
     "color_red": ("cr", CLI_COLORS["red"]),
     "color_light_red": ("clr", CLI_COLORS["light_red"]),
     "color_yellow": ("cy", CLI_COLORS["yellow_1"]),
@@ -28,7 +31,7 @@ CLI_STYLES = {
     "bold": ("b", "bold"),
     "italic": ("i", "italic"),
     "underline": ("u", "underline"),
-    "groups": ("h1", CLI_COLORS["light_yellow"]),
+    "groups": ("h1", CLI_COLORS["yellow_1"]),
     "args": (None, CLI_COLORS["light_red"]),
 }
 
@@ -45,24 +48,44 @@ for style_name, (style_tag, style) in CLI_STYLES.items():
 # Custom formatter class to remove markers after formatting
 class CustomRichHelpFormatter(RawTextRichHelpFormatter):
     TAGS = style_tags
+    group_name_formatter = str.upper
 
     def _strip_html_tags(self, text):
-        for tag_text in CustomRichHelpFormatter.TAGS:
-            # Remove bold markers
-            text = re.sub(r"\</?" + tag_text + r"\>", "", text)
-        return text
+        return CustomRichHelpFormatter.strip_html_tags(
+            text=text, tags=CustomRichHelpFormatter.TAGS
+        )
 
     def format_help(self):
         help_text = super().format_help()
         return self._strip_html_tags(help_text)
 
-    def _format_action(self, action):
-        action_help = super()._format_action(action)
-        return self._strip_html_tags(action_help)
+    @staticmethod
+    def strip_html_tags(text: str, tags: List[str]) -> str:
+        for tag_text in tags:
+            text = re.sub(r"\</?" + tag_text + r"\>", "", text)
+        return text
 
-    def _format_text(self, text):
-        formatted_text = super()._format_text(text)
-        return self._strip_html_tags(formatted_text)
+    @staticmethod
+    def get_console_width():
+        return shutil.get_terminal_size().columns
+
+    @staticmethod
+    def pad_to(text: str, pad_to: int, side: str = "right"):
+        console_width = CustomRichHelpFormatter.get_console_width()
+        if pad_to > console_width:
+            pad_to = console_width
+        new_text = ""
+        for line in text.split("\n"):
+            stripped_line = CustomRichHelpFormatter.strip_html_tags(
+                text=line, tags=CustomRichHelpFormatter.TAGS
+            )
+            needed_padding = pad_to - len(stripped_line)
+            padding = "".join([" "] * needed_padding)
+            if side == "left":
+                new_text += padding + line + "\n"
+            else:
+                new_text += line + padding + "\n"
+        return new_text
 
 
 LION_ASCII = """<b><cy>    :::::       </cy><cr>                </cr><cy2> =##=</cy2><cy>:.   </cy></b>
@@ -77,15 +100,14 @@ LION_ASCII = """<b><cy>    :::::       </cy><cr>                </cr><cy2> =##=<
 <b><cy>       -  - </cy><cy3>- :.        :  -  </cy3><cy>.:  :       </cy></b>
 <b><cy>       : :   </cy><cy3>:.:.:     .: :.   </cy3><cy>:.:        </cy></b>
 <b><cy>    .-:.:       </cy><cy3>.:    :...   </cy3><cy>.::..        </cy></b>
-
 """
 
-LIONHEART_ASCII = """<b>........................................  </b>
+LIONHEART_ASCII = """<b>........................................</b>
 <b><cy>_    _ ____ _  _</cy><cr> _  _ ____ ____ ____ ___ </cr></b>
 <b><cy>|    | |  | |\ |</cy><cr> |__| |___ |__| |__/  |  </cr></b>
 <b><cy>|___ | |__| | \|</cy><cr> |  | |___ |  | |  \  |  </cr></b>
-
-<b>........................................  </b>
+                                           
+<b>........................................</b>
 """
 
 LIONHEART_STRING = "<cy>LION</cy><cr>HEART</cr>"
@@ -108,7 +130,7 @@ class Examples:
         self.examples.append((description, example, use_prog))
 
     def construct(self):
-        string = f"<h1>{self.header}</h1>\n"
+        string = f"<h1>{self.header.upper()}</h1>\n"
         for desc, ex, use_prog in self.examples:
             string += Examples.format_example(
                 description=desc, example=ex, use_prog=use_prog
@@ -140,7 +162,7 @@ class Guide:
         return "\n".join(self.elements)
 
     def add_title(self, title: str):
-        self.elements.append(f"<h1>{title}</h1>")
+        self.elements.append(f"<h1>{title.upper()}</h1>")
         self.add_vertical_space()
 
     def add_header(self, header: str, pre_spaces=0):
