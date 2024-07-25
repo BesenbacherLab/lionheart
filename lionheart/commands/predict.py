@@ -44,7 +44,7 @@ def setup_parser(parser):
         "\nA `log` directory will be placed in the same directory.",
     )
     parser.add_argument(
-        "--model_name",
+        "--model_names",
         choices=INCLUDED_MODELS + ["none"],
         default=[INCLUDED_MODELS[0]],  # Newest model should be first in the list
         type=str,
