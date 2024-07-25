@@ -388,7 +388,7 @@ def main(args):
                 prediction_dfs.append(prediction_df)
 
     # Combine data frames and clean it up a bit
-    all_predictions_df = pd.concat(prediction_df, axis=0, ignore_index=True)
+    all_predictions_df = pd.concat(prediction_dfs, axis=0, ignore_index=True)
     move_column_inplace(all_predictions_df, "Threshold Name", 0)
     move_column_inplace(all_predictions_df, "ROC Curve", 1)
     move_column_inplace(all_predictions_df, "Model", 0)
