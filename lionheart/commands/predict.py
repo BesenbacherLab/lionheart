@@ -312,32 +312,32 @@ def main(args):
                     roc_to_thresholds[roc_name] = []
 
                     if thresholds_to_calculate["max_j"]:
-                        max_j = roc_curve.get_threshold_at_max_j()
+                        max_j = roc_curve.get_threshold_at_max_j(interpolate=True)
                         max_j["Name"] = "Max. Youden's J"
                         roc_to_thresholds[roc_name].append(max_j)
 
                     for s in thresholds_to_calculate["sensitivity"]:
                         thresh = roc_curve.get_threshold_at_sensitivity(
-                            above_sensitivity=s
+                            above_sensitivity=s, interpolate=True
                         )
                         thresh["Name"] = f"Sensitivity ~{s}"
                         roc_to_thresholds[roc_name].append(thresh)
 
                     for s in thresholds_to_calculate["specificity"]:
                         thresh = roc_curve.get_threshold_at_specificity(
-                            above_specificity=s
+                            above_specificity=s, interpolate=True
                         )
                         thresh["Name"] = f"Specificity ~{s}"
                         roc_to_thresholds[roc_name].append(thresh)
 
                     for t in thresholds_to_calculate["numerics"]:
-                        thresh = roc_curve.get_nearest_threshold(threshold=t)
+                        thresh = roc_curve.get_interpolated_threshold(threshold=t)
                         thresh["Name"] = f"Threshold ~{t}"
                         roc_to_thresholds[roc_name].append(thresh)
 
                     messenger(f"ROC curve: {roc_name}")
                     messenger(
-                        "Calculated the following thresholds: \n",
+                        "Calculated the following (interpolated) thresholds: \n",
                         pd.DataFrame(roc_to_thresholds[roc_name]),
                         add_indent=4,
                     )
