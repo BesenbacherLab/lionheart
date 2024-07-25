@@ -225,6 +225,8 @@ def main(args):
         dataset_paths[nm] = dataset_path
         meta_data_paths[nm] = args.meta_data_paths[path_idx]
 
+    messenger(f"Got paths to {len(dataset_paths)} external datasets")
+
     train_only = []
     if args.train_only:
         if (
@@ -258,6 +260,13 @@ def main(args):
 
         shared_features_dir = pathlib.Path(args.resources_dir) / "shared_features"
         shared_features_paths = pd.read_csv(shared_features_dir / "dataset_paths.csv")
+
+        # Remove validation datasets
+        shared_features_paths = shared_features_paths.loc[
+            ~shared_features_paths.Validation
+        ]
+
+        messenger(f"Using {len(shared_features_paths)} included datasets")
 
         # Extract dataset paths
         shared_features_dataset_paths = {
