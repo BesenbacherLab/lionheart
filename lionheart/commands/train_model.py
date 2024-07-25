@@ -116,7 +116,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=[0.994, 0.995, 0.996, 0.997, 0.998],
+        default=[0.994, 0.995, 0.996, 0.997, 0.998, 0.999],
         nargs="*",
         help="Target(s) for the explained variance of selected principal components. Used to select the most-explaining components."
         "\nWhen multiple targets are provided, they are used in grid search.",
@@ -124,7 +124,9 @@ def setup_parser(parser):
     parser.add_argument(
         "--lasso_c",
         type=float,
-        default=np.array([0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]),
+        default=np.array(
+            [0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]
+        ),
         nargs="*",
         help="Inverse Lasso regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
         "\nWhen multiple values are provided, they are used in grid search.",
