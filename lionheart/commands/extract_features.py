@@ -24,7 +24,7 @@ from lionheart.features.create_dataset_inference import (
 )
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.cli_utils import Examples
+from lionheart.utils.cli_utils import Examples, Guide
 
 
 @dataclass
@@ -236,6 +236,35 @@ def setup_parser(parser):
     )
     parser.set_defaults(func=main)
 
+DESCRIPTION = """EXTRACT FEATURES from a BAM file.
+"""
+
+# Create Epilog
+
+epilog_guide = Guide()
+epilog_guide.add_title("OUTPUT:")
+epilog_guide.add_description(
+    """feature_dataset.npy : `numpy.ndarray` with shape (10, 489)
+    This array contains the main features. 
+    There are 10 feature sets of which we only use the first (index=0):
+        0) Pearson correlation coefficient <i>(r)</i>
+        1) and its p-value
+        2) The normalized dot product
+        3) Cosine Similarity
+        And the terms used to calculate them:
+           Where x=fragment coverage, y=open chromatin site overlap fraction.
+        4) x_sum
+        5) y_sum
+        6) x_squared_sum
+        7) y_squared_sum
+        8) xy_sum
+        9) Number of included bins
+    We included the other feature sets to allow experimentation.
+    <b>NOTE</b>: The Pearson <i>r</i> values are not yet sample-standardized
+    as this is performed in the modeling pipeline.
+"""
+)
+epilog_guide.add_vertical_space(1)
 
 examples = Examples()
 examples.add_example(
@@ -246,7 +275,8 @@ examples.add_example(
 --ld_library_path /home/<username>/anaconda3/envs/<env_name>/lib/
 --n_jobs 10""",
 )
-EPILOG = examples.construct()
+
+EPILOG = epilog_guide.construct_guide() + examples.construct()
 
 
 def main(args):

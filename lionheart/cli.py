@@ -58,7 +58,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     parser_ef = subparsers.add_parser(
         "extract_features",
         help="Extract features from a BAM file",
-        description=wrap_command_description("EXTRACT FEATURES from a BAM file."),
+        description=wrap_command_description(extract_features.DESCRIPTION),
         formatter_class=parser.formatter_class,
         epilog=extract_features.EPILOG,
     )
