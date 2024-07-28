@@ -7,6 +7,7 @@ from typing import Dict, Optional, Callable, Tuple
 from collections import OrderedDict
 import logging
 import pathlib
+import json
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
@@ -172,6 +173,15 @@ def sparsify_coverage_files(
     return coverage_paths
 
 
+def standardize_sample(x):
+    assert x.ndim == 1
+    scaling_factor = np.std(x)
+    center = np.mean(x)
+    x -= center
+    x /= scaling_factor
+    return x, center, scaling_factor
+
+
 def setup_parser(parser):
     parser.add_argument(
         "--bam_file",
@@ -236,6 +246,7 @@ def setup_parser(parser):
     )
     parser.set_defaults(func=main)
 
+
 DESCRIPTION = """EXTRACT FEATURES from a BAM file.
 """
 
@@ -247,7 +258,8 @@ epilog_guide.add_description(
     """feature_dataset.npy : `numpy.ndarray` with shape (10, 489)
     This array contains the main features. 
     There are 10 feature sets of which we only use the first (index=0):
-        0) Pearson correlation coefficient <i>(r)</i>
+        0) LIONHEART score 
+           (Sample-standardized Pearson correlation coefficient <i>(r)</i>)
         1) and its p-value
         2) The normalized dot product
         3) Cosine Similarity
@@ -346,6 +358,7 @@ def main(args):
             **dhs_outputs.get_path_dict(key_prefix="DHS_"),
             **atac_outputs.get_path_dict(key_prefix="ATAC_"),
             "dataset_out_path": dataset_dir / "feature_dataset.npy",
+            "standardization_params": dataset_dir / "standardization_params.json",
         },
     )
     if args.mosdepth_path is not None:
@@ -456,13 +469,29 @@ def main(args):
                 for mask_type in ["ATAC", "DHS"]
             ]
         )
-        np.save(paths["dataset_out_path"], feature_dataset)
+
+    messenger("Start: Standardizing correlation coefficients")
+    # Standardize pearson correlations to make them LIONHEART scores
+    feature_dataset[0, :], center, scaling_factor = standardize_sample(
+        feature_dataset[0, :]
+    )
+
+    messenger("Start: Writing features to disk")
+    np.save(paths["dataset_out_path"], feature_dataset)
+
+    # Write standardization parameters as well
+    # to allow inversing the standardization
+    with open(str(paths["standardization_params"]), "w") as outfile:
+        std_params = {"mean": center, "std": scaling_factor}
+        json.dump(std_params, outfile)
 
     if not args.keep_intermediates:
         messenger("Start: Removing intermediate files")
         with messenger.indentation(add_indent=4):
             messenger("Removing coverage files")
             paths.rm_dir("coverage_dir", messenger=messenger)
+            paths.rm_dir("atac_dataset_dir", messenger=messenger)
+            paths.rm_dir("dhs_dataset_dir", messenger=messenger)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
