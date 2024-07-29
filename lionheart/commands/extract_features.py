@@ -272,8 +272,6 @@ epilog_guide.add_description(
         8) xy_sum
         9) Number of included bins
     We included the other feature sets to allow experimentation.
-    <b>NOTE</b>: The Pearson <i>r</i> values are not yet sample-standardized
-    as this is performed in the modeling pipeline.
 """
 )
 epilog_guide.add_vertical_space(1)
