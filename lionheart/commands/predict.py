@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from sklearn import __version__ as sklearn_version
 from packaging import version
-from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
+from utipy import Messenger, StepTimer, IOPaths
 from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
@@ -186,10 +186,12 @@ def main(args):
         f"model_{model_name}": model_dir / "model.joblib"
         for model_name, model_dir in model_name_to_dir.items()
     }
+
     training_roc_paths = {
         f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
         for model_name, model_dir in model_name_to_dir.items()
     }
+
     custom_roc_paths = {}
     if args.custom_roc_paths is not None and args.custom_roc_paths:
         custom_roc_paths = {
@@ -282,7 +284,8 @@ def main(args):
                     min_lionheart_requirement
                 ) > version.parse(lionheart_version):
                     raise RuntimeError(
-                        f"Model ({model_name}) requires a newer version ({min_lionheart_requirement}) of LIONHEART."
+                        f"Model ({model_name}) requires a newer version "
+                        f"({min_lionheart_requirement}) of LIONHEART."
                     )
 
                 # Whether model is binary or multiclass
@@ -293,7 +296,7 @@ def main(args):
                     "multiclass_classification",
                 ]:
                     raise ValueError(
-                        f"The training_info.json 'Modeling Task' was invalid: {modeling_task}"
+                        f"The `training_info.json` 'Modeling Task' was invalid: {modeling_task}"
                     )
 
                 if modeling_task == "binary_classification":
@@ -466,9 +469,10 @@ def main(args):
         "Prediction",
         "Probability",
     ] + prob_columns
-    for col_ in reversed(first_columns):
-        if col_ in all_predictions_df.columns:
-            move_column_inplace(all_predictions_df, col_, 0)
+    remaining_columns = [
+        col_ for col_ in all_predictions_df.columns if col_ not in first_columns
+    ]
+    all_predictions_df = all_predictions_df.loc[:, first_columns + remaining_columns]
 
     if args.identifier is not None:
         all_predictions_df["ID"] = args.identifier
