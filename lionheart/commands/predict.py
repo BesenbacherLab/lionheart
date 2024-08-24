@@ -182,13 +182,13 @@ def main(args):
             "No models where selected. Select one or more models to predict the sample."
         )
 
-    model_paths = {
-        f"model_{model_name}": model_dir / "model.joblib"
+    training_info_paths = {
+        f"training_info_{model_name}": model_dir / "training_info.json"
         for model_name, model_dir in model_name_to_dir.items()
     }
 
-    training_roc_paths = {
-        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
+    model_paths = {
+        f"model_{model_name}": model_dir / "model.joblib"
         for model_name, model_dir in model_name_to_dir.items()
     }
 
@@ -199,16 +199,10 @@ def main(args):
             for roc_idx, roc_path in enumerate(args.custom_roc_paths)
         }
 
-    training_info_paths = {
-        f"training_info_{model_name}": model_dir / "training_info.json"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
-
     paths = IOPaths(
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
             **model_paths,
-            **training_roc_paths,
             **custom_roc_paths,
             **training_info_paths,
         },
@@ -223,6 +217,21 @@ def main(args):
         },
         out_files={"prediction_path": out_path / "prediction.csv"},
     )
+
+    messenger("Start: Loading training info", indent=4)
+    model_name_to_training_info = {
+        model_name: json.load(paths[f"training_info_{model_name}"])
+        for model_name in model_name_to_dir.keys()
+    }
+
+    training_roc_paths = {
+        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
+        for model_name, model_dir in model_name_to_dir.items()
+        if model_name_to_training_info[model_name]["Modeling Task"]
+        == "binary_classification"
+    }
+    if training_roc_paths:
+        paths.set_paths(training_roc_paths, collection="in_files")
 
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
@@ -258,11 +267,11 @@ def main(args):
     for model_name in model_name_to_dir.keys():
         messenger(f"Model: {model_name}")
 
-        messenger("Start: Loading ROC Curve(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="load_roc_curves"):
+        messenger("Start: Extracting training info", indent=4)
+        with timer.time_step(indent=8, name_prefix="training_info"):
             with messenger.indentation(add_indent=8):
                 # Check package versioning
-                training_info = json.load(paths[f"training_info_{model_name}"])
+                training_info = model_name_to_training_info[model_name]
                 for pkg, present_pkg_version, pkg_verb in [
                     ("joblib", joblib.__version__, "pickled"),
                     ("sklearn", sklearn_version, "fitted"),
@@ -298,54 +307,56 @@ def main(args):
                     raise ValueError(
                         f"The `training_info.json` 'Modeling Task' was invalid: {modeling_task}"
                     )
-
-                if modeling_task == "binary_classification":
-                    roc_curves: Dict[str, ROCCurve] = {}
-                    # Load training-data-based ROC curve collection
-                    try:
-                        rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
-                    except:
-                        messenger(
-                            "Failed to load ROC curve collection at: "
-                            f"{paths[f'roc_curve_{model_name}']}"
-                        )
-                        raise
-
-                    try:
-                        roc = rocs.get("Average")  # TODO: Fix path
-                    except:
-                        messenger(
-                            "`ROCCurves` collection did not have the expected `Average` ROC curve. "
-                            f"File: {paths[f'roc_curve_{model_name}']}"
-                        )
-                        raise
-
-                    roc_curves["Average (training data)"] = roc
-
-                    # Load custom ROC curves
-                    if custom_roc_paths:
-                        for roc_key in custom_roc_paths.keys():
-                            # Load training-data-based ROC curve collection
-                            try:
-                                rocs = ROCCurves.load(paths[roc_key])
-                            except:
-                                messenger(
-                                    "Failed to load ROC curve collection at: "
-                                    f"{paths[roc_key]}"
-                                )
-                                raise
-
-                            try:
-                                roc = rocs.get("Validation")  # TODO: Fix path
-                            except:
-                                messenger(
-                                    "`ROCCurves` collection did not have the expected "
-                                    f"`Validation` ROC curve. File: {paths[roc_key]}"
-                                )
-                                raise
-                            roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
+                messenger(f"Modeling task: {cancer_task} ({modeling_task})", indent=8)
 
         if modeling_task == "binary_classification":
+            messenger("Start: Loading ROC Curve(s)", indent=4)
+            with timer.time_step(indent=8, name_prefix="load_roc_curves"):
+                roc_curves: Dict[str, ROCCurve] = {}
+                # Load training-data-based ROC curve collection
+                try:
+                    rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
+                except:
+                    messenger(
+                        "Failed to load ROC curve collection at: "
+                        f"{paths[f'roc_curve_{model_name}']}"
+                    )
+                    raise
+
+                try:
+                    roc = rocs.get("Average")  # TODO: Fix path
+                except:
+                    messenger(
+                        "`ROCCurves` collection did not have the expected `Average` ROC curve. "
+                        f"File: {paths[f'roc_curve_{model_name}']}"
+                    )
+                    raise
+
+                roc_curves["Average (training data)"] = roc
+
+                # Load custom ROC curves
+                if custom_roc_paths:
+                    for roc_key in custom_roc_paths.keys():
+                        # Load training-data-based ROC curve collection
+                        try:
+                            rocs = ROCCurves.load(paths[roc_key])
+                        except:
+                            messenger(
+                                "Failed to load ROC curve collection at: "
+                                f"{paths[roc_key]}"
+                            )
+                            raise
+
+                        try:
+                            roc = rocs.get("Validation")  # TODO: Fix path
+                        except:
+                            messenger(
+                                "`ROCCurves` collection did not have the expected "
+                                f"`Validation` ROC curve. File: {paths[roc_key]}"
+                            )
+                            raise
+                        roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
+
             messenger("Start: Calculating probability threshold(s)", indent=4)
             with timer.time_step(indent=8, name_prefix="threshold_calculation"):
                 with messenger.indentation(add_indent=8):
@@ -418,14 +429,18 @@ def main(args):
                             )
                         prediction_df = pd.DataFrame(thresholds)
 
-                        prediction_df["Probability"] = predicted_probability
+                        positive_label = training_info["Labels"][
+                            "New Label Index to New Label"
+                        ][training_info["Labels"]["Positive Label"]]
+                        probability_colname = f"P({positive_label})"
+                        prediction_df[probability_colname] = predicted_probability
                         prediction_df.columns = [
                             "Threshold",
                             "Exp. Specificity",
                             "Exp. Sensitivity",
                             "Threshold Name",
                             "Prediction",
-                            "Probability",
+                            probability_colname,
                         ]
                         prediction_df["ROC Curve"] = roc_name
                         prediction_df["Model"] = model_name
@@ -467,7 +482,6 @@ def main(args):
         "Threshold Name",
         "ROC Curve",
         "Prediction",
-        "Probability",
     ] + prob_columns
     remaining_columns = [
         col_ for col_ in all_predictions_df.columns if col_ not in first_columns
