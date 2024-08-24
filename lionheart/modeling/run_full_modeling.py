@@ -245,7 +245,7 @@ def run_full_model_training(
             "Names": list(dataset_paths.keys()),
             "Number of Samples": prepared_modeling_dict["dataset_sizes"],
         }
-    messenger(training_info, add_indent=8)
+    messenger(json.dumps(training_info, indent=4), indent=0)
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
@@ -257,7 +257,7 @@ def run_full_model_training(
 
         # Save training info
         with open(paths["training_info"], "w") as f:
-            json.dump(training_info, f)
+            json.dump(convert_numpy_types(training_info), f)
 
         # Save the evaluation scores, confusion matrices, etc.
         messenger("Saving evaluation", indent=2)
@@ -368,3 +368,20 @@ def plot_hparams(
     plt.grid(True)
     plt.savefig(plot_path, dpi=300)
     plt.show()
+
+
+# Function to convert numpy types to native Python types for json
+def convert_numpy_types(obj):
+    if isinstance(obj, dict):
+        return {
+            convert_numpy_types(key): convert_numpy_types(value)
+            for key, value in obj.items()
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(element) for element in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    else:
+        return obj
