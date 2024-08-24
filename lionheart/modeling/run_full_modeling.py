@@ -309,11 +309,18 @@ def run_full_model_training(
         # Save the predictions
         if train_out["Predictions"] is not None:
             messenger("Saving predictions", indent=2)
+
+            class_idx_to_label_map = None
+            if prepared_modeling_dict["task"] == "multiclass_classification":
+                class_idx_to_label_map = training_info["Labels"][
+                    "New Label Index to New Label"
+                ]
             Evaluator.save_predictions(
                 predictions_list=[train_out["Predictions"]],
                 targets=train_out["Targets"],
                 groups=train_out["Groups"],
                 split_indices_list=[train_out["Split"]],
+                target_idx_to_target_label_map=class_idx_to_label_map,
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
