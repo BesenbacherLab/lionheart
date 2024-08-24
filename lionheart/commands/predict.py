@@ -220,7 +220,7 @@ def main(args):
 
     messenger("Start: Loading training info", indent=4)
     model_name_to_training_info = {
-        model_name: json.load(str(paths[f"training_info_{model_name}"]))
+        model_name: _load_json(paths[f"training_info_{model_name}"])
         for model_name in model_name_to_dir.keys()
     }
 
@@ -496,3 +496,8 @@ def main(args):
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
+
+
+def _load_json(filename):
+    with open(filename, "r") as f:
+        return json.load(f)
