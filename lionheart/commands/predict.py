@@ -307,7 +307,10 @@ def main(args):
                     raise ValueError(
                         f"The `training_info.json` 'Modeling Task' was invalid: {modeling_task}"
                     )
-                messenger(f"Modeling task: {cancer_task} ({modeling_task})", indent=8)
+                messenger(
+                    f"Modeling task: {cancer_task} ({modeling_task.replace('_', ' ').title()})",
+                    indent=8,
+                )
 
         if modeling_task == "binary_classification":
             messenger("Start: Loading ROC Curve(s)", indent=4)
@@ -408,6 +411,15 @@ def main(args):
                     messenger("Model failed to be loaded.")
                     raise
 
+                # Load and prepare `New Label Index to New Label` mapping
+                label_idx_to_label = training_info["Labels"][
+                    "New Label Index to New Label"
+                ]
+                # Ensure keys are integers
+                label_idx_to_label = {
+                    int(key): val for key, val in label_idx_to_label.items()
+                }
+
                 if modeling_task == "binary_classification":
                     predicted_probability = pipeline.predict_proba(features).flatten()
                     if len(predicted_probability) == 1:
@@ -421,6 +433,10 @@ def main(args):
                         )
                     messenger(f"Predicted probability: {predicted_probability}")
 
+                    positive_label = label_idx_to_label[
+                        int(training_info["Labels"]["Positive Label"])
+                    ]
+
                     for roc_name, thresholds in roc_to_thresholds.items():
                         # Calculate predicted classes based on cutoffs
                         for thresh_info in thresholds:
@@ -431,9 +447,6 @@ def main(args):
                             )
                         prediction_df = pd.DataFrame(thresholds)
 
-                        positive_label = training_info["Labels"][
-                            "New Label Index to New Label"
-                        ][str(training_info["Labels"]["Positive Label"])]
                         probability_colname = f"P({positive_label})"
                         prediction_df[probability_colname] = predicted_probability
                         prediction_df.columns = [
@@ -450,21 +463,18 @@ def main(args):
                         prediction_dfs.append(prediction_df)
 
                 elif modeling_task == "multiclass_classification":
-                    class_idx_to_label_map = training_info["Labels"][
-                        "New Label Index to New Label"
-                    ]
                     # Predict samples
                     predicted_probabilities = pipeline.predict_proba(features)
                     predictions = pipeline.predict(features).flatten()
-                    predictions = [class_idx_to_label_map[p] for p in predictions]
+                    predictions = [label_idx_to_label[p] for p in predictions]
 
                     # Combine to data frame
                     prediction_df = pd.DataFrame(
                         predicted_probabilities,
                         columns=[
-                            f"P({class_idx_to_label_map[i]})"
+                            f"P({label_idx_to_label[int(i)]})"
                             for i in sorted(
-                                class_idx_to_label_map.keys(), key=lambda k: int(k)
+                                label_idx_to_label.keys(), key=lambda k: int(k)
                             )
                         ],
                     )
