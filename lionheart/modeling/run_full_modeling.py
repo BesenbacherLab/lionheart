@@ -1,6 +1,8 @@
 import pathlib
+import json
 from typing import Callable, List, Optional, Union, Dict
-from joblib import dump
+from joblib import dump, __version__ as joblib_version
+from sklearn import __version__ as sklearn_version
 import logging
 import numpy as np
 import pandas as pd
@@ -10,8 +12,10 @@ import seaborn as sns
 from utipy import StepTimer, Messenger, check_messenger
 from generalize import Evaluator, train_full_model
 from generalize.evaluate.roc_curves import ROCCurves
+from generalize import __version__ as generalize_version
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
+from lionheart import __version__ as lionheart_version
 
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
 # TODO: Make this work with regression
@@ -38,6 +42,7 @@ def run_full_model_training(
     expected_shape: Optional[Dict[int, int]] = None,
     num_jobs: int = 1,
     seed: Optional[int] = 1,
+    required_lionheart_version: Optional[str] = None,
     exp_name: str = "",
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ):
@@ -112,6 +117,11 @@ def run_full_model_training(
     paths = prepared_modeling_dict["paths"]
     paths.set_path(
         name="model_path", path=out_path / "model.joblib", collection="out_files"
+    )
+    paths.set_path(
+        name="training_info",
+        path=out_path / "training_info.json",
+        collection="out_files",
     )
 
     paths.print_note = "Some output file paths are defined in dolearn::evaluate()."
@@ -194,6 +204,43 @@ def run_full_model_training(
         for key in model_dict["grid"].keys():
             messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
 
+    messenger("Gathering training info:", add_indent=4)
+    training_info = {
+        "Task": "Cancer Detection"
+        if prepared_modeling_dict[task] == "binary_classification"
+        else "Cancer Subtyping",
+        "Modeling Task": prepared_modeling_dict[task],
+        "Package Versions": {
+            "lionheart": lionheart_version,
+            "generalize": generalize_version,
+            "joblib": joblib_version,
+            "sklearn": sklearn_version,
+            "Min. Required lionheart": required_lionheart_version
+            if required_lionheart_version is not None
+            else "N/A",
+        },
+        "Labels": {
+            "Labels to Use": labels_to_use,
+            "Positive Label": prepared_modeling_dict["new_positive_label"],
+            "New Label Index to New Label": prepared_modeling_dict[
+                "new_label_idx_to_new_label"
+            ],
+            "New Label to New Label Index": prepared_modeling_dict[
+                "new_label_to_new_label_idx"
+            ],
+        },
+        "Data": {
+            "Shape": prepared_modeling_dict["dataset"].shape,
+            "Target counts": prepared_modeling_dict["label_counts"],
+        },
+    }
+    if isinstance(dataset_paths, dict):
+        training_info["Data"]["Datasets"] = {
+            "Names": list(dataset_paths.keys()),
+            "Number of Samples": prepared_modeling_dict["dataset_sizes"],
+        }
+    messenger(training_info, add_indent=8)
+
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
         # Avoid DEBUG messages from matplotlib
@@ -201,6 +248,10 @@ def run_full_model_training(
 
         # Save the estimator
         dump(train_out["Estimator"], paths["model_path"])
+
+        # Save training info
+        with open(paths["training_info"], "w") as f:
+            json.dump(training_info, f)
 
         # Save the evaluation scores, confusion matrices, etc.
         messenger("Saving evaluation", indent=2)

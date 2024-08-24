@@ -260,7 +260,7 @@ def prepare_modeling(
                 _label_to_sample_ids,
             ) = read_meta_data(
                 paths[dataset_info["meta_data_path_name"]],
-                task="classification" if "classification" in task else task,
+                task=task,
                 targets_as_str="classification" in task,
                 name=dataset_name if dataset_name != "unnamed" else None,
                 messenger=messenger,
@@ -469,6 +469,10 @@ def prepare_modeling(
             lab: idx for idx, lab in new_label_idx_to_new_label.items()
         },
         "split": split,
+        "dataset_sizes": {
+            v: c for v, c in zip(*np.unique(dataset_ids, return_counts=True))
+        },
+        "label_counts": {v: c for v, c in zip(*np.unique(labels, return_counts=True))},
         "task": task,
         "aggregate_by_groups": bool(groups is not None and aggregate_by_groups),
         "weight_loss_by_groups": bool(groups is not None and weight_loss_by_groups),
