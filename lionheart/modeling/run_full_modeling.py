@@ -300,10 +300,11 @@ def run_full_model_training(
             )
 
         # Plot ROC curves
-        plot_roc_curves(
-            roc_curves=train_out["Evaluation"]["ROC"],
-            plot_path=paths["out_path"] / "ROC_curves.png",
-        )
+        if "ROC" in train_out["Evaluation"]:
+            plot_roc_curves(
+                roc_curves=train_out["Evaluation"]["ROC"],
+                plot_path=paths["out_path"] / "ROC_curves.png",
+            )
 
         # Save the predictions
         if train_out["Predictions"] is not None:
