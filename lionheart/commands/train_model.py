@@ -102,8 +102,8 @@ def setup_parser(parser):
         "--subtype",
         action="store_true",
         help="Whether to train a multiclass classification model for predicting the cancer type."
-        "\nOnly includes the cases (no controls)."
         "\nSpecify the cancer types to include in the model via --subtypes_to_use."
+        "\nBy default, only the cases are included (no controls)."
         "\nTypically, this model is run on the samples that the cancer detector predicts as cancer.",
     )
     parser.add_argument(
@@ -123,8 +123,9 @@ def setup_parser(parser):
             "hepatocellular carcinoma",
         ],
         help="The cancer types to include in the model when --subtype is specified."
-        "\nBy default, only types with >10 samples in the included features are used.\n"
-        "\nUse quotes (e.g. 'colorectal cancer') in case of whitespace.",
+        "\nBy default, only cancer types with >10 samples in the included features are used.\n"
+        "\nUse quotes (e.g. 'colorectal cancer') in case of whitespace."
+        "\nControls can be included with 'control' although this is untested territory.",
     )
     parser.add_argument(
         "--k",

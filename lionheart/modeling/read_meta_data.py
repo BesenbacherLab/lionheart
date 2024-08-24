@@ -99,7 +99,7 @@ def read_meta_data(
     # Create maps from sample IDs to targets
     # and (in classification) vice versa
     target_to_sample_ids = None
-    if task == "classification":
+    if "classification" in task:
         target_to_sample_ids = {
             k: [x for x, _ in list(v.itertuples(index=False, name=None))]
             for k, v in meta.loc[:, ["sample", target_name]].groupby(target_name)
