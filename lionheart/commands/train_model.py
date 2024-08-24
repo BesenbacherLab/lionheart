@@ -365,7 +365,9 @@ def main(args):
             nm: t_o
             for nm, t_o in zip(
                 shared_features_paths["Dataset Name"],
-                shared_features_paths["Train Only"],
+                shared_features_paths[
+                    f"Train Only {'Subtype' if args.subtype else 'Status'}"
+                ],
             )
         }
 
