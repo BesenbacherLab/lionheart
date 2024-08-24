@@ -245,7 +245,7 @@ def run_full_model_training(
             "Names": list(dataset_paths.keys()),
             "Number of Samples": prepared_modeling_dict["dataset_sizes"],
         }
-    messenger(json.dumps(training_info, indent=4), indent=0)
+    messenger(json.dumps(convert_numpy_types(training_info), indent=4), indent=0)
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
