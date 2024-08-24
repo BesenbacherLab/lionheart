@@ -431,7 +431,7 @@ def main(args):
 
                         positive_label = training_info["Labels"][
                             "New Label Index to New Label"
-                        ][training_info["Labels"]["Positive Label"]]
+                        ][str(training_info["Labels"]["Positive Label"])]
                         probability_colname = f"P({positive_label})"
                         prediction_df[probability_colname] = predicted_probability
                         prediction_df.columns = [
