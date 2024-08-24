@@ -123,7 +123,11 @@ def prepare_modeling(
             train_only_datasets = None
 
         # Update `train_only_datasets` with merge groups
-        if merge_datasets is not None and merge_datasets:
+        if (
+            merge_datasets is not None
+            and merge_datasets
+            and train_only_datasets is not None
+        ):
             rm_from_train_only_datasets = []
             for merge_group_name, merge_group_members in merge_datasets.items():
                 if any([d in train_only_datasets for d in merge_group_members]):
