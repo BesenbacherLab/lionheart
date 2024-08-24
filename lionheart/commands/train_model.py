@@ -200,7 +200,9 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
-examples = Examples()
+examples = Examples(
+    introduction="While the examples don't use parallelization, it is recommended to use `--num_jobs 10` for a big speedup."
+)
 examples.add_example(
     description="Simple example using defaults:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy

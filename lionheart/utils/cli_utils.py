@@ -120,8 +120,9 @@ def wrap_command_description(d):
 
 
 class Examples:
-    def __init__(self, header="Examples:") -> None:
+    def __init__(self, header="Examples:", introduction: str = "") -> None:
         self.header = header
+        self.introduction = introduction
         self.examples = []
 
     def add_example(
@@ -131,6 +132,8 @@ class Examples:
 
     def construct(self):
         string = f"<h1>{self.header.upper()}</h1>\n"
+        if self.introduction:
+            string += "\n" + self.introduction + "\n\n"
         for desc, ex, use_prog in self.examples:
             string += Examples.format_example(
                 description=desc, example=ex, use_prog=use_prog
