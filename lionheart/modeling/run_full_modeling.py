@@ -109,6 +109,11 @@ def run_full_model_training(
         messenger=messenger,
     )
 
+    messenger(
+        f"Final dataset sample counts:\n{prepared_modeling_dict['dataset_sizes']}",
+        add_indent=2,
+    )
+
     # Unpack parts of the prepared modeling objects
     model_dict = prepared_modeling_dict["model_dict"]
     task = prepared_modeling_dict["task"]

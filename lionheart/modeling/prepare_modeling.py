@@ -331,6 +331,7 @@ def prepare_modeling(
 
     # Replace dataset IDs for merged groups
     if merge_datasets is not None:
+        messenger("Start: Merging datasets")
         for merge_group_name, merge_group_members in merge_datasets.items():
             for member in merge_group_members:
                 dataset_ids[dataset_ids == member] = merge_group_name
