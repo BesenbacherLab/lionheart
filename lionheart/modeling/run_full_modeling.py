@@ -213,9 +213,9 @@ def run_full_model_training(
     messenger("Gathering training info:", add_indent=4)
     training_info = {
         "Task": "Cancer Detection"
-        if prepared_modeling_dict[task] == "binary_classification"
+        if prepared_modeling_dict["task"] == "binary_classification"
         else "Cancer Subtyping",
-        "Modeling Task": prepared_modeling_dict[task],
+        "Modeling Task": prepared_modeling_dict["task"],
         "Package Versions": {
             "lionheart": lionheart_version,
             "generalize": generalize_version,
