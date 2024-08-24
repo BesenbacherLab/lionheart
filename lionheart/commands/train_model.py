@@ -412,6 +412,9 @@ def main(args):
         ],
         feature_sets=[0],
         train_only_datasets=train_only,
+        merge_datasets={"Combined Data": list(dataset_paths.keys())}
+        if args.subtype
+        else None,
         k=args.k,
         transformers=transformers_fn,
         aggregate_by_groups=args.aggregate_by_subjects,
