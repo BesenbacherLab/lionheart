@@ -372,6 +372,7 @@ def prepare_modeling(
                     positive_label=positive_label,
                     downsample=False,
                     shuffle=False,
+                    rm_prefixed_index=True,
                     seed=seed,
                     messenger=messenger,
                 )

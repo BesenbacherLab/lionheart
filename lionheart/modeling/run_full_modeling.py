@@ -321,6 +321,7 @@ def run_full_model_training(
                 groups=train_out["Groups"],
                 split_indices_list=[train_out["Split"]],
                 target_idx_to_target_label_map=class_idx_to_label_map,
+                positive_class=prepared_modeling_dict["new_positive_label"],
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
