@@ -264,11 +264,11 @@ def main(args):
 
     prediction_dfs = []
 
-    for model_name in model_name_to_dir.keys():
+    for model_idx, model_name in enumerate(model_name_to_dir.keys()):
         messenger(f"Model: {model_name}")
 
         messenger("Start: Extracting training info", indent=4)
-        with timer.time_step(indent=8, name_prefix="training_info"):
+        with timer.time_step(indent=8, name_prefix=f"{model_idx}_training_info"):
             with messenger.indentation(add_indent=8):
                 # Check package versioning
                 training_info = model_name_to_training_info[model_name]
@@ -311,7 +311,7 @@ def main(args):
 
         if modeling_task == "binary_classification":
             messenger("Start: Loading ROC Curve(s)", indent=4)
-            with timer.time_step(indent=8, name_prefix="load_roc_curves"):
+            with timer.time_step(indent=8, name_prefix=f"{model_idx}_load_roc_curves"):
                 roc_curves: Dict[str, ROCCurve] = {}
                 # Load training-data-based ROC curve collection
                 try:
@@ -358,7 +358,9 @@ def main(args):
                         roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
 
             messenger("Start: Calculating probability threshold(s)", indent=4)
-            with timer.time_step(indent=8, name_prefix="threshold_calculation"):
+            with timer.time_step(
+                indent=8, name_prefix=f"{model_idx}_threshold_calculation"
+            ):
                 with messenger.indentation(add_indent=8):
                     roc_to_thresholds = {}
 
@@ -397,7 +399,7 @@ def main(args):
                         )
 
         messenger("Start: Loading and applying model pipeline", indent=4)
-        with timer.time_step(indent=8, name_prefix="model_inference"):
+        with timer.time_step(indent=8, name_prefix=f"{model_idx}_model_inference"):
             with messenger.indentation(add_indent=8):
                 try:
                     pipeline = joblib_load(paths[f"model_{model_name}"])
