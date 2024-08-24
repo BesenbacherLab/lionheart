@@ -124,7 +124,7 @@ def run_full_model_training(
         collection="out_files",
     )
 
-    paths.print_note = "Some output file paths are defined in dolearn::evaluate()."
+    paths.print_note = "Some output file paths are defined in generalize::evaluate()."
 
     # Create output directories
     paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
@@ -149,6 +149,7 @@ def run_full_model_training(
             y=prepared_modeling_dict["labels"],
             model=prepared_modeling_dict["model"],
             grid=model_dict["grid"],
+            groups=prepared_modeling_dict["groups"],
             positive=prepared_modeling_dict["new_positive_label"],
             y_labels=prepared_modeling_dict["new_label_idx_to_new_label"],
             k=k,
