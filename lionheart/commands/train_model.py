@@ -23,7 +23,6 @@ from packaging import version
 """
 Todos
 
-- Add multiclass classification option. Requires cancer types be in the meta data file for training!
 - The "included" features must have meta data for labels and cohort
 - The specified "new" features must have meta data for labels and (optionally) cohort
     - Probably should allow specifying multiple cohorts from different files
@@ -60,8 +59,8 @@ def setup_parser(parser):
         "\n       'lung cancer', 'breast cancer', 'pancreatic cancer', 'ovarian cancer',"
         "\n       'gastric cancer', 'bile duct cancer', 'hepatocellular carcinoma',"
         "\n       'head and neck squamous cell carcinoma', 'nasopharyngeal carcinoma',"
-        "\n       'exclude'</i>} (Must match exactly when using included features!) "
-        "\n     or a new cancer type."
+        "\n       'exclude'</i>} (Must match exactly (case-insensitive) when using included features!) "
+        "\n     or a custom cancer type."
         "\n     <b>NOTE</b>: When not running subtyping, any character value is fine."
         "\n  4) the (optional) fourth column contains <b>subject ID</b> "
         "(for when subjects have more than one sample)"
@@ -402,10 +401,10 @@ def main(args):
         if not args.subtype
         else "multiclass_classification",
         model_dict=model_dict,
-        labels_to_use=["0_Control(Control)", "1_Cancer(Cancer)"]
+        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"]
         if not args.subtype
         else [
-            f"{i}_{c.title().replace(' ', '_')}({c})"
+            f"{i}_{c.title().replace(' ', '_')}({c.lower()})"
             for i, c in enumerate(args.subtypes_to_use)
         ],
         feature_sets=[0],

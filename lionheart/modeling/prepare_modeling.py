@@ -265,6 +265,9 @@ def prepare_modeling(
                 name=dataset_name if dataset_name != "unnamed" else None,
                 messenger=messenger,
             )
+            if "classification" in task:
+                # Make labels lowercase
+                _labels = [lab.lower() for lab in _labels]
             dataset_info["labels"] = _labels
             labels += _labels
             sample_ids += _sample_ids
