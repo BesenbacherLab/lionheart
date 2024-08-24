@@ -431,11 +431,17 @@ def main(args):
                             f"The predicted probability had the wrong shape: {predicted_probability}. "
                             f"Model ({model_name}) is expected to be a binary classifier."
                         )
-                    messenger(f"Predicted probability: {predicted_probability}")
 
+                    # Get label of predicted class
                     positive_label = label_idx_to_label[
                         int(training_info["Labels"]["Positive Label"])
                     ]
+                    probability_colname = f"P({positive_label})"
+
+                    messenger(
+                        f"Predicted probability {probability_colname}: "
+                        f"{predicted_probability}"
+                    )
 
                     for roc_name, thresholds in roc_to_thresholds.items():
                         # Calculate predicted classes based on cutoffs
@@ -447,7 +453,6 @@ def main(args):
                             )
                         prediction_df = pd.DataFrame(thresholds)
 
-                        probability_colname = f"P({positive_label})"
                         prediction_df[probability_colname] = predicted_probability
                         prediction_df.columns = [
                             "Threshold",
@@ -466,7 +471,10 @@ def main(args):
                     # Predict samples
                     predicted_probabilities = pipeline.predict_proba(features)
                     predictions = pipeline.predict(features).flatten()
-                    predictions = [label_idx_to_label[p] for p in predictions]
+                    assert len(predictions) == 1
+                    prediction = label_idx_to_label[predictions[0]]
+
+                    messenger(f"Predicted class: {prediction}")
 
                     # Combine to data frame
                     prediction_df = pd.DataFrame(
@@ -478,7 +486,7 @@ def main(args):
                             )
                         ],
                     )
-                    prediction_df["Prediction"] = predictions
+                    prediction_df["Prediction"] = prediction
                     prediction_df["Model"] = model_name
                     prediction_df["Task"] = cancer_task
                     prediction_dfs.append(prediction_df)
