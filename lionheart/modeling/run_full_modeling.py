@@ -311,17 +311,23 @@ def run_full_model_training(
             messenger("Saving predictions", indent=2)
 
             class_idx_to_label_map = None
-            if prepared_modeling_dict["task"] == "multiclass_classification":
+            positive_label = None
+            if "classification" in task:
                 class_idx_to_label_map = training_info["Labels"][
                     "New Label Index to New Label"
                 ]
+                if prepared_modeling_dict["new_positive_label"] is not None:
+                    positive_label = class_idx_to_label_map[
+                        prepared_modeling_dict["new_positive_label"]
+                    ]
+
             Evaluator.save_predictions(
                 predictions_list=[train_out["Predictions"]],
                 targets=train_out["Targets"],
                 groups=train_out["Groups"],
                 split_indices_list=[train_out["Split"]],
                 target_idx_to_target_label_map=class_idx_to_label_map,
-                positive_class=prepared_modeling_dict["new_positive_label"],
+                positive_class=positive_label,
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
