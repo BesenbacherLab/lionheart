@@ -429,7 +429,7 @@ def main(args):
             main_var=("model__C", "minimize"),
             score_name="balanced_accuracy",
             other_vars=[("[pca__kwargs]__target_variance", "minimize")],
-            verbose=True,
+            messenger=messenger,
         )
         if args.subtype
         else None,
