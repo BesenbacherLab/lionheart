@@ -40,6 +40,7 @@ def run_full_model_training(
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
     expected_shape: Optional[Dict[int, int]] = None,
+    refit_fn: Optional[Callable] = None,
     num_jobs: int = 1,
     seed: Optional[int] = 1,
     required_lionheart_version: Optional[str] = None,
@@ -69,7 +70,9 @@ def run_full_model_training(
         Each sample in a group gets the weight `1 / group_size`.
         Passed to model's `.fit(sample_weight=)` method.
         **Ignored** when no groups are present in the meta data.
-
+    refit_fn
+        An optional function for finding the best hyperparameter
+        combination from `cv_results_` in grid search.
 
     """
 
@@ -166,6 +169,7 @@ def run_full_model_training(
             weight_per_split=prepared_modeling_dict["weight_per_dataset"],
             metric=metric,
             task=task,
+            refit_fn=refit_fn,
             transformers=transformers,
             train_test_transformers=train_test_transformers,
             add_channel_dim=model_dict["requires_channel_dim"],

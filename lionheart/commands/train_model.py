@@ -9,7 +9,9 @@ import joblib
 import numpy as np
 import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
+from packaging import version
 from sklearn.linear_model import LogisticRegression
+from generalize.model.cross_validate import make_simplest_model_refit_strategy
 
 from lionheart.modeling.transformers import prepare_transformers_fn
 from lionheart.modeling.run_full_modeling import run_full_model_training
@@ -18,7 +20,7 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
 from lionheart.utils.cli_utils import Examples
 from lionheart import __version__ as lionheart_version
-from packaging import version
+
 
 """
 Todos
@@ -423,6 +425,13 @@ def main(args):
         weight_loss_by_groups=True,
         weight_per_dataset=True,
         expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        refit_fn=make_simplest_model_refit_strategy(
+            main_var=("model_C", "minimize"),
+            score_name="balanced_accuracy",
+            other_vars=[("[pca__kwargs]__target_variance", "minimize")],
+        )
+        if args.subtype
+        else None,
         num_jobs=args.num_jobs,
         seed=args.seed,
         required_lionheart_version=args.required_lionheart_version,
