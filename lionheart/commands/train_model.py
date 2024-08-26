@@ -426,7 +426,7 @@ def main(args):
         weight_per_dataset=True,
         expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
         refit_fn=make_simplest_model_refit_strategy(
-            main_var=("model_C", "minimize"),
+            main_var=("model__C", "minimize"),
             score_name="balanced_accuracy",
             other_vars=[("[pca__kwargs]__target_variance", "minimize")],
         )
