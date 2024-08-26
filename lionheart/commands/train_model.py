@@ -106,7 +106,11 @@ def setup_parser(parser):
         help="Whether to train a multiclass classification model for predicting the cancer type."
         "\nSpecify the cancer types to include in the model via --subtypes_to_use."
         "\nBy default, only the cases are included (no controls)."
-        "\nTypically, this model is run on the samples that the cancer detector predicts as cancer.",
+        "\nTypically, this model is run on the samples that the cancer detector predicts as cancer."
+        "\nSubtyping models select hyperparameters via classical cross-validation (not on"
+        "\ncross-dataset generalization) and are thus more likely to overfit. To reduce overfitting,"
+        "\nwe select the model with lowest values of --lasso_c and --pca_target_variance"
+        "\nthat score within a standard deviation of the best combination.",
     )
     parser.add_argument(
         "--subtypes_to_use",
