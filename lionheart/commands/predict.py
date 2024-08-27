@@ -19,8 +19,11 @@ from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import parse_thresholds, Examples
-from lionheart.utils.global_vars import INCLUDED_MODELS
+from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
 from lionheart import __version__ as lionheart_version
+
+if not ENABLE_SUBTYPING:
+    INCLUDED_MODELS = [m for m in INCLUDED_MODELS if "subtype" not in m]
 
 
 def setup_parser(parser):
@@ -46,6 +49,7 @@ def setup_parser(parser):
         "\nWhen not supplied, the predictions are stored in `--sample_dir`."
         "\nA `log` directory will be placed in the same directory.",
     )
+    models_string = "', '".join(INCLUDED_MODELS + ["none"])
     parser.add_argument(
         "--model_names",
         choices=INCLUDED_MODELS + ["none"],
@@ -53,7 +57,10 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         help="Name(s) of included trained model(s) to run. "
-        "\nSet to `none` to only use a custom model (see --custom_model_dir).",
+        "\nSet to `none` to only use a custom model (see --custom_model_dir)."
+        "\nOne of {"
+        f"'{models_string}'"
+        "}.",
     )
     parser.add_argument(
         "--custom_model_dirs",
@@ -70,9 +77,13 @@ def setup_parser(parser):
         nargs="*",
         help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
         "\nfor extracting the probability thresholds."
-        "\nThe output will have predictions for thresholds based on"
-        "\nboth the training data ROC curves and these custom ROC curves."
-        "\n<b>NOTE></b>: ROC curves are ignored for subtyping models.",
+        "\nThe output will have predictions for thresholds based on both"
+        "\nthe training data ROC curves and these custom ROC curves."
+        + (
+            "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
+            if ENABLE_SUBTYPING
+            else ""
+        ),
     )
     threshold_defaults = [
         "max_j",
@@ -98,7 +109,7 @@ def setup_parser(parser):
         "in the ROC curve is used. "
         "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
         "\nwhich was fitted to the <b>training</b> data during model training."
-        "\n<b>NOTE></b>: Ignored for subtyping models.",
+        + ("\n<b>NOTE></b>: Ignored for subtyping models." if ENABLE_SUBTYPING else ""),
     )
     parser.add_argument(
         "--identifier",
@@ -132,7 +143,7 @@ This is useful when you have validated a model on your own data and want to use 
 --custom_roc_paths path/to/validation_ROC_curves.json""",
 )
 examples.add_example(
-    description="""Specifying custom probability thresholds for a specificity of ~0.975 and a sensitivity of ~0.8.""",
+    description="""Specifying custom probability thresholds for 1) a specificity of ~0.975 and 2) a sensitivity of ~0.8.""",
     example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
 --out_dir path/to/subject_1/predictions
