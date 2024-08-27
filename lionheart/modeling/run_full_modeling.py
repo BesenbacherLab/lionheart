@@ -1,6 +1,8 @@
 import pathlib
+import json
 from typing import Callable, List, Optional, Union, Dict
-from joblib import dump
+from joblib import dump, __version__ as joblib_version
+from sklearn import __version__ as sklearn_version
 import logging
 import numpy as np
 import pandas as pd
@@ -10,8 +12,10 @@ import seaborn as sns
 from utipy import StepTimer, Messenger, check_messenger
 from generalize import Evaluator, train_full_model
 from generalize.evaluate.roc_curves import ROCCurves
+from generalize import __version__ as generalize_version
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
+from lionheart import __version__ as lionheart_version
 
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
 # TODO: Make this work with regression
@@ -36,8 +40,10 @@ def run_full_model_training(
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
     expected_shape: Optional[Dict[int, int]] = None,
+    refit_fn: Optional[Callable] = None,
     num_jobs: int = 1,
     seed: Optional[int] = 1,
+    required_lionheart_version: Optional[str] = None,
     exp_name: str = "",
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ):
@@ -64,7 +70,9 @@ def run_full_model_training(
         Each sample in a group gets the weight `1 / group_size`.
         Passed to model's `.fit(sample_weight=)` method.
         **Ignored** when no groups are present in the meta data.
-
+    refit_fn
+        An optional function for finding the best hyperparameter
+        combination from `cv_results_` in grid search.
 
     """
 
@@ -104,6 +112,11 @@ def run_full_model_training(
         messenger=messenger,
     )
 
+    messenger(
+        f"Final dataset sample counts:\n{prepared_modeling_dict['dataset_sizes']}",
+        add_indent=2,
+    )
+
     # Unpack parts of the prepared modeling objects
     model_dict = prepared_modeling_dict["model_dict"]
     task = prepared_modeling_dict["task"]
@@ -113,8 +126,13 @@ def run_full_model_training(
     paths.set_path(
         name="model_path", path=out_path / "model.joblib", collection="out_files"
     )
+    paths.set_path(
+        name="training_info",
+        path=out_path / "training_info.json",
+        collection="out_files",
+    )
 
-    paths.print_note = "Some output file paths are defined in dolearn::evaluate()."
+    paths.print_note = "Some output file paths are defined in generalize::evaluate()."
 
     # Create output directories
     paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
@@ -139,6 +157,7 @@ def run_full_model_training(
             y=prepared_modeling_dict["labels"],
             model=prepared_modeling_dict["model"],
             grid=model_dict["grid"],
+            groups=prepared_modeling_dict["groups"],
             positive=prepared_modeling_dict["new_positive_label"],
             y_labels=prepared_modeling_dict["new_label_idx_to_new_label"],
             k=k,
@@ -150,6 +169,7 @@ def run_full_model_training(
             weight_per_split=prepared_modeling_dict["weight_per_dataset"],
             metric=metric,
             task=task,
+            refit_fn=refit_fn,
             transformers=transformers,
             train_test_transformers=train_test_transformers,
             add_channel_dim=model_dict["requires_channel_dim"],
@@ -194,6 +214,43 @@ def run_full_model_training(
         for key in model_dict["grid"].keys():
             messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
 
+    messenger("Gathering training info:", add_indent=4)
+    training_info = {
+        "Task": "Cancer Detection"
+        if prepared_modeling_dict["task"] == "binary_classification"
+        else "Cancer Subtyping",
+        "Modeling Task": prepared_modeling_dict["task"],
+        "Package Versions": {
+            "lionheart": lionheart_version,
+            "generalize": generalize_version,
+            "joblib": joblib_version,
+            "sklearn": sklearn_version,
+            "Min. Required lionheart": required_lionheart_version
+            if required_lionheart_version is not None
+            else "N/A",
+        },
+        "Labels": {
+            "Labels to Use": labels_to_use,
+            "Positive Label": prepared_modeling_dict["new_positive_label"],
+            "New Label Index to New Label": prepared_modeling_dict[
+                "new_label_idx_to_new_label"
+            ],
+            "New Label to New Label Index": prepared_modeling_dict[
+                "new_label_to_new_label_idx"
+            ],
+        },
+        "Data": {
+            "Shape": prepared_modeling_dict["dataset"].shape,
+            "Target counts": prepared_modeling_dict["label_counts"],
+        },
+    }
+    if isinstance(dataset_paths, dict):
+        training_info["Data"]["Datasets"] = {
+            "Names": list(dataset_paths.keys()),
+            "Number of Samples": prepared_modeling_dict["dataset_sizes"],
+        }
+    messenger(json.dumps(convert_numpy_types(training_info), indent=4), indent=0)
+
     messenger("Start: Saving results")
     with timer.time_step(indent=2):
         # Avoid DEBUG messages from matplotlib
@@ -201,6 +258,10 @@ def run_full_model_training(
 
         # Save the estimator
         dump(train_out["Estimator"], paths["model_path"])
+
+        # Save training info
+        with open(paths["training_info"], "w") as f:
+            json.dump(convert_numpy_types(training_info), f)
 
         # Save the evaluation scores, confusion matrices, etc.
         messenger("Saving evaluation", indent=2)
@@ -243,19 +304,34 @@ def run_full_model_training(
             )
 
         # Plot ROC curves
-        plot_roc_curves(
-            roc_curves=train_out["Evaluation"]["ROC"],
-            plot_path=paths["out_path"] / "ROC_curves.png",
-        )
+        if "ROC" in train_out["Evaluation"]:
+            plot_roc_curves(
+                roc_curves=train_out["Evaluation"]["ROC"],
+                plot_path=paths["out_path"] / "ROC_curves.png",
+            )
 
         # Save the predictions
         if train_out["Predictions"] is not None:
             messenger("Saving predictions", indent=2)
+
+            class_idx_to_label_map = None
+            positive_label = None
+            if "classification" in task:
+                class_idx_to_label_map = training_info["Labels"][
+                    "New Label Index to New Label"
+                ]
+                if prepared_modeling_dict["new_positive_label"] is not None:
+                    positive_label = class_idx_to_label_map[
+                        prepared_modeling_dict["new_positive_label"]
+                    ]
+
             Evaluator.save_predictions(
                 predictions_list=[train_out["Predictions"]],
                 targets=train_out["Targets"],
                 groups=train_out["Groups"],
                 split_indices_list=[train_out["Split"]],
+                target_idx_to_target_label_map=class_idx_to_label_map,
+                positive_class=positive_label,
                 out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
@@ -311,3 +387,20 @@ def plot_hparams(
     plt.grid(True)
     plt.savefig(plot_path, dpi=300)
     plt.show()
+
+
+# Function to convert numpy types to native Python types for json
+def convert_numpy_types(obj):
+    if isinstance(obj, dict):
+        return {
+            convert_numpy_types(key): convert_numpy_types(value)
+            for key, value in obj.items()
+        }
+    elif isinstance(obj, (list, tuple)):
+        return [convert_numpy_types(element) for element in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    else:
+        return obj

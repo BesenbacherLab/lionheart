@@ -123,7 +123,11 @@ def prepare_modeling(
             train_only_datasets = None
 
         # Update `train_only_datasets` with merge groups
-        if merge_datasets is not None and merge_datasets:
+        if (
+            merge_datasets is not None
+            and merge_datasets
+            and train_only_datasets is not None
+        ):
             rm_from_train_only_datasets = []
             for merge_group_name, merge_group_members in merge_datasets.items():
                 if any([d in train_only_datasets for d in merge_group_members]):
@@ -260,11 +264,14 @@ def prepare_modeling(
                 _label_to_sample_ids,
             ) = read_meta_data(
                 paths[dataset_info["meta_data_path_name"]],
-                task="classification" if "classification" in task else task,
+                task=task,
                 targets_as_str="classification" in task,
                 name=dataset_name if dataset_name != "unnamed" else None,
                 messenger=messenger,
             )
+            if "classification" in task:
+                # Make labels lowercase
+                _labels = [lab.lower() for lab in _labels]
             dataset_info["labels"] = _labels
             labels += _labels
             sample_ids += _sample_ids
@@ -324,6 +331,7 @@ def prepare_modeling(
 
     # Replace dataset IDs for merged groups
     if merge_datasets is not None:
+        messenger("Start: Merging datasets")
         for merge_group_name, merge_group_members in merge_datasets.items():
             for member in merge_group_members:
                 dataset_ids[dataset_ids == member] = merge_group_name
@@ -364,6 +372,7 @@ def prepare_modeling(
                     positive_label=positive_label,
                     downsample=False,
                     shuffle=False,
+                    rm_prefixed_index=True,
                     seed=seed,
                     messenger=messenger,
                 )
@@ -469,6 +478,10 @@ def prepare_modeling(
             lab: idx for idx, lab in new_label_idx_to_new_label.items()
         },
         "split": split,
+        "dataset_sizes": {
+            v: c for v, c in zip(*np.unique(dataset_ids, return_counts=True))
+        },
+        "label_counts": {v: c for v, c in zip(*np.unique(labels, return_counts=True))},
         "task": task,
         "aggregate_by_groups": bool(groups is not None and aggregate_by_groups),
         "weight_loss_by_groups": bool(groups is not None and weight_loss_by_groups),

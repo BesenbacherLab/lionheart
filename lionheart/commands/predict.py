@@ -6,18 +6,24 @@ Script that applies the model to the features of a singe sample and returns the 
 from typing import Dict
 import logging
 import pathlib
+import warnings
+import json
+import joblib
+from joblib import load as joblib_load
 import numpy as np
 import pandas as pd
-import joblib
-import warnings
-from joblib import load as joblib_load
-from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
+from sklearn import __version__ as sklearn_version
+from packaging import version
+from utipy import Messenger, StepTimer, IOPaths
 from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.global_vars import JOBLIB_VERSION
 from lionheart.utils.cli_utils import parse_thresholds, Examples
-from lionheart.utils.global_vars import INCLUDED_MODELS
+from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
+from lionheart import __version__ as lionheart_version
+
+if not ENABLE_SUBTYPING:
+    INCLUDED_MODELS = [m for m in INCLUDED_MODELS if "subtype" not in m]
 
 
 def setup_parser(parser):
@@ -43,6 +49,7 @@ def setup_parser(parser):
         "\nWhen not supplied, the predictions are stored in `--sample_dir`."
         "\nA `log` directory will be placed in the same directory.",
     )
+    models_string = "', '".join(INCLUDED_MODELS + ["none"])
     parser.add_argument(
         "--model_names",
         choices=INCLUDED_MODELS + ["none"],
@@ -50,7 +57,10 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         help="Name(s) of included trained model(s) to run. "
-        "\nSet to `none` to only use a custom model (see --custom_model_dir).",
+        "\nSet to `none` to only use a custom model (see --custom_model_dir)."
+        "\nOne of {"
+        f"'{models_string}'"
+        "}.",
     )
     parser.add_argument(
         "--custom_model_dirs",
@@ -67,8 +77,13 @@ def setup_parser(parser):
         nargs="*",
         help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
         "\nfor extracting the probability thresholds."
-        "\nThe output will have predictions for thresholds based on"
-        "\nboth the training data ROC curves and these custom ROC curves.",
+        "\nThe output will have predictions for thresholds based on both"
+        "\nthe training data ROC curves and these custom ROC curves."
+        + (
+            "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
+            if ENABLE_SUBTYPING
+            else ""
+        ),
     )
     threshold_defaults = [
         "max_j",
@@ -83,7 +98,7 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         default=threshold_defaults,
-        help="The probability thresholds to use."
+        help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
         "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
@@ -93,7 +108,8 @@ def setup_parser(parser):
         "\nWhen passing specific float thresholds, the nearest threshold "
         "in the ROC curve is used. "
         "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
-        "\nwhich was fitted to the <b>training</b> data during model training.",
+        "\nwhich was fitted to the <b>training</b> data during model training."
+        + ("\n<b>NOTE></b>: Ignored for subtyping models." if ENABLE_SUBTYPING else ""),
     )
     parser.add_argument(
         "--identifier",
@@ -127,7 +143,7 @@ This is useful when you have validated a model on your own data and want to use 
 --custom_roc_paths path/to/validation_ROC_curves.json""",
 )
 examples.add_example(
-    description="""Specifying custom probability thresholds for a specificity of ~0.975 and a sensitivity of ~0.8.""",
+    description="""Specifying custom probability thresholds for 1) a specificity of ~0.975 and 2) a sensitivity of ~0.8.""",
     example="""--sample_dir path/to/subject_1/features
 --resources_dir path/to/resource/directory
 --out_dir path/to/subject_1/predictions
@@ -177,14 +193,16 @@ def main(args):
             "No models where selected. Select one or more models to predict the sample."
         )
 
+    training_info_paths = {
+        f"training_info_{model_name}": model_dir / "training_info.json"
+        for model_name, model_dir in model_name_to_dir.items()
+    }
+
     model_paths = {
         f"model_{model_name}": model_dir / "model.joblib"
         for model_name, model_dir in model_name_to_dir.items()
     }
-    training_roc_paths = {
-        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
+
     custom_roc_paths = {}
     if args.custom_roc_paths is not None and args.custom_roc_paths:
         custom_roc_paths = {
@@ -196,8 +214,8 @@ def main(args):
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
             **model_paths,
-            **training_roc_paths,
             **custom_roc_paths,
+            **training_info_paths,
         },
         in_dirs={
             "resources_dir": resources_dir,
@@ -210,6 +228,21 @@ def main(args):
         },
         out_files={"prediction_path": out_path / "prediction.csv"},
     )
+
+    messenger("Start: Loading training info", indent=4)
+    model_name_to_training_info = {
+        model_name: _load_json(paths[f"training_info_{model_name}"])
+        for model_name in model_name_to_dir.keys()
+    }
+
+    training_roc_paths = {
+        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
+        for model_name, model_dir in model_name_to_dir.items()
+        if model_name_to_training_info[model_name]["Modeling Task"]
+        == "binary_classification"
+    }
+    if training_roc_paths:
+        paths.set_paths(training_roc_paths, collection="in_files")
 
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
@@ -240,24 +273,59 @@ def main(args):
     # Get first feature set (correlations)
     features = features[:, 0, :]
 
-    if joblib.__version__ != JOBLIB_VERSION:
-        # joblib sometimes can't load objects
-        # pickled with a different joblib version
-        messenger(
-            f"Model was pickled with joblib=={JOBLIB_VERSION}. "
-            f"The installed version is {joblib.__version__}. "
-            "Model loading *may* fail.",
-            add_msg_fn=warnings.warn,
-        )
-
     prediction_dfs = []
 
-    for model_name in model_name_to_dir.keys():
+    for model_idx, model_name in enumerate(model_name_to_dir.keys()):
         messenger(f"Model: {model_name}")
 
-        messenger("Start: Loading ROC Curve(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="load_roc_curves"):
+        messenger("Start: Extracting training info", indent=4)
+        with timer.time_step(indent=8, name_prefix=f"{model_idx}_training_info"):
             with messenger.indentation(add_indent=8):
+                # Check package versioning
+                training_info = model_name_to_training_info[model_name]
+                for pkg, present_pkg_version, pkg_verb in [
+                    ("joblib", joblib.__version__, "pickled"),
+                    ("sklearn", sklearn_version, "fitted"),
+                ]:
+                    model_pkg_version = training_info["Package Versions"][pkg]
+                    if present_pkg_version != model_pkg_version:
+                        # joblib sometimes can't load objects
+                        # pickled with a different joblib version
+                        messenger(
+                            f"Model ({model_name}) was {pkg_verb} with `{pkg}=={model_pkg_version}`. "
+                            f"The installed version is {present_pkg_version}. "
+                            "Using the model *may* fail.",
+                            add_msg_fn=warnings.warn,
+                        )
+                min_lionheart_requirement = training_info["Package Versions"][
+                    "Min. Required lionheart"
+                ]
+                if min_lionheart_requirement != "N/A" and version.parse(
+                    min_lionheart_requirement
+                ) > version.parse(lionheart_version):
+                    raise RuntimeError(
+                        f"Model ({model_name}) requires a newer version "
+                        f"({min_lionheart_requirement}) of LIONHEART."
+                    )
+
+                # Whether model is binary or multiclass
+                modeling_task = training_info["Modeling Task"]
+                cancer_task = training_info["Task"]
+                if modeling_task not in [
+                    "binary_classification",
+                    "multiclass_classification",
+                ]:
+                    raise ValueError(
+                        f"The `training_info.json` 'Modeling Task' was invalid: {modeling_task}"
+                    )
+                messenger(
+                    f"Modeling task: {cancer_task} ({modeling_task.replace('_', ' ').title()})",
+                    indent=8,
+                )
+
+        if modeling_task == "binary_classification":
+            messenger("Start: Loading ROC Curve(s)", indent=4)
+            with timer.time_step(indent=8, name_prefix=f"{model_idx}_load_roc_curves"):
                 roc_curves: Dict[str, ROCCurve] = {}
                 # Load training-data-based ROC curve collection
                 try:
@@ -303,47 +371,49 @@ def main(args):
                             raise
                         roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
 
-        messenger("Start: Calculating probability threshold(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="threshold_calculation"):
-            with messenger.indentation(add_indent=8):
-                roc_to_thresholds = {}
+            messenger("Start: Calculating probability threshold(s)", indent=4)
+            with timer.time_step(
+                indent=8, name_prefix=f"{model_idx}_threshold_calculation"
+            ):
+                with messenger.indentation(add_indent=8):
+                    roc_to_thresholds = {}
 
-                for roc_name, roc_curve in roc_curves.items():
-                    roc_to_thresholds[roc_name] = []
+                    for roc_name, roc_curve in roc_curves.items():
+                        roc_to_thresholds[roc_name] = []
 
-                    if thresholds_to_calculate["max_j"]:
-                        max_j = roc_curve.get_threshold_at_max_j(interpolate=True)
-                        max_j["Name"] = "Max. Youden's J"
-                        roc_to_thresholds[roc_name].append(max_j)
+                        if thresholds_to_calculate["max_j"]:
+                            max_j = roc_curve.get_threshold_at_max_j(interpolate=True)
+                            max_j["Name"] = "Max. Youden's J"
+                            roc_to_thresholds[roc_name].append(max_j)
 
-                    for s in thresholds_to_calculate["sensitivity"]:
-                        thresh = roc_curve.get_threshold_at_sensitivity(
-                            above_sensitivity=s, interpolate=True
+                        for s in thresholds_to_calculate["sensitivity"]:
+                            thresh = roc_curve.get_threshold_at_sensitivity(
+                                above_sensitivity=s, interpolate=True
+                            )
+                            thresh["Name"] = f"Sensitivity ~{s}"
+                            roc_to_thresholds[roc_name].append(thresh)
+
+                        for s in thresholds_to_calculate["specificity"]:
+                            thresh = roc_curve.get_threshold_at_specificity(
+                                above_specificity=s, interpolate=True
+                            )
+                            thresh["Name"] = f"Specificity ~{s}"
+                            roc_to_thresholds[roc_name].append(thresh)
+
+                        for t in thresholds_to_calculate["numerics"]:
+                            thresh = roc_curve.get_interpolated_threshold(threshold=t)
+                            thresh["Name"] = f"Threshold ~{t}"
+                            roc_to_thresholds[roc_name].append(thresh)
+
+                        messenger(f"ROC curve: {roc_name}")
+                        messenger(
+                            "Calculated the following (interpolated) thresholds: \n",
+                            pd.DataFrame(roc_to_thresholds[roc_name]),
+                            add_indent=4,
                         )
-                        thresh["Name"] = f"Sensitivity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    for s in thresholds_to_calculate["specificity"]:
-                        thresh = roc_curve.get_threshold_at_specificity(
-                            above_specificity=s, interpolate=True
-                        )
-                        thresh["Name"] = f"Specificity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    for t in thresholds_to_calculate["numerics"]:
-                        thresh = roc_curve.get_interpolated_threshold(threshold=t)
-                        thresh["Name"] = f"Threshold ~{t}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    messenger(f"ROC curve: {roc_name}")
-                    messenger(
-                        "Calculated the following (interpolated) thresholds: \n",
-                        pd.DataFrame(roc_to_thresholds[roc_name]),
-                        add_indent=4,
-                    )
 
         messenger("Start: Loading and applying model pipeline", indent=4)
-        with timer.time_step(indent=8, name_prefix="model_inference"):
+        with timer.time_step(indent=8, name_prefix=f"{model_idx}_model_inference"):
             with messenger.indentation(add_indent=8):
                 try:
                     pipeline = joblib_load(paths[f"model_{model_name}"])
@@ -352,46 +422,103 @@ def main(args):
                     messenger("Model failed to be loaded.")
                     raise
 
-                predicted_probability = pipeline.predict_proba(features).flatten()
-                if len(predicted_probability) == 1:
-                    predicted_probability = float(predicted_probability[0])
-                elif len(predicted_probability) == 2:
-                    predicted_probability = float(predicted_probability[1])
-                else:
-                    raise NotImplementedError(
-                        f"The predicted probability had the wrong shape: {predicted_probability}. "
-                        "Multiclass is not currently supported."
-                    )
-                messenger(f"Predicted probability: {predicted_probability}")
+                # Load and prepare `New Label Index to New Label` mapping
+                label_idx_to_label = training_info["Labels"][
+                    "New Label Index to New Label"
+                ]
+                # Ensure keys are integers
+                label_idx_to_label = {
+                    int(key): val for key, val in label_idx_to_label.items()
+                }
 
-                for roc_name, thresholds in roc_to_thresholds.items():
-                    # Calculate predicted classes based on cutoffs
-                    for thresh_info in thresholds:
-                        thresh_info["Prediction"] = (
-                            "Cancer"
-                            if predicted_probability > thresh_info["Threshold"]
-                            else "Healthy"
+                if modeling_task == "binary_classification":
+                    predicted_probability = pipeline.predict_proba(features).flatten()
+                    if len(predicted_probability) == 1:
+                        predicted_probability = float(predicted_probability[0])
+                    elif len(predicted_probability) == 2:
+                        predicted_probability = float(predicted_probability[1])
+                    else:
+                        raise NotImplementedError(
+                            f"The predicted probability had the wrong shape: {predicted_probability}. "
+                            f"Model ({model_name}) is expected to be a binary classifier."
                         )
-                    prediction_df = pd.DataFrame(thresholds)
 
-                    prediction_df["Probability"] = predicted_probability
-                    prediction_df.columns = [
-                        "Threshold",
-                        "Exp. Specificity",
-                        "Exp. Sensitivity",
-                        "Threshold Name",
-                        "Prediction",
-                        "Probability",
+                    # Get label of predicted class
+                    positive_label = label_idx_to_label[
+                        int(training_info["Labels"]["Positive Label"])
                     ]
-                    prediction_df["ROC Curve"] = roc_name
+                    probability_colname = f"P({positive_label})"
+
+                    messenger(
+                        f"Predicted probability {probability_colname}: "
+                        f"{predicted_probability}"
+                    )
+
+                    for roc_name, thresholds in roc_to_thresholds.items():
+                        # Calculate predicted classes based on cutoffs
+                        for thresh_info in thresholds:
+                            thresh_info["Prediction"] = (
+                                "Cancer"
+                                if predicted_probability > thresh_info["Threshold"]
+                                else "Healthy"
+                            )
+                        prediction_df = pd.DataFrame(thresholds)
+
+                        prediction_df[probability_colname] = predicted_probability
+                        prediction_df.columns = [
+                            "Threshold",
+                            "Exp. Specificity",
+                            "Exp. Sensitivity",
+                            "Threshold Name",
+                            "Prediction",
+                            probability_colname,
+                        ]
+                        prediction_df["ROC Curve"] = roc_name
+                        prediction_df["Model"] = model_name
+                        prediction_df["Task"] = cancer_task
+                        prediction_dfs.append(prediction_df)
+
+                elif modeling_task == "multiclass_classification":
+                    # Predict samples
+                    predicted_probabilities = pipeline.predict_proba(features)
+                    predictions = pipeline.predict(features).flatten()
+                    assert len(predictions) == 1
+                    prediction = label_idx_to_label[predictions[0]]
+
+                    messenger(f"Predicted class: {prediction}")
+
+                    # Combine to data frame
+                    prediction_df = pd.DataFrame(
+                        predicted_probabilities,
+                        columns=[
+                            f"P({label_idx_to_label[int(i)]})"
+                            for i in sorted(
+                                label_idx_to_label.keys(), key=lambda k: int(k)
+                            )
+                        ],
+                    )
+                    prediction_df["Prediction"] = prediction
                     prediction_df["Model"] = model_name
-                prediction_dfs.append(prediction_df)
+                    prediction_df["Task"] = cancer_task
+                    prediction_dfs.append(prediction_df)
 
     # Combine data frames and clean it up a bit
     all_predictions_df = pd.concat(prediction_dfs, axis=0, ignore_index=True)
-    move_column_inplace(all_predictions_df, "Threshold Name", 0)
-    move_column_inplace(all_predictions_df, "ROC Curve", 1)
-    move_column_inplace(all_predictions_df, "Model", 0)
+
+    # Reorder columns
+    prob_columns = [col_ for col_ in all_predictions_df.columns if col_[:2] == "P("]
+    first_columns = [
+        "Model",
+        "Task",
+        "Threshold Name",
+        "ROC Curve",
+        "Prediction",
+    ] + prob_columns
+    remaining_columns = [
+        col_ for col_ in all_predictions_df.columns if col_ not in first_columns
+    ]
+    all_predictions_df = all_predictions_df.loc[:, first_columns + remaining_columns]
+
     if args.identifier is not None:
         all_predictions_df["ID"] = args.identifier
 
@@ -400,3 +527,8 @@ def main(args):
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
+
+
+def _load_json(filename):
+    with open(filename, "r") as f:
+        return json.load(f)
