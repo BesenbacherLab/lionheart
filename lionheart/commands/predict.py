@@ -246,7 +246,7 @@ def main(args):
         paths.set_paths(training_roc_paths, collection="in_files")
 
     training_probability_densities_paths = {
-        f"prob_densities_{model_name}": model_dir / "probability_densitities.csv"
+        f"prob_densities_{model_name}": model_dir / "probability_densities.csv"
         for model_name, model_dir in model_name_to_dir.items()
         if model_name_to_training_info[model_name]["Modeling Task"]
         == "binary_classification"
