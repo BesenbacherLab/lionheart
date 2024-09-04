@@ -603,7 +603,9 @@ def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:
         "Exp. Accuracy for Class at Probability": (
             "The expected accuracy of predicting the specific class at the specific probability."
             "\n    I.e., for all samples with this specific probability (interpolated), what percentage were from the predicted class?"
+            "\n    Given a new prediction of the class with this probability, we would expect it to be correct that percentage of the time."
             "\n    Calculated based on probability density estimates from the training data."
+            "\n    Informs about the reliability of the class prediction (in addition to the probability)."
         ),
         "ID": "A unique sample identifier.",
     }
