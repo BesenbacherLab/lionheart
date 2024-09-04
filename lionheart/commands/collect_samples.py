@@ -8,6 +8,7 @@ from collections import OrderedDict
 import logging
 import pathlib
 import json
+import shutil
 import numpy as np
 import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
@@ -200,14 +201,18 @@ def collect_predictions(args, out_path, messenger, timer):
         f"prediction_dir_{i}": prediction_dir
         for i, prediction_dir in enumerate(prediction_dirs)
     }
+    readme_path = prediction_dirs[0] / "README.txt"
 
     paths = IOPaths(
-        in_files=dict(sample_paths),
+        in_files={**dict(sample_paths), "readme_path": readme_path},
         in_dirs=prediction_in_dirs,
         out_dirs={
             "out_path": out_path,
         },
-        out_files={"predictions_out": out_path / "predictions.csv"},
+        out_files={
+            "predictions_out": out_path / "predictions.csv",
+            "readme_out": out_path / "predictions.README.txt",
+        },
     )
 
     # Show overview of the paths
@@ -225,6 +230,10 @@ def collect_predictions(args, out_path, messenger, timer):
             ignore_index=True,
         )
         collected_dataset.to_csv(paths["predictions_out"], index=False)
+
+    messenger("Start: Copying README.txt file for predictions to output directory")
+    # Copy the prediction readme to the new directory
+    shutil.copy(str(paths["readme_path"]), str(paths["readme_out"]))
 
 
 def main(args):

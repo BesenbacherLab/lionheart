@@ -227,7 +227,10 @@ def main(args):
         out_dirs={
             "out_path": out_path,
         },
-        out_files={"prediction_path": out_path / "prediction.csv"},
+        out_files={
+            "prediction_path": out_path / "prediction.csv",
+            "readme_path": out_path / "README.txt",
+        },
     )
 
     messenger("Start: Loading training info", indent=4)
@@ -565,8 +568,15 @@ def main(args):
     if args.identifier is not None:
         all_predictions_df["ID"] = args.identifier
 
+    with pd.option_context("display.max_rows", None, "display.max_columns", None):
+        messenger("Final predictions:")
+        messenger(all_predictions_df)
+
     messenger("Saving predicted probability to disk")
     all_predictions_df.to_csv(paths["prediction_path"], index=False)
+
+    messenger("Writing README to explain output")
+    _write_output_explanation(all_predictions_df, paths["readme_path"])
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
@@ -575,3 +585,33 @@ def main(args):
 def _load_json(filename):
     with open(filename, "r") as f:
         return json.load(f)
+
+
+def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:
+    # Define the explanations for each column in your output
+
+    column_explanations = {
+        "Model": "Name of the applied model used for predictions.",
+        "Task": "The task performed by the model.",
+        "Threshold Name": "The name of the threshold (i.e. probability cutoff) used for decision making.",
+        "ROC Curve": "Name of the Receiver Operating Characteristic curve used to calculate the probability threshold.",
+        "Prediction": "The prediction.",
+        "P(Cancer)": "The predicted probability of cancer. From an uncalibrated logistic regression model.",
+        "Threshold": "The actual probability cutoff used to determine the predicted class.",
+        "Exp. Specificity": "The expected specificity at the probability threshold.",
+        "Exp. Sensitivity": "The expected sensitivity at the probability threshold.",
+        "Exp. Accuracy for Class at Probability": (
+            "The expected accuracy of predicting the specific class at the specific probability."
+            "\n    I.e., for all samples with this specific probability (interpolated), what percentage were from the predicted class?"
+            "\n    Calculated based on probability density estimates from the training data."
+        ),
+        "ID": "A unique sample identifier.",
+    }
+
+    # Write the explanations to the readme file
+    with open(path, "w") as file:
+        file.write("Explanations of columns in `prediction.csv`\n")
+        file.write("===========================================\n\n")
+        for column, explanation in column_explanations.items():
+            if column in df.columns:
+                file.write(f"{column}: {explanation}\n\n")
