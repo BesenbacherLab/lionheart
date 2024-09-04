@@ -491,7 +491,7 @@ def main(args):
                             # at this probability (based on the training data)
                             thresh_info["Expected Accuracy"] = (
                                 prob_densities.get_expected_accuracy(
-                                    new_probability=thresh_info["Prediction"]
+                                    new_probability=predicted_probability
                                 )[
                                     "Cancer"
                                     if predicted_probability > thresh_info["Threshold"]
