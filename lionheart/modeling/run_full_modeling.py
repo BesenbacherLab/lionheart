@@ -348,7 +348,7 @@ def run_full_model_training(
                 prob_densities = ProbabilityDensities().calculate_densities(
                     combined_predictions,
                     probability_col="P(Cancer)",
-                    target_col="Target",
+                    target_col="Target Label",
                     group_cols="Split"
                     if "Split" in combined_predictions.columns
                     else None,
