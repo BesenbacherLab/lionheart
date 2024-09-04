@@ -14,9 +14,10 @@ import numpy as np
 import pandas as pd
 from sklearn import __version__ as sklearn_version
 from packaging import version
-from utipy import Messenger, StepTimer, IOPaths
+from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
 from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
+from generalize.evaluate.probability_densities import ProbabilityDensities
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
@@ -244,6 +245,15 @@ def main(args):
     if training_roc_paths:
         paths.set_paths(training_roc_paths, collection="in_files")
 
+    training_probability_densities_paths = {
+        f"prob_densities_{model_name}": model_dir / "probability_densitities.csv"
+        for model_name, model_dir in model_name_to_dir.items()
+        if model_name_to_training_info[model_name]["Modeling Task"]
+        == "binary_classification"
+    }
+    if training_probability_densities_paths:
+        paths.set_paths(training_probability_densities_paths, collection="in_files")
+
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
 
@@ -371,6 +381,21 @@ def main(args):
                             raise
                         roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
 
+            messenger("Start: Loading Probability Densities", indent=4)
+            with timer.time_step(
+                indent=8, name_prefix=f"{model_idx}_load_probability_densities"
+            ):
+                try:
+                    prob_densities = ProbabilityDensities.from_file(
+                        paths[f"prob_densities_{model_name}"]
+                    )
+                except:
+                    messenger(
+                        "Failed to read probability densities file: "
+                        f"{paths[f'prob_densities_{model_name}']}"
+                    )
+                    raise
+
             messenger("Start: Calculating probability threshold(s)", indent=4)
             with timer.time_step(
                 indent=8, name_prefix=f"{model_idx}_threshold_calculation"
@@ -460,7 +485,18 @@ def main(args):
                             thresh_info["Prediction"] = (
                                 "Cancer"
                                 if predicted_probability > thresh_info["Threshold"]
-                                else "Healthy"
+                                else "No Cancer"
+                            )
+                            # Get the expected accuracy for the given prediction
+                            # at this probability (based on the training data)
+                            thresh_info["Expected Accuracy"] = (
+                                prob_densities.get_expected_accuracy(
+                                    new_probability=thresh_info["Prediction"]
+                                )[
+                                    "Cancer"
+                                    if predicted_probability > thresh_info["Threshold"]
+                                    else "Control"  # Label during model training
+                                ]
                             )
                         prediction_df = pd.DataFrame(thresholds)
 
@@ -471,8 +507,15 @@ def main(args):
                             "Exp. Sensitivity",
                             "Threshold Name",
                             "Prediction",
+                            "Exp. Accuracy for Class at Probability",
                             probability_colname,
                         ]
+                        move_column_inplace(
+                            prediction_df,
+                            "Exp. Accuracy for Class at Probability",
+                            pos=len(prediction_df.columns) - 1,  # Move last
+                        )
+
                         prediction_df["ROC Curve"] = roc_name
                         prediction_df["Model"] = model_name
                         prediction_df["Task"] = cancer_task

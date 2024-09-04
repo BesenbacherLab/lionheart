@@ -12,6 +12,7 @@ import seaborn as sns
 from utipy import StepTimer, Messenger, check_messenger
 from generalize import Evaluator, train_full_model
 from generalize.evaluate.roc_curves import ROCCurves
+from generalize.evaluate.probability_densities import ProbabilityDensities
 from generalize import __version__ as generalize_version
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
@@ -325,16 +326,37 @@ def run_full_model_training(
                         prepared_modeling_dict["new_positive_label"]
                     ]
 
-            Evaluator.save_predictions(
+            # Combine the predictions to get the
+            # data frame to save
+            combined_predictions = Evaluator.combine_predictions(
                 predictions_list=[train_out["Predictions"]],
                 targets=train_out["Targets"],
                 groups=train_out["Groups"],
                 split_indices_list=[train_out["Split"]],
                 target_idx_to_target_label_map=class_idx_to_label_map,
                 positive_class=positive_label,
-                out_path=paths["out_path"],
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
+
+            # Save the predictions to disk
+            Evaluator.save_combined_predictions(
+                combined_predictions=combined_predictions, out_path=paths["out_path"]
+            )
+
+            if task == "binary_classification":
+                messenger("Calculating probability densities", indent=2)
+                prob_densities = ProbabilityDensities().calculate_densities(
+                    combined_predictions,
+                    probability_col="P(Cancer)",
+                    target_col="Target",
+                    group_col="Split"
+                    if "Split" in combined_predictions.columns
+                    else None,
+                )
+                messenger("Saving probability densities", indent=2)
+                prob_densities.save(
+                    path=paths["out_path"] / "probability_densities.csv"
+                )
 
 
 def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:

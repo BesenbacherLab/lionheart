@@ -378,7 +378,7 @@ def main(args):
                         thresh_info["Prediction"] = (
                             "Cancer"
                             if predicted_probability > thresh_info["Threshold"]
-                            else "Healthy"
+                            else "No Cancer"
                         )
                     prediction_df = pd.DataFrame(thresholds)
 

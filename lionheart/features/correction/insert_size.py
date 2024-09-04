@@ -46,15 +46,15 @@ def calculate_insert_size_correction_factors(
 
     # Whether to include the extreme bins
     # in the objective function
-    slicer_fn = lambda x: x
+    slicer_fn = lambda x: x  # noqa: E731
     if nan_extremes:
         if isinstance(nan_extremes, str):
             if nan_extremes == "min":
-                slicer_fn = lambda x: x[1:]
+                slicer_fn = lambda x: x[1:]  # noqa: E731
             else:
-                slicer_fn = lambda x: x[:-1]
+                slicer_fn = lambda x: x[:-1]  # noqa: E731
         else:
-            slicer_fn = lambda x: x[1:-1]
+            slicer_fn = lambda x: x[1:-1]  # noqa: E731
 
     lower_bound, upper_bound = min(bin_edges), max(bin_edges)
 
