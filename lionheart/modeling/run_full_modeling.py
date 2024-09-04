@@ -349,7 +349,7 @@ def run_full_model_training(
                     combined_predictions,
                     probability_col="P(Cancer)",
                     target_col="Target",
-                    group_col="Split"
+                    group_cols="Split"
                     if "Split" in combined_predictions.columns
                     else None,
                 )
