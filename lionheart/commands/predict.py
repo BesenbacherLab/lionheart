@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from sklearn import __version__ as sklearn_version
 from packaging import version
-from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
+from utipy import Messenger, StepTimer, IOPaths
 from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from generalize.evaluate.probability_densities import ProbabilityDensities
@@ -513,11 +513,6 @@ def main(args):
                             "Exp. Accuracy for Class at Probability",
                             probability_colname,
                         ]
-                        move_column_inplace(
-                            prediction_df,
-                            "Exp. Accuracy for Class at Probability",
-                            pos=len(prediction_df.columns) - 1,  # Move last
-                        )
 
                         prediction_df["ROC Curve"] = roc_name
                         prediction_df["Model"] = model_name
