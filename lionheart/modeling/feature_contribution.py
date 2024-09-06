@@ -37,7 +37,7 @@ class FeatureContributionAnalyzer:
         # Call the calculators
         self()
 
-    def __call__(self) -> np.Any:
+    def __call__(self):
         """
         Run the calculations of feature contributions and effects on the probability.
         """
@@ -55,6 +55,7 @@ class FeatureContributionAnalyzer:
             feature_names=self.feature_names,
             groups=self.groups,
         )
+        return self
 
     def save_effects(self, path: Union[pathlib.Path, str]):
         """
@@ -181,7 +182,7 @@ class FeatureContributionAnalyzer:
         save_path: str = None,
         fig_size: tuple = (10, 8),
         dpi: int = 300,
-    ):
+    ) -> Figure:
         """
         Plot the feature contributions as a horizontal bar plot,
         ordered by the magnitude of contributions.
@@ -372,7 +373,7 @@ class FeatureContributionAnalyzer:
         save_path: str = None,
         fig_size: tuple = (10, 8),
         dpi: int = 300,
-    ) -> None:
+    ) -> Figure:
         """
         Plot the feature effects as a heatmap, grouped by the predefined groups and
         clustered within groups.
