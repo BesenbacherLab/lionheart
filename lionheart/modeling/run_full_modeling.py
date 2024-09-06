@@ -134,8 +134,8 @@ def run_full_model_training(
             "feature_contrib_path": out_path / "feature_contributions.csv",
             "feature_effects_path": out_path / "feature_effects_on_probability.csv",
             "plot_feature_contrib_all_path": out_path / "feature_contributions.all.png",
-            "plot_feature_contrib_20_path": out_path
-            / "feature_contributions.top_20.png",
+            "plot_feature_contrib_40_path": out_path
+            / "feature_contributions.top_40.png",
             "plot_feature_effects_path": out_path
             / "feature_effects_on_probability.png",
         },
