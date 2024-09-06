@@ -1,5 +1,5 @@
 import pathlib
-from typing import List, Tuple, Union
+from typing import Callable, List, Tuple, Union
 import numpy as np
 import pandas as pd
 from copy import deepcopy
@@ -17,8 +17,8 @@ class FeatureContributionAnalyzer:
         pipeline: Pipeline,
         feature_names: List[str],
         groups: List[str],
-        get_coefs_fn: lambda pipe: pipe.named_steps["model"].coef_,  # noqa: F821
-        get_components_fn: lambda pipe: pipe.named_steps["pca"].components_,  # noqa: F821
+        get_coefs_fn: Callable = lambda pipe: pipe.named_steps["model"].coef_,
+        get_components_fn: Callable = lambda pipe: pipe.named_steps["pca"].components_,
     ) -> None:
         """
         Class for calculating and plotting feature contributions and the
