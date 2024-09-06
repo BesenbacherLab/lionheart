@@ -369,18 +369,23 @@ def run_full_model_training(
                 )
 
         if task == "binary_classification":
-            feature_contrib_analyser = FeatureContributionAnalyzer(
-                X=prepared_modeling_dict["dataset"],
-                pipeline=train_out["Estimator"],
-                feature_names=prepared_modeling_dict["feature_names"],
-                groups=prepared_modeling_dict["feature_group_names"],
+            messenger("Calculating feature contributions", indent=2)
+            with timer.time_step(indent=4):
+                feature_contrib_analyser = FeatureContributionAnalyzer(
+                    X=prepared_modeling_dict["dataset"],
+                    pipeline=train_out["Estimator"],
+                    feature_names=prepared_modeling_dict["feature_names"],
+                    groups=prepared_modeling_dict["feature_group_names"],
+                )
+            messenger("Saving feature contributions", indent=2)
+            feature_contrib_analyser.save_contributions(
+                path=paths["feature_contrib_path"]
             )
-            feature_contrib_analyser.save_contributions(paths["feature_contrib_path"])
-            feature_contrib_analyser.save_effects(paths["feature_effects_path"])
+            feature_contrib_analyser.save_effects(path=paths["feature_effects_path"])
             feature_contrib_analyser.plot_contributions(
                 save_path=paths["plot_feature_contrib_path"]
             )
-            feature_contrib_analyser.save_effects(
+            feature_contrib_analyser.plot_effects(
                 save_path=paths["plot_feature_effects_path"]
             )
 

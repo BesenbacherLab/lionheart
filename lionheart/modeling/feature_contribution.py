@@ -8,6 +8,7 @@ from matplotlib.figure import Figure
 import seaborn as sns
 from scipy.cluster.hierarchy import linkage, leaves_list
 from sklearn.pipeline import Pipeline
+from utipy import move_column_inplace
 
 
 class FeatureContributionAnalyzer:
@@ -297,8 +298,14 @@ class FeatureContributionAnalyzer:
         feature_effects_df = pd.DataFrame(
             feature_effects, columns=[f"{round(var, 2)}" for var in variations]
         )
+
+        # Add feature and feature group names
         feature_effects_df["Feature"] = feature_names
         feature_effects_df["Group"] = groups  # Use the provided group labels
+
+        # Reorder to have name columns first
+        move_column_inplace(feature_effects_df, "Group", 0)
+        move_column_inplace(feature_effects_df, "Feature", 0)
 
         return feature_effects_df
 
