@@ -276,6 +276,7 @@ def main(args):
         )
 
     out_path = pathlib.Path(args.out_dir)
+    resources_dir = pathlib.Path(args.resources_dir)
 
     # Create output directory
     paths = IOPaths(out_dirs={"out_path": out_path})
@@ -348,7 +349,7 @@ def main(args):
 
     # Add included features
     if args.use_included_features:
-        shared_features_dir = pathlib.Path(args.resources_dir) / "shared_features"
+        shared_features_dir = resources_dir / "shared_features"
         shared_features_paths = pd.read_csv(shared_features_dir / "dataset_paths.csv")
 
         # Remove validation datasets
@@ -393,7 +394,7 @@ def main(args):
         train_only += [nm for nm, t_o in shared_features_train_only_flag.items() if t_o]
 
     feature_name_to_feature_group_path = (
-        args.resources_dir / "feature_names_and_grouping.csv"
+        resources_dir / "feature_names_and_grouping.csv"
     )
 
     model_dict = create_model_dict(
