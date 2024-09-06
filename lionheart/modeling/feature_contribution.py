@@ -162,7 +162,7 @@ class FeatureContributionAnalyzer:
     ) -> pd.DataFrame:
         feature_contribution_df = pd.DataFrame(
             {
-                "Feature Idx": pca_components.shape[1],
+                "Feature Idx": range(pca_components.shape[1]),
                 "Feature": feature_names,
                 "Group": groups,
                 "Contribution": np.dot(lasso_coefficients, pca_components).flatten(),
