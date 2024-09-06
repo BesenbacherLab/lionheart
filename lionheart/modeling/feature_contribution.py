@@ -181,7 +181,7 @@ class FeatureContributionAnalyzer:
     def _plot_feature_contributions(
         contributions: pd.DataFrame,
         save_path: str = None,
-        fig_size: tuple = (10, 8),
+        fig_size: tuple = (14, 8),
         dpi: int = 300,
     ) -> Figure:
         """
