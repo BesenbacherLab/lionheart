@@ -230,7 +230,7 @@ class FeatureContributionAnalyzer:
     @staticmethod
     def _analyze_feature_effects(
         pipeline: Pipeline,
-        X_test: np.ndarray,
+        X: np.ndarray,
         feature_names: list[str],
         groups: list[str],
         step: float = 0.1,
@@ -248,7 +248,7 @@ class FeatureContributionAnalyzer:
         ------------
         pipeline
             The scikit-learn pipeline containing the model.
-        X_test
+        X
             The test data (features).
         feature_names
             List of feature names.
@@ -264,8 +264,8 @@ class FeatureContributionAnalyzer:
         pandas.DataFrame
             DataFrame containing feature effects, feature names, and group labels.
         """
-        n_samples, n_features = X_test.shape
-        original_probas = pipeline.predict_proba(X_test)[
+        n_samples, n_features = X.shape
+        original_probas = pipeline.predict_proba(X)[
             :, class_index
         ]  # Base probabilities for the positive class
         feature_effects = []
@@ -281,9 +281,9 @@ class FeatureContributionAnalyzer:
         for feature_idx in range(n_features):
             prob_diffs = []
             for var in variations:
-                X_test_mod = X_test.copy()
-                X_test_mod[:, feature_idx] += var
-                new_probas = pipeline.predict_proba(X_test_mod)[:, class_index]
+                X_mod = X.copy()
+                X_mod[:, feature_idx] += var
+                new_probas = pipeline.predict_proba(X_mod)[:, class_index]
                 prob_diff = (
                     new_probas - original_probas
                 )  # Calculate the difference in predicted probabilities
