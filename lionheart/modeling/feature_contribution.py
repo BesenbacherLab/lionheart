@@ -1,5 +1,5 @@
 import pathlib
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 from copy import deepcopy
@@ -93,7 +93,7 @@ class FeatureContributionAnalyzer:
     def plot_effects(
         self,
         save_path: str = None,
-        fig_size: tuple = (10, 8),
+        fig_size: tuple = (8, 12),
         dpi: int = 300,
     ) -> Figure:
         """
@@ -124,7 +124,8 @@ class FeatureContributionAnalyzer:
     def plot_contributions(
         self,
         save_path: str = None,
-        fig_size: tuple = (10, 8),
+        top_n: Optional[int] = None,
+        fig_size: tuple = (8, 16),
         dpi: int = 300,
     ) -> Figure:
         """
@@ -135,19 +136,24 @@ class FeatureContributionAnalyzer:
         Parameters
         ------------
         save_path : str, optional
-          The path where the figure will be saved. If None, the figure will not be saved.
+            The path where the figure will be saved. If None, the figure will not be saved.
+        top_n : int, optional
+            Only plot the n most-contributing features.
         fig_size : tuple, optional
-          The size of the figure (default is (10, 8)).
+            The size of the figure.
         dpi : int, optional
-          The resolution of the figure in dots per inch (default is 300).
+            The resolution of the figure in dots per inch (default is 300).
 
         Returns
         --------
         matplotlib.figure.Figure
           The figure object, allowing for further modification.
         """
+        feature_contributions = self.feature_contributions
+        if top_n is not None:
+            feature_contributions = feature_contributions.iloc[:top_n]
         return FeatureContributionAnalyzer._plot_feature_contributions(
-            contributions=self.feature_contributions,
+            contributions=feature_contributions,
             save_path=save_path,
             fig_size=fig_size,
             dpi=dpi,
@@ -180,9 +186,9 @@ class FeatureContributionAnalyzer:
     @staticmethod
     def _plot_feature_contributions(
         contributions: pd.DataFrame,
-        save_path: str = None,
-        fig_size: tuple = (14, 8),
-        dpi: int = 300,
+        save_path: str,
+        fig_size: tuple,
+        dpi: int,
     ) -> Figure:
         """
         Plot the feature contributions as a horizontal bar plot,
@@ -208,12 +214,12 @@ class FeatureContributionAnalyzer:
         # Step 7: Plot the feature contributions
         plt.figure(figsize=fig_size)
         plt.barh(
-            contributions["Feature"],
+            contributions["Feature"].apply(lambda s: s.replace("_", " ")),
             contributions["Contribution"],
             color="skyblue",
         )
         plt.xlabel("Contribution")
-        plt.ylabel("Feature")
+        plt.ylabel("Feature", fontsize=7)
         plt.title("Feature Contributions to the Classifier")
         plt.gca().invert_yaxis()
 
@@ -234,7 +240,7 @@ class FeatureContributionAnalyzer:
         X: np.ndarray,
         feature_names: list[str],
         groups: list[str],
-        step: float = 0.05,
+        step: float = 0.02,
         class_index: int = 1,
     ) -> pd.DataFrame:
         """
@@ -274,7 +280,7 @@ class FeatureContributionAnalyzer:
         # Vary each feature and calculate the effect on predict_proba
         # Variation range is based on the input features
         # being correlations and experimentation with ranges
-        variations = np.arange(-0.5, 0.5, step)
+        variations = np.arange(-0.2, 0.2, step)
 
         for feature_idx in range(n_features):
             prob_diffs = []
@@ -374,9 +380,9 @@ class FeatureContributionAnalyzer:
     @staticmethod
     def _plot_feature_effects(
         feature_effects: pd.DataFrame,
-        save_path: str = None,
-        fig_size: tuple = (12, 8),
-        dpi: int = 300,
+        save_path: str,
+        fig_size: tuple,
+        dpi: int,
     ) -> Figure:
         """
         Plot the feature effects as a heatmap, grouped by the predefined groups and

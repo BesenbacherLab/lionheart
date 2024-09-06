@@ -133,7 +133,9 @@ def run_full_model_training(
             "training_info": out_path / "training_info.json",
             "feature_contrib_path": out_path / "feature_contributions.csv",
             "feature_effects_path": out_path / "feature_effects_on_probability.csv",
-            "plot_feature_contrib_path": out_path / "feature_contributions.png",
+            "plot_feature_contrib_all_path": out_path / "feature_contributions.all.png",
+            "plot_feature_contrib_20_path": out_path
+            / "feature_contributions.top_20.png",
             "plot_feature_effects_path": out_path
             / "feature_effects_on_probability.png",
         },
@@ -383,7 +385,11 @@ def run_full_model_training(
             )
             feature_contrib_analyser.save_effects(path=paths["feature_effects_path"])
             feature_contrib_analyser.plot_contributions(
-                save_path=paths["plot_feature_contrib_path"]
+                save_path=paths["plot_feature_contrib_all_path"]
+            )
+            feature_contrib_analyser.plot_contributions(
+                save_path=paths["plot_feature_contrib_20_path"],
+                top_n=20,
             )
             feature_contrib_analyser.plot_effects(
                 save_path=paths["plot_feature_effects_path"]
