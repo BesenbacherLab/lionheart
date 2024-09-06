@@ -219,7 +219,7 @@ class FeatureContributionAnalyzer:
             color="skyblue",
         )
         plt.xlabel("Contribution")
-        plt.ylabel("Feature", fontsize=7)
+        plt.ylabel("Feature", fontsize=6)
         plt.title("Feature Contributions to the Classifier")
         plt.gca().invert_yaxis()
 
@@ -240,7 +240,7 @@ class FeatureContributionAnalyzer:
         X: np.ndarray,
         feature_names: list[str],
         groups: list[str],
-        step: float = 0.02,
+        step: float = 0.01,
         class_index: int = 1,
     ) -> pd.DataFrame:
         """
@@ -280,7 +280,7 @@ class FeatureContributionAnalyzer:
         # Vary each feature and calculate the effect on predict_proba
         # Variation range is based on the input features
         # being correlations and experimentation with ranges
-        variations = np.arange(-0.2, 0.2, step)
+        variations = np.arange(-0.15, 0.15, step)
 
         for feature_idx in range(n_features):
             prob_diffs = []

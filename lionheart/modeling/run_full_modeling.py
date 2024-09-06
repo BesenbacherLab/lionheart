@@ -385,11 +385,12 @@ def run_full_model_training(
             )
             feature_contrib_analyser.save_effects(path=paths["feature_effects_path"])
             feature_contrib_analyser.plot_contributions(
-                save_path=paths["plot_feature_contrib_all_path"]
+                save_path=paths["plot_feature_contrib_all_path"],
+                fig_size=(7,20),
             )
             feature_contrib_analyser.plot_contributions(
-                save_path=paths["plot_feature_contrib_20_path"],
-                top_n=20,
+                save_path=paths["plot_feature_contrib_40_path"],
+                top_n=40,
             )
             feature_contrib_analyser.plot_effects(
                 save_path=paths["plot_feature_effects_path"]
