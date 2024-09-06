@@ -214,7 +214,9 @@ class FeatureContributionAnalyzer:
         # Step 7: Plot the feature contributions
         plt.figure(figsize=fig_size)
         plt.barh(
-            contributions["Feature"].apply(lambda s: s.replace("_", " ")),
+            contributions["Feature"].apply(
+                lambda s: s.replace("_", " ").replace("  ", " ")
+            ),
             contributions["Contribution"],
             color="skyblue",
         )
