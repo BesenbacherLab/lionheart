@@ -146,8 +146,8 @@ class FeatureContributionAnalyzer:
         matplotlib.figure.Figure
           The figure object, allowing for further modification.
         """
-        return FeatureContributionAnalyzer._plot_feature_effects(
-            feature_effects=self.feature_effects,
+        return FeatureContributionAnalyzer._plot_feature_contributions(
+            contributions=self.feature_contributions,
             save_path=save_path,
             fig_size=fig_size,
             dpi=dpi,
@@ -178,7 +178,7 @@ class FeatureContributionAnalyzer:
         return feature_contribution_df
 
     @staticmethod
-    def _plot_feature_contribution(
+    def _plot_feature_contributions(
         contributions: pd.DataFrame,
         save_path: str = None,
         fig_size: tuple = (10, 8),
@@ -234,7 +234,7 @@ class FeatureContributionAnalyzer:
         X: np.ndarray,
         feature_names: list[str],
         groups: list[str],
-        step: float = 0.1,
+        step: float = 0.05,
         class_index: int = 1,
     ) -> pd.DataFrame:
         """
@@ -273,11 +273,8 @@ class FeatureContributionAnalyzer:
 
         # Vary each feature and calculate the effect on predict_proba
         # Variation range is based on the input features
-        # being correlations so the maximum observable difference
-        # would be 2. Note that the model will receive inputs
-        # out of the normal range ([-1, 1]) it usually
-        # sees with this approach
-        variations = np.arange(-2, 2, step)
+        # being correlations and experimentation with ranges
+        variations = np.arange(-0.5, 0.5, step)
 
         for feature_idx in range(n_features):
             prob_diffs = []
@@ -378,7 +375,7 @@ class FeatureContributionAnalyzer:
     def _plot_feature_effects(
         feature_effects: pd.DataFrame,
         save_path: str = None,
-        fig_size: tuple = (10, 8),
+        fig_size: tuple = (12, 8),
         dpi: int = 300,
     ) -> Figure:
         """
@@ -423,13 +420,16 @@ class FeatureContributionAnalyzer:
 
         # Add group names in the middle of each group's section
         for i, (start, end) in enumerate(group_positions):
+            if i > 15:
+                # Don't name the smallest groups
+                continue
             plt.text(
-                -0.8,
+                -1.2,
                 (start + end) / 2,
                 groups[i],
                 va="center",
                 ha="right",
-                fontsize=12,
+                fontsize=9,
                 fontweight="bold",
             )
 
