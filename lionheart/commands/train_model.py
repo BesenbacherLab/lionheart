@@ -87,6 +87,12 @@ def setup_parser(parser):
         ),
     )
     parser.add_argument(
+        "--resources_dir",
+        type=str,
+        required=True,
+        help="Path to directory with framework resources such as the included features. ",
+    )
+    parser.add_argument(
         "--dataset_names",
         type=str,
         nargs="*",
@@ -100,12 +106,6 @@ def setup_parser(parser):
         help="Whether to use the included features in the model training."
         "\nWhen specified, the --resources_dir must also be specified. "
         "\nWhen NOT specified, only the manually specified datasets are used.",
-    )
-    parser.add_argument(
-        "--resources_dir",
-        type=str,
-        help="Path to directory with framework resources such as the included features. "
-        "\nRequired when --use_included_features is specified.",
     )
     if ENABLE_SUBTYPING:
         parser.add_argument(
@@ -231,7 +231,8 @@ examples.add_example(
     description="Train a model on a single dataset. This uses within-dataset cross-validation for hyperparameter optimization:",
     example="""--dataset_paths path/to/dataset/feature_dataset.npy
 --meta_data_paths path/to/dataset/meta_data.csv
---out_dir path/to/output/directory""",
+--out_dir path/to/output/directory
+--resources_dir path/to/resource/directory""",
 )
 if ENABLE_SUBTYPING:
     examples.add_example(
@@ -347,12 +348,6 @@ def main(args):
 
     # Add included features
     if args.use_included_features:
-        if args.resources_dir is None:
-            raise ValueError(
-                "When `--use_included_features` is specified, "
-                "`--resources_dir` must be specified as well."
-            )
-
         shared_features_dir = pathlib.Path(args.resources_dir) / "shared_features"
         shared_features_paths = pd.read_csv(shared_features_dir / "dataset_paths.csv")
 
@@ -397,6 +392,10 @@ def main(args):
         meta_data_paths.update(shared_features_meta_data_paths)
         train_only += [nm for nm, t_o in shared_features_train_only_flag.items() if t_o]
 
+    feature_name_to_feature_group_path = (
+        args.resources_dir / "feature_names_and_grouping.csv"
+    )
+
     model_dict = create_model_dict(
         name="Lasso Logistic Regression",
         model_class=LogisticRegression,
@@ -412,7 +411,7 @@ def main(args):
 
     transformers_fn = prepare_transformers_fn(
         pca_target_variance=args.pca_target_variance,
-        min_var_thresh=0.0,
+        min_var_thresh=[0.0],
         scale_rows=["mean", "std"],
         standardize=True,
     )
@@ -421,6 +420,7 @@ def main(args):
         dataset_paths=dataset_paths,
         out_path=paths["out_path"],
         meta_data_paths=meta_data_paths,
+        feature_name_to_feature_group_path=feature_name_to_feature_group_path,
         task="binary_classification"
         if not args.subtype
         else "multiclass_classification",
@@ -445,7 +445,7 @@ def main(args):
         refit_fn=make_simplest_model_refit_strategy(
             main_var=("model__C", "minimize"),
             score_name="balanced_accuracy",
-            other_vars=[("[pca__kwargs]__target_variance", "minimize")],
+            other_vars=[("pca__target_variance", "minimize")],
             messenger=messenger,
         )
         if args.subtype

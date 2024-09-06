@@ -2,6 +2,7 @@ import pathlib
 from typing import Callable, List, Optional, Tuple, Union, Dict
 import numpy as np
 from collections import OrderedDict
+import pandas as pd
 from utipy import StepTimer, IOPaths, Messenger, check_messenger
 from generalize.dataset import (
     load_dataset,
@@ -18,6 +19,7 @@ def prepare_modeling(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
+    feature_name_to_feature_group_path: Union[str, pathlib.Path],
     task: str,
     # Containing partial model function, grid (hparams), etc.
     model_dict: Optional[dict] = None,
@@ -167,7 +169,11 @@ def prepare_modeling(
 
     # Create paths collection
     paths = IOPaths(
-        in_files={**dataset_paths, **meta_data_paths},
+        in_files={
+            **dataset_paths,
+            **meta_data_paths,
+            "feature_name_to_feature_group_path": feature_name_to_feature_group_path,
+        },
         out_dirs={
             "out_path": out_path,
         },
@@ -461,6 +467,14 @@ def prepare_modeling(
     if len(set([d for d in dataset_ids if "train_only" not in d])) > 1:
         split = dataset_ids
 
+    # Feature names and groups
+    # for plotting cell type contributions
+    feature_name_to_feature_group = pd.read_csv(
+        paths["feature_name_to_feature_group_path"]
+    )
+    feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+    feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+
     # Record end timestamp
     timer.stamp(name="prepare_modeling() end")
 
@@ -470,6 +484,8 @@ def prepare_modeling(
         "groups": groups,
         "labels": labels,
         "sample_ids": sample_ids,
+        "feature_names": feature_names,
+        "feature_group_names": feature_group_names,
         "model": model,
         "model_dict": model_dict,
         "new_positive_label": new_positive_label,

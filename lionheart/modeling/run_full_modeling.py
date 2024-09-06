@@ -16,6 +16,7 @@ from generalize.evaluate.probability_densities import ProbabilityDensities
 from generalize import __version__ as generalize_version
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
+from lionheart.modeling.feature_contribution import FeatureContributionAnalyzer
 from lionheart import __version__ as lionheart_version
 
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
@@ -28,6 +29,7 @@ def run_full_model_training(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
+    feature_name_to_feature_group_path: Union[str, pathlib.Path],
     task: str,
     model_dict: dict,
     labels_to_use: Optional[List[str]] = None,
@@ -96,6 +98,7 @@ def run_full_model_training(
         dataset_paths=dataset_paths,
         out_path=out_path,
         meta_data_paths=meta_data_paths,
+        feature_name_to_feature_group_path=feature_name_to_feature_group_path,
         task=task,
         model_dict=model_dict,
         labels_to_use=labels_to_use,
@@ -124,12 +127,16 @@ def run_full_model_training(
 
     # Add to paths
     paths = prepared_modeling_dict["paths"]
-    paths.set_path(
-        name="model_path", path=out_path / "model.joblib", collection="out_files"
-    )
-    paths.set_path(
-        name="training_info",
-        path=out_path / "training_info.json",
+    paths.set_paths(
+        {
+            "model_path": out_path / "model.joblib",
+            "training_info": out_path / "training_info.json",
+            "feature_contrib_path": out_path / "feature_contributions.csv",
+            "feature_effects_path": out_path / "feature_effects_on_probability.csv",
+            "plot_feature_contrib_path": out_path / "feature_contributions.png",
+            "plot_feature_effects_path": out_path
+            / "feature_effects_on_probability.png",
+        },
         collection="out_files",
     )
 
@@ -280,9 +287,12 @@ def run_full_model_training(
             + [f"param_{hparam}" for hparam in model_dict["grid"].keys()]
             + ["mean_fit_time", "std_fit_time"],
         ]
+
+        # Note: When no dim wrappers are used, the column will
+        # already just be `param_pca__target_variance`
         if "param_pca__kwargs" in cv_results.columns:
             # Get target variance as it's own column
-            cv_results["param_PCA__target_variance"] = cv_results[
+            cv_results["param_pca__target_variance"] = cv_results[
                 "param_pca__kwargs"
             ].apply(lambda x: x["target_variance"])
             del cv_results["param_pca__kwargs"]
@@ -296,10 +306,10 @@ def run_full_model_training(
                 hparam_name="Lasso 'C'",
                 plot_path=paths["out_path"] / "hyperparameter.Lasso.C.png",
             )
-        if "param_PCA__target_variance" in cv_results.columns:
+        if "param_pca__target_variance" in cv_results.columns:
             plot_hparams(
                 cv_results,
-                hparam_col="param_PCA__target_variance",
+                hparam_col="param_pca__target_variance",
                 hparam_name="PCA Target Variance",
                 plot_path=paths["out_path"] / "hyperparameter.PCA.target_variance.png",
             )
@@ -357,6 +367,22 @@ def run_full_model_training(
                 prob_densities.save(
                     path=paths["out_path"] / "probability_densities.csv"
                 )
+
+        if task == "binary_classification":
+            feature_contrib_analyser = FeatureContributionAnalyzer(
+                X=prepared_modeling_dict["dataset"],
+                pipeline=train_out["Estimator"],
+                feature_names=prepared_modeling_dict["feature_names"],
+                groups=prepared_modeling_dict["feature_group_names"],
+            )
+            feature_contrib_analyser.save_contributions(paths["feature_contrib_path"])
+            feature_contrib_analyser.save_effects(paths["feature_effects_path"])
+            feature_contrib_analyser.plot_contributions(
+                save_path=paths["plot_feature_contrib_path"]
+            )
+            feature_contrib_analyser.save_effects(
+                save_path=paths["plot_feature_effects_path"]
+            )
 
 
 def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:
