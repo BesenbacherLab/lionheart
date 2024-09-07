@@ -386,7 +386,7 @@ def run_full_model_training(
             feature_contrib_analyser.save_effects(path=paths["feature_effects_path"])
             feature_contrib_analyser.plot_contributions(
                 save_path=paths["plot_feature_contrib_all_path"],
-                fig_size=(7, 24),
+                fig_size=(7, 35),
             )
             feature_contrib_analyser.plot_contributions(
                 save_path=paths["plot_feature_contrib_50_path"],
