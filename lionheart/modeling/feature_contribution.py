@@ -20,6 +20,9 @@ class FeatureContributionAnalyzer:
         groups: List[str],
         get_coefs_fn: Callable = lambda pipe: pipe.named_steps["model"].coef_,
         get_components_fn: Callable = lambda pipe: pipe.named_steps["pca"].components_,
+        get_scaling_factors_fn: Callable = lambda pipe: pipe.named_steps[
+            "standardize"
+        ].scale_,
     ) -> None:
         """
         Class for calculating and plotting feature contributions and the
@@ -32,6 +35,7 @@ class FeatureContributionAnalyzer:
         self.groups = groups
         self.get_coefs_fn = get_coefs_fn
         self.get_components_fn = get_components_fn
+        self.get_scaling_factors_fn = get_scaling_factors_fn
         self.feature_contributions = None
         self.feature_effects = None
 
@@ -46,6 +50,7 @@ class FeatureContributionAnalyzer:
             FeatureContributionAnalyzer._calculate_feature_contributions(
                 lasso_coefficients=self.get_coefs_fn(self.pipeline),
                 pca_components=self.get_components_fn(self.pipeline),
+                scaling_factors=self.get_scaling_factors_fn(self.pipeline),
                 feature_names=self.feature_names,
                 groups=self.groups,
             )
@@ -163,9 +168,13 @@ class FeatureContributionAnalyzer:
     def _calculate_feature_contributions(
         lasso_coefficients: np.ndarray,
         pca_components: np.ndarray,
+        scaling_factors: Optional[np.ndarray],
         feature_names: Union[List[str], np.ndarray],
         groups: Union[List[str], np.ndarray],
     ) -> pd.DataFrame:
+        if scaling_factors is not None:
+            pca_components = pca_components / scaling_factors[:, np.newaxis]
+
         feature_contribution_df = pd.DataFrame(
             {
                 "Feature Idx": range(pca_components.shape[1]),
