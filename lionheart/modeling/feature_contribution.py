@@ -174,7 +174,7 @@ class FeatureContributionAnalyzer:
     ) -> pd.DataFrame:
         if scaling_factors is not None:
             # Inverse transformation of the standardization
-            pca_components = pca_components * scaling_factors[:, np.newaxis]
+            lasso_coefficients = lasso_coefficients * scaling_factors[np.newaxis, :]
 
         feature_contribution_df = pd.DataFrame(
             {
