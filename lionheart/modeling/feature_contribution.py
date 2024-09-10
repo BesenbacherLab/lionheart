@@ -173,7 +173,8 @@ class FeatureContributionAnalyzer:
         groups: Union[List[str], np.ndarray],
     ) -> pd.DataFrame:
         if scaling_factors is not None:
-            pca_components = pca_components / scaling_factors[:, np.newaxis]
+            # Inverse transformation of the standardization
+            pca_components = pca_components * scaling_factors[:, np.newaxis]
 
         feature_contribution_df = pd.DataFrame(
             {
@@ -283,22 +284,33 @@ class FeatureContributionAnalyzer:
             DataFrame containing feature effects, feature names, and group labels.
         """
         n_samples, n_features = X.shape
-        original_probas = pipeline.predict_proba(X)[
-            :, class_index
-        ]  # Base probabilities for the positive class
+
+        # Base probabilities for the positive class
+        original_probas = pipeline.predict_proba(X)[:, class_index]
         feature_effects = []
 
+        first_pipeline, second_pipeline = FeatureContributionAnalyzer._split_pipeline(
+            pipeline,
+            first_part_steps=[
+                "near_zero_variance",
+                "row_standardize",
+                "pre_pca_standardize",
+            ],
+            second_part_steps=["pca", "standardize", "model"],
+        )
+
+        X = first_pipeline.transform(X.copy())
+
         # Vary each feature and calculate the effect on predict_proba
-        # Variation range is based on the input features
-        # being correlations and experimentation with ranges
-        variations = np.arange(-0.15, 0.15, step)
+        # Variation range is based on the features being standardized
+        variations = np.arange(-3.0, 3.0, step)
 
         for feature_idx in range(n_features):
             prob_diffs = []
             for var in variations:
                 X_mod = X.copy()
                 X_mod[:, feature_idx] += var
-                new_probas = pipeline.predict_proba(X_mod)[:, class_index]
+                new_probas = second_pipeline.predict_proba(X_mod)[:, class_index]
                 prob_diff = (
                     new_probas - original_probas
                 )  # Calculate the difference in predicted probabilities
@@ -310,7 +322,8 @@ class FeatureContributionAnalyzer:
 
         # Convert the results into a DataFrame for plotting
         feature_effects_df = pd.DataFrame(
-            feature_effects, columns=[f"{round(var, 2)}" for var in variations]
+            feature_effects,
+            columns=[f"{round(var, 2)}" for var in variations],
         )
 
         # Add feature and feature group names
@@ -322,6 +335,38 @@ class FeatureContributionAnalyzer:
         move_column_inplace(feature_effects_df, "Feature", 0)
 
         return feature_effects_df
+
+    @staticmethod
+    def _split_pipeline(
+        pipeline: Pipeline, first_part_steps: list, second_part_steps: list
+    ) -> tuple:
+        """
+        Split the pipeline into two parts: first part up to and including the first standardization,
+        and second part for the rest of the pipeline.
+
+        Parameters
+        ------------
+        pipeline : Pipeline
+        The complete scikit-learn pipeline.
+        first_part_steps : list
+        The list of step names for the first part of the pipeline.
+        second_part_steps : list
+        The list of step names for the second part of the pipeline.
+
+        Returns
+        --------
+        tuple
+        The first part and second part of the split pipeline as two separate Pipeline objects.
+        """
+        pipeline = deepcopy(pipeline)
+        first_part = Pipeline(
+            [(name, pipeline.named_steps[name]) for name in first_part_steps]
+        )
+        second_part = Pipeline(
+            [(name, pipeline.named_steps[name]) for name in second_part_steps]
+        )
+
+        return first_part, second_part
 
     @staticmethod
     def _cluster_feature_effects(
