@@ -252,7 +252,7 @@ class FeatureContributionAnalyzer:
         X: np.ndarray,
         feature_names: list[str],
         groups: list[str],
-        step: float = 0.01,
+        step: float = 0.1,
         class_index: int = 1,
     ) -> pd.DataFrame:
         """
