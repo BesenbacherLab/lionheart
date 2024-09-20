@@ -129,6 +129,7 @@ class FeatureContributionAnalyzer:
     def plot_contributions(
         self,
         save_path: str = None,
+        group_summarizer: Optional[str] = None,
         top_n: Optional[int] = None,
         fig_size: tuple = (8, 16),
         dpi: int = 300,
@@ -142,6 +143,9 @@ class FeatureContributionAnalyzer:
         ------------
         save_path : str, optional
             The path where the figure will be saved. If None, the figure will not be saved.
+        group_summarizer : str or `None`
+            Whether to summarize contributions per cell type group by "mean" or "sum".
+            When `None`, plotting is done per feature.
         top_n : int, optional
             Only plot the n most-contributing features.
         fig_size : tuple, optional
@@ -151,14 +155,22 @@ class FeatureContributionAnalyzer:
 
         Returns
         --------
-        matplotlib.figure.Figure
+        `matplotlib.figure.Figure`
           The figure object, allowing for further modification.
         """
         feature_contributions = self.feature_contributions
         if top_n is not None:
+            if group_summarizer is not None:
+                # NOTE: We should probably just select top_n groups instead
+                # but this is not yet supported. May change
+                raise ValueError(
+                    "When `group_summarizer` is specified, "
+                    "selecting `top_n` features to plot is not meaningful."
+                )
             feature_contributions = feature_contributions.iloc[:top_n]
         return FeatureContributionAnalyzer._plot_feature_contributions(
             contributions=feature_contributions,
+            group_summarizer=group_summarizer,
             save_path=save_path,
             fig_size=fig_size,
             dpi=dpi,
@@ -196,6 +208,7 @@ class FeatureContributionAnalyzer:
     @staticmethod
     def _plot_feature_contributions(
         contributions: pd.DataFrame,
+        group_summarizer: Optional[str],
         save_path: str,
         fig_size: tuple,
         dpi: int,
@@ -209,6 +222,9 @@ class FeatureContributionAnalyzer:
         ------------
         contributions : pandas.DataFrame
             The data frame with the contributions per feature.
+        group_summarizer : str or `None`
+            Whether to summarize contributions per cell type group by "mean" or "sum".
+            When `None`, plotting is done per feature.
         save_path : str, optional
           The path where the figure will be saved. If None, the figure will not be saved.
         fig_size : tuple, optional
@@ -221,18 +237,56 @@ class FeatureContributionAnalyzer:
         matplotlib.figure.Figure
           The figure object, allowing for further modification.
         """
+        contributions = contributions.copy()
         # Step 7: Plot the feature contributions
         plt.figure(figsize=fig_size)
-        plt.barh(
-            contributions["Feature"].apply(
-                lambda s: s.replace("_", " ").replace("  ", " ")
-            ),
-            contributions["Contribution"],
-            color="skyblue",
-        )
-        plt.xlabel("Contribution")
-        plt.ylabel("Feature", fontsize=6)
-        plt.title("Feature Contributions to the Classifier")
+
+        if group_summarizer:
+            assert group_summarizer in ["mean", "sum"]
+            # Aggregate contributions
+            contributions = (
+                contributions.groupby(["Group"])
+                .Contribution.agg([group_summarizer, "count"])
+                .reset_index()
+                .sort_values(group_summarizer, key=lambda x: np.abs(x), ascending=False)
+            )
+            # Add group element count to group name
+            contributions["Group Label"] = contributions.apply(
+                lambda row: row["Group"]
+                + " " * (3 - len(str(row["count"])))
+                + "("
+                + str(row["count"])
+                + ")",
+                axis=1,
+            )
+            # Rename score with
+            contributions.rename(
+                {group_summarizer: "Contribution"}, axis=1, inplace=True
+            )
+            plt.barh(
+                contributions["Group Label"],
+                contributions["Contribution"],
+                color="skyblue",
+            )
+            if group_summarizer == "mean":
+                plt.xlabel("Average Contribution")
+                plt.title("Average Feature Contributions to the Classifier")
+            else:
+                plt.xlabel("Total Contribution")
+                plt.title("Total Contributions to the Classifier")
+            plt.ylabel("Feature Group", fontsize=6)
+        else:
+            plt.barh(
+                contributions["Feature"].apply(
+                    lambda s: s.replace("_", " ").replace("  ", " ")
+                ),
+                contributions["Contribution"],
+                color="skyblue",
+            )
+            plt.xlabel("Contribution")
+            plt.ylabel("Feature", fontsize=6)
+            plt.title("Feature Contributions to the Classifier")
+
         plt.gca().invert_yaxis()
 
         # Save the plot if a path is given

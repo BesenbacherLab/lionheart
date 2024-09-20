@@ -93,6 +93,7 @@ def run_full_model_training(
 
     # Create paths container with checks
     out_path = pathlib.Path(out_path)
+    plot_path = out_path / "plots"
 
     prepared_modeling_dict = prepare_modeling(
         dataset_paths=dataset_paths,
@@ -127,16 +128,18 @@ def run_full_model_training(
 
     # Add to paths
     paths = prepared_modeling_dict["paths"]
+    paths.set_path("plot_path", plot_path, collection="out_dirs")
     paths.set_paths(
         {
             "model_path": out_path / "model.joblib",
             "training_info": out_path / "training_info.json",
             "feature_contrib_path": out_path / "feature_contributions.csv",
             "feature_effects_path": out_path / "feature_effects_on_probability.csv",
-            "plot_feature_contrib_all_path": out_path / "feature_contributions.all.png",
-            "plot_feature_contrib_50_path": out_path
-            / "feature_contributions.top_50.png",
-            "plot_feature_effects_path": out_path
+            "plot_feature_contrib_total_path": plot_path
+            / "feature_contributions_by_category.total.png",
+            "plot_feature_contrib_average_path": plot_path
+            / "feature_contributions_by_category.average.png",
+            "plot_feature_effects_path": plot_path
             / "feature_effects_on_probability.png",
         },
         collection="out_files",
@@ -306,21 +309,21 @@ def run_full_model_training(
                 cv_results,
                 hparam_col="param_model__C",
                 hparam_name="Lasso 'C'",
-                plot_path=paths["out_path"] / "hyperparameter.Lasso.C.png",
+                plot_path=paths["plot_path"] / "hyperparameter.Lasso.C.png",
             )
         if "param_pca__target_variance" in cv_results.columns:
             plot_hparams(
                 cv_results,
                 hparam_col="param_pca__target_variance",
                 hparam_name="PCA Target Variance",
-                plot_path=paths["out_path"] / "hyperparameter.PCA.target_variance.png",
+                plot_path=paths["plot_path"] / "hyperparameter.PCA.target_variance.png",
             )
 
         # Plot ROC curves
         if "ROC" in train_out["Evaluation"]:
             plot_roc_curves(
                 roc_curves=train_out["Evaluation"]["ROC"],
-                plot_path=paths["out_path"] / "ROC_curves.png",
+                plot_path=paths["plot_path"] / "ROC_curves.png",
             )
 
         # Save the predictions
@@ -385,12 +388,13 @@ def run_full_model_training(
             )
             feature_contrib_analyser.save_effects(path=paths["feature_effects_path"])
             feature_contrib_analyser.plot_contributions(
-                save_path=paths["plot_feature_contrib_all_path"],
-                fig_size=(7, 35),
+                save_path=paths["plot_feature_contrib_average_path"],
+                group_summarizer="mean",
+                fig_size=(10, 15),
             )
             feature_contrib_analyser.plot_contributions(
-                save_path=paths["plot_feature_contrib_50_path"],
-                top_n=50,
+                save_path=paths["plot_feature_contrib_total_path"],
+                group_summarizer="sum",
                 fig_size=(7, 15),
             )
             feature_contrib_analyser.plot_effects(
