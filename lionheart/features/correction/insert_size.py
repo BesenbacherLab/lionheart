@@ -1,7 +1,7 @@
 from typing import List, Callable, Tuple, Union
 import numpy as np
 from scipy.stats import t
-from scipy.special import erf, erfinv
+from scipy.special import erf
 from scipy.optimize import minimize
 
 from lionheart.features.correction.correction import (
@@ -107,6 +107,15 @@ def calculate_insert_size_correction_factors(
         bin_edges=bin_edges,
     )
 
+    # Calculate first corrected bias distribution for output
+    # To allow plotting the correction steps
+    _, first_corrected_dist = average_bins(
+        x=insert_sizes[insert_sizes > 0],
+        y=coverages[insert_sizes > 0],
+        bin_edges=bin_edges,
+    )
+    first_corrected_dist /= np.nanmean(first_corrected_dist)
+
     # Fit skewed student's t distribution to
     # noise- and skewness corrected coverages
     (
@@ -154,7 +163,7 @@ def calculate_insert_size_correction_factors(
     mean_correction = set_extremes_to_nan(mean_correction, nan_extremes=nan_extremes)
 
     # Add optimal refitting parameters to optimal params dict
-    optimal_params = {f"intial_fit__{key}": val for key, val in optimal_params.items()}
+    optimal_params = {f"initial_fit__{key}": val for key, val in optimal_params.items()}
     refit_optimal_params = {
         f"refit__{key}": val for key, val in refit_optimal_params.items()
     }
@@ -165,6 +174,7 @@ def calculate_insert_size_correction_factors(
         "skewness_correction_factor": inverse_skewness_weights,
         "mean_correction_factor": mean_correction,
         "observed_bias": observed_dist,
+        "first_corrected_bias": first_corrected_dist,
         "target_bias": target_dist,
         "first_fitted_bias": fitted_dist,
         "second_fitted_bias": refitted_dist,
@@ -422,21 +432,4 @@ def _skewed_t_pdf(
 def _calculate_inverse_skewness(
     bin_midpoints_: np.ndarray, skewness: float
 ) -> np.ndarray:
-    # Calculate the correction for each coverage value
-    inverse_skewness_weights = np.zeros_like(bin_midpoints_)
-
-    for i in range(len(bin_midpoints_)):
-        # Calculate the skewness weight for the observed skewness
-        skewness_weight = 1 + erf(
-            (skewness * (bin_midpoints_[i] - np.mean(bin_midpoints_)))
-            / (np.std(bin_midpoints_) * np.sqrt(2))
-        )
-
-        # Find the inverse skewness weight
-        inverse_skewness_weights[i] = (
-            1
-            + erfinv(skewness_weight - 1) * (np.std(bin_midpoints_) * np.sqrt(2))
-            + np.mean(bin_midpoints_)
-        )
-
-    return inverse_skewness_weights
+    return bin_midpoints_ * skewness + np.mean(bin_midpoints_) * (1 - skewness) + 1
