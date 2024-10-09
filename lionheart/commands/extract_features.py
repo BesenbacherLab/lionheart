@@ -337,7 +337,6 @@ def main(args):
         },
         in_dirs={
             "resources_dir": resources_dir,
-            "full_model_dir": resources_dir / "models" / "full_model",
             "bins_by_chromosome_dir": resources_dir / "bins_by_chromosome_10bp",
             "exclude_bins_dir": resources_dir / "exclude_bins",
             "chromatin_masks": resources_dir / "chromatin_masks",
