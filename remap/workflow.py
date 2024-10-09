@@ -24,7 +24,7 @@ SEQ_CENTER = ""  # Sequencing center for read group
 PLATFORM = "ILLUMINA"
 
 # Specify dict of {sample_id -> bam file path} and/or {sample_id -> fastq paths}
-# You can write code to generate these dicts
+# You can write python code to generate these dicts
 
 # "<sample_id_1>": "path/to/x.bam"
 bam_files = {}
@@ -44,6 +44,12 @@ COLLECT_WGS_METRICS = False
 
 if not SEQ_CENTER:
     raise ValueError("Please specify `SEQ_CENTER`.")
+
+if bam_files and not isinstance(bam_files, dict):
+    raise TypeError("When not empty, `bam_files` must be a dictionary.")
+if fastq_files and not isinstance(fastq_files, dict):
+    raise TypeError("When not empty, `fastq_files` must be a dictionary.")
+
 
 # Check no overlap between BAM and FASTQ
 files = {"BAM": bam_files, "FASTQ": fastq_files}
