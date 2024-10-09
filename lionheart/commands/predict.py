@@ -101,7 +101,7 @@ def setup_parser(parser):
         default=threshold_defaults,
         help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`)."
+        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity + 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "

@@ -19,7 +19,7 @@ from lionheart.utils.cli_utils import (
 
 def main():
     parser = argparse.ArgumentParser(
-        description=f"""\n                                                                               
+        description=f"""\n\n                                                                               
 {LION_ASCII}                                        
 
 {LIONHEART_ASCII}

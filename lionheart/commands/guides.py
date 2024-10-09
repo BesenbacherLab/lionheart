@@ -15,6 +15,7 @@ def get_usage_guide():
 
     guide = Guide()
 
+    guide.add_vertical_space()
     guide.add_description(LION_ASCII)
     guide.add_description(LIONHEART_ASCII)
     guide.add_title("USAGE GUIDE")

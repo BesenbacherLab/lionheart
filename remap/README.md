@@ -1,6 +1,6 @@
 # Remap to hg38
 
-In case you have hg19 data, we include the settings we use to map to hg38 from bam files. (TODO Add for fastq)
+In case you have hg19 data, we include the settings we used to map to hg38 from bam/fastq files.
 
 ## Installation
 

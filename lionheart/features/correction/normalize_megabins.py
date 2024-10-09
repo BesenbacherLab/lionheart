@@ -128,7 +128,6 @@ def describe_megabins(
     truncate_above_quantile: Optional[float] = None,
     copy: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
-
     # Check stride size
     if stride is None or stride == 0:
         stride = mbin_size
@@ -169,7 +168,7 @@ def describe_megabins(
 
     # Get created columns with averages
     new_columns = list(set(df_aggregates.columns).difference(set(df.columns)))
-    idx_columns = sorted([cname for cname in new_columns if f"_idx" in cname])
+    idx_columns = sorted([cname for cname in new_columns if "_idx" in cname])
     measure_to_columns = {
         measure: sorted([cname for cname in new_columns if f"_{measure}" in cname])
         for measure in ["mean", "median", "std", "iqr"]
@@ -205,7 +204,6 @@ def _calculate_mbin_parameters_for_chr(
     old_col: str,
     truncate_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
-
     # Extract range of start coordinates
     min_start = int(df_for_chr["start"].min())
     max_start = int(df_for_chr["start"].max())
@@ -240,7 +238,6 @@ def _bin_with_current_stride_start(
     old_col: str,
     truncate_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
-
     # NOTE: `first_start` can be negative if we
     # have "padding" to have the same resolution
     # in the beginning of the chromosome
@@ -301,7 +298,6 @@ def _bin_with_current_stride_start(
 def _measure_below_quantile(
     df: pd.DataFrame, col: str, truncate_above_quantile: Optional[float] = None
 ) -> pd.DataFrame:
-
     # Get column with coverage
     arr = df[col].to_numpy()
 
