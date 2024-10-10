@@ -479,7 +479,7 @@ def main(args):
     # Write standardization parameters as well
     # to allow inversing the standardization
     with open(str(paths["standardization_params"]), "w") as outfile:
-        std_params = {"mean": center, "std": scaling_factor}
+        std_params = {"mean": float(center), "std": float(scaling_factor)}
         json.dump(std_params, outfile)
 
     if not args.keep_intermediates:
