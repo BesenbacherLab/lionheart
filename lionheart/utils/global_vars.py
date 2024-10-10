@@ -1,6 +1,6 @@
 # NOTE: Remember to set the newest model first in the list!
 INCLUDED_MODELS = [
-    "detect_cancer__005__04_09_24",
+    "detect_cancer__007__20_09_24",
     "subtype_cancers__004__26_08_24",
 ]
 

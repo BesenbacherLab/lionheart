@@ -93,6 +93,7 @@ With many samples, this can take a while. `gwf` allows seeing a status of the su
 
 Note: If you don't have a BAM file at hand, you can download an example BAM file from: https://zenodo.org/records/13909979 
 It is a downsampled version of a public BAM file from Snyder et al. (2016; 10.1016/j.cell.2015.11.050) that has been remapped to hg38.
+On our system, the feature extraction takes ~1h15m using 12 cores (`n_jobs`).
 
 ```
 # Start by skimming the help page
