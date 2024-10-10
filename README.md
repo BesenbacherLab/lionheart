@@ -4,7 +4,7 @@ Run the feature extraction and learned model from [paper ref] on your own data.
 
 Developed for hg38.
 
-The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen). Concept and method 
+The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
 ## Installation
 
@@ -90,6 +90,9 @@ $ gwf run
 With many samples, this can take a while. `gwf` allows seeing a status of the submitted jobs as well
 
 ### CLI
+
+Note: If you don't have a BAM file at hand, you can download an example BAM file from: https://zenodo.org/records/13909979 
+It is a downsampled version of a public BAM file from Snyder et al. (2016; 10.1016/j.cell.2015.11.050) that has been remapped to hg38.
 
 ```
 # Start by skimming the help page
