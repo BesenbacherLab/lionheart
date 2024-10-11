@@ -1,4 +1,4 @@
-# LIONHEART Cancer Detector <a href='https://github.com/besenbacherlab/lionheart'><img src='https://raw.githubusercontent.com/besenbacherlab/lionheart/master/lionheart_242x280_250dpi.png' align="right" height="140" /></a>
+# LIONHEART Cancer Detector <a href='https://github.com/besenbacherlab/lionheart'><img src='https://raw.githubusercontent.com/besenbacherlab/lionheart/main/lionheart_242x280_250dpi.png' align="right" height="140" /></a>
 
 LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA.
 
