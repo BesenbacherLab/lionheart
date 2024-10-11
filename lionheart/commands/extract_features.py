@@ -257,12 +257,16 @@ epilog_guide.add_title("OUTPUT:")
 epilog_guide.add_description(
     """feature_dataset.npy : `numpy.ndarray` with shape (10, 489)
     This array contains the main features. 
-    There are 10 feature sets of which we only use the first (index=0):
-        0) LIONHEART score 
+    There are 10 feature sets of which we only use the first (index=0).
+    We included the other feature sets to allow experimentation.
+    
+    Feature sets:
+        <b>0) LIONHEART score</b>
            (Sample-standardized Pearson correlation coefficient <i>(r)</i>)
         1) and its p-value
         2) The normalized dot product
         3) Cosine Similarity
+        
         And the terms used to calculate them:
            Where x=fragment coverage, y=open chromatin site overlap fraction.
         4) x_sum
@@ -271,7 +275,6 @@ epilog_guide.add_description(
         7) y_squared_sum
         8) xy_sum
         9) Number of included bins
-    We included the other feature sets to allow experimentation.
 """
 )
 epilog_guide.add_vertical_space(1)

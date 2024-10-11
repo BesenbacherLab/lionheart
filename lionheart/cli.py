@@ -45,14 +45,14 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     )
 
     # Command 0
-    subparsers.add_parser(
-        "guide_me",
-        help=f"Print a guide of the steps and processes in using {LIONHEART_STRING}",
-        description=wrap_command_description(
-            f"Run this command to show a guide of the steps and processes in using {LIONHEART_STRING}."
-        ),
-        formatter_class=parser.formatter_class,
-    )
+    # subparsers.add_parser(
+    #     "guide_me",
+    #     help=f"Print a guide of the steps and processes in using {LIONHEART_STRING}",
+    #     description=wrap_command_description(
+    #         f"Run this command to show a guide of the steps and processes in using {LIONHEART_STRING}."
+    #     ),
+    #     formatter_class=parser.formatter_class,
+    # )
 
     # Command 1
     parser_ef = subparsers.add_parser(
@@ -101,31 +101,31 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     # Delegate the argument setup to the respective command module
     train_model.setup_parser(parser_tm)
 
-    # Command 5
-    parser_va = subparsers.add_parser(
-        "validate",
-        help="Validate a trained model on one or more validation datasets",
-        description=wrap_command_description(
-            "VALIDATE your trained model one or more validation datasets, such as the included validation dataset."
-        ),
-        formatter_class=parser.formatter_class,
-        epilog=validate.EPILOG,
-    )
-    # Delegate the argument setup to the respective command module
-    validate.setup_parser(parser_va)
+    # # Command 5
+    # parser_va = subparsers.add_parser(
+    #     "validate",
+    #     help="Validate a trained model on one or more validation datasets",
+    #     description=wrap_command_description(
+    #         "VALIDATE your trained model one or more validation datasets, such as the included validation dataset."
+    #     ),
+    #     formatter_class=parser.formatter_class,
+    #     epilog=validate.EPILOG,
+    # )
+    # # Delegate the argument setup to the respective command module
+    # validate.setup_parser(parser_va)
 
-    # Command 6
-    parser_cv = subparsers.add_parser(
-        "cross_validate",
-        help="Cross-validate the cancer detection model on your own data and/or the included features",
-        description=wrap_command_description(
-            "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
-            "Use your extracted features and/or the included features."
-        ),
-        formatter_class=parser.formatter_class,
-    )
-    # Delegate the argument setup to the respective command module
-    cross_validate.setup_parser(parser_cv)
+    # # Command 6
+    # parser_cv = subparsers.add_parser(
+    #     "cross_validate",
+    #     help="Cross-validate the cancer detection model on your own data and/or the included features",
+    #     description=wrap_command_description(
+    #         "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
+    #         "Use your extracted features and/or the included features."
+    #     ),
+    #     formatter_class=parser.formatter_class,
+    # )
+    # # Delegate the argument setup to the respective command module
+    # cross_validate.setup_parser(parser_cv)
 
     args = parser.parse_args()
     if args.command == "guide_me":

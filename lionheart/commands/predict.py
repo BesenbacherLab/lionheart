@@ -135,14 +135,16 @@ examples.add_example(
 --out_dir path/to/subject_1/predictions
 --custom_model_dirs path/to/model/directory""",
 )
-examples.add_example(
-    description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart validate`).
-This is useful when you have validated a model on your own data and want to use the found thresholds on new data.""",
-    example="""--sample_dir path/to/subject_1/features
---resources_dir path/to/resource/directory
---out_dir path/to/subject_1/predictions
---custom_roc_paths path/to/validation_ROC_curves.json""",
-)
+
+# TODO: Add when `lionheart validate` is implemented
+# examples.add_example(
+#     description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart validate`).
+# This is useful when you have validated a model on your own data and want to use the found thresholds on new data.""",
+#     example="""--sample_dir path/to/subject_1/features
+# --resources_dir path/to/resource/directory
+# --out_dir path/to/subject_1/predictions
+# --custom_roc_paths path/to/validation_ROC_curves.json""",
+# )
 examples.add_example(
     description="""Specifying custom probability thresholds for 1) a specificity of ~0.975 and 2) a sensitivity of ~0.8.""",
     example="""--sample_dir path/to/subject_1/features

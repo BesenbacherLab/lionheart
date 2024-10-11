@@ -8,6 +8,15 @@ from lionheart.utils.cli_utils import (
 from lionheart.utils.global_vars import INCLUDED_MODELS
 
 
+future_ops = """
+5) cross-validate the model with both your data and 
+       the included features using leave-one-dataset-out 
+       cross-validation to see how adding your dataset 
+       to the training affects generalization to the 
+       other datasets
+"""
+
+
 def get_usage_guide():
     """
     Create overview/guide/tutorial for the package to show in the CLI.
@@ -30,14 +39,9 @@ You will:
     4) validate the included model on your features 
         - this will give you the probability thresholds 
           that fit your data (for future data)
-    5) cross-validate the model with both your data and 
-       the included features using leave-one-dataset-out 
-       cross-validation to see how adding your dataset 
-       to the training affects generalization to the 
-       other datasets
-    6) train a new model using both your own features 
+    5) train a new model using both your own features 
        and the included features
-    7) validate the new model on the validation dataset 
+    6) validate the new model on the validation dataset 
        from Zhu et al. (2023)
 """
     )
@@ -45,12 +49,12 @@ You will:
     guide.add_description(
         f"""
 First, if haven't followed the installation steps in the GitHub 
-repository `README` or downloaded the resources directory, head 
+repository `README` or downloaded the resources folder, head 
 over to the GitHub repository and follow the steps: 
 {REPO_URL}
 
 Second, you will need a set of BAM files (hg38) with whole-genome 
-sequenced plasma cell-free DNA. For steps 4-7 you will need to have 
+sequenced plasma cell-free DNA. For steps 4-6 you will need to have 
 both some samples <i>with</i> cancer and some samples <i>without</i> cancer.
 
 Depending on the sequencing depth, feature extraction

@@ -229,7 +229,7 @@ def collect_samples(
     gwf: Workflow,
     sample_dirs: Optional[List[Union[str, pathlib.Path]]],
     prediction_dirs: Optional[List[Union[str, pathlib.Path]]],
-    out_dir: Union[str, pathlib.Path] = None,
+    out_dir: Union[str, pathlib.Path],
     walltime: str = "00:59:00",
     memory: str = "10g",
 ):
@@ -249,7 +249,7 @@ def collect_samples(
         Paths to directories with predictions
         (NOTE: `out_dir` from `predict_sample()`).
         Expects directories to have the `"prediction.csv"` file.
-    out_dir :  default=None
+    out_dir
         Directory to save output in.
     walltime
         A string specifying the available time for the target.

@@ -112,7 +112,9 @@ LIONHEART_ASCII = """<b>........................................</b>
 
 LIONHEART_STRING = "<cy>LION</cy><cr>HEART</cr>"
 
-README_STRING = f"""See the usage guide via `lionheart guide_me` or visit the the GitHub README:\n{REPO_URL}"""
+# TODO: Once guide_me is done, change this string.
+# README_STRING = f"""See the usage guide via `lionheart guide_me` or visit the the GitHub README:\n{REPO_URL}"""
+README_STRING = f"""Visit the the GitHub README:\n{REPO_URL}"""
 
 
 def wrap_command_description(d):
