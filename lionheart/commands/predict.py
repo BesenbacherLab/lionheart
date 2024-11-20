@@ -72,20 +72,20 @@ def setup_parser(parser):
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
     # TODO: Since `validate` allows multiple datasets, how does one specify the curve from the collection?
-    parser.add_argument(
-        "--custom_roc_paths",
-        type=str,
-        nargs="*",
-        help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
-        "\nfor extracting the probability thresholds."
-        "\nThe output will have predictions for thresholds based on both"
-        "\nthe training data ROC curves and these custom ROC curves."
-        + (
-            "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
-            if ENABLE_SUBTYPING
-            else ""
-        ),
-    )
+    # parser.add_argument(
+    #     "--custom_roc_paths",
+    #     type=str,
+    #     nargs="*",
+    #     help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
+    #     "\nfor extracting the probability thresholds."
+    #     "\nThe output will have predictions for thresholds based on both"
+    #     "\nthe training data ROC curves and these custom ROC curves."
+    #     + (
+    #         "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
+    #         if ENABLE_SUBTYPING
+    #         else ""
+    #     ),
+    # )
     threshold_defaults = [
         "max_j",
         "spec_0.95",
@@ -207,7 +207,8 @@ def main(args):
     }
 
     custom_roc_paths = {}
-    if args.custom_roc_paths is not None and args.custom_roc_paths:
+    # Currently disabled
+    if False and args.custom_roc_paths is not None and args.custom_roc_paths:
         custom_roc_paths = {
             f"custom_roc_curve_{roc_idx}": roc_path
             for roc_idx, roc_path in enumerate(args.custom_roc_paths)
