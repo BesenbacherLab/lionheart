@@ -17,7 +17,7 @@ dependencies:
   - statsmodels=0.14.1
   - seaborn=0.13.2
   - pip:
-    - nattrs==0.1.1
+    - nattrs==0.2.2
     - pytest==7.1.2
     - scikit-learn==1.0.2
     - utipy==1.0.2
