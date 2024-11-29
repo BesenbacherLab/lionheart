@@ -62,8 +62,6 @@ $ wget https://zenodo.org/records/14215762/files/inference_resources_v002.tar.gz
 $ tar -xvzf inference_resources_v002.tar.gz 
 ```
 
-NOTE: Current version has an old model, so only the feature extraction works.
-
 ## Examples
 
 ### Run via command-line interface
