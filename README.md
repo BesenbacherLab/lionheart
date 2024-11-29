@@ -6,6 +6,8 @@ This software lets you run feature extraction and predict the cancer status of y
 
 Developed for hg38. See the `remap` directory for the applied remapping pipeline.
 
+Preprint: https://www.medrxiv.org/content/10.1101/2024.11.26.24317971v1
+
 The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
 ## Installation
