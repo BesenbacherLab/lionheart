@@ -6,6 +6,8 @@ This software lets you run feature extraction and predict the cancer status of y
 
 Developed for hg38. See the `remap` directory for the applied remapping pipeline.
 
+Preprint: https://www.medrxiv.org/content/10.1101/2024.11.26.24317971v1
+
 The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
 ## Installation
@@ -59,8 +61,6 @@ Download and unzip the required resources.
 $ wget https://zenodo.org/records/14215762/files/inference_resources_v002.tar.gz
 $ tar -xvzf inference_resources_v002.tar.gz 
 ```
-
-NOTE: Current version has an old model, so only the feature extraction works.
 
 ## Examples
 
