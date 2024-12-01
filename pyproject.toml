@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "lionheart"
-version = "1.0.0"
+version = "1.0.1"
 description = "LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA. Check README for additional installation steps."
 authors = ["Ludvig <mail@ludvigolsen.dk>"]
 readme = "README.md"
