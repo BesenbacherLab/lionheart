@@ -192,7 +192,6 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
             "Datasets": {
                 "Names": [
                     "Cristiano 2019",
-                    "Jiang 2015",
                 ],
                 "Number of Samples": {
                     "Cristiano 2019": 474,
