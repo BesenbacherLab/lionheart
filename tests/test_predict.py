@@ -37,6 +37,8 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
         ), f"Expected file {expected_file} not found."
 
     # Check prediction
-    print(pd.read_csv(tmp_path / output_subdir))
+    prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
+    print(prediction)
 
-    assert False
+    assert prediction["Prediction"].tolist() == ["Cancer"] * 6
+    assert prediction["P(Cancer)"].tolist() == [0.993218] * 6
