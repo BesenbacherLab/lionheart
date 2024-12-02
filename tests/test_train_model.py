@@ -188,7 +188,7 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         },
         "Data": {
             "Shape": [474, 489],
-            "Target counts": {"0": 282, "1": 304},
+            "Target counts": {"0": 244, "1": 230},
             "Datasets": {
                 "Names": [
                     "Cristiano 2019",
