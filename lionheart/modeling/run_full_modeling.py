@@ -347,7 +347,9 @@ def run_full_model_training(
                 predictions_list=[train_out["Predictions"]],
                 targets=train_out["Targets"],
                 groups=train_out["Groups"],
-                split_indices_list=[train_out["Split"]],
+                split_indices_list=[train_out["Split"]]
+                if train_out["Split"] is not None
+                else None,
                 target_idx_to_target_label_map=class_idx_to_label_map,
                 positive_class=positive_label,
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
