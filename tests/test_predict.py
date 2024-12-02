@@ -14,7 +14,7 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
 
     command_args = [
         "lionheart",
-        "predict",
+        "predict_sample",
         "--sample_dir",
         tmp_path / "test_sample",
         "--resources_dir",
