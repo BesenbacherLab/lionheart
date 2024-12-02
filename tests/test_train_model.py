@@ -32,7 +32,12 @@ def test_train_model_only_shared_features(run_cli, tmp_path, resource_path):
     command_args = [
         "lionheart",
         "train_model",
-        "--use_included_features",
+        "--dataset_paths",
+        resource_path / "shared_features" / "Cristiano" / "feature_dataset.npy",
+        resource_path / "shared_features" / "Jiang" / "feature_dataset.npy",
+        "--meta_data_paths",
+        resource_path / "shared_features" / "Cristiano" / "meta_data.csv",
+        resource_path / "shared_features" / "Jiang" / "meta_data.csv",
         "--resources_dir",
         resource_path,
     ]
@@ -89,23 +94,11 @@ def test_train_model_only_shared_features(run_cli, tmp_path, resource_path):
             "Datasets": {
                 "Names": [
                     "Cristiano 2019",
-                    "Mathios 2021",
-                    "Mathios 2021 Validation",
-                    "Prostate Cancer (Aarhus cohorts)",
-                    "Nordentoft 2024 and Frydendahl 2024",
-                    "GECOCA",
-                    "Endoscopy II",
                     "Jiang 2015",
                 ],
                 "Number of Samples": {
                     "Cristiano 2019": 474,
-                    "Endoscopy II": 256,
-                    "GECOCA": 168,
                     "Jiang 2015": 112,
-                    "Mathios 2021": 270,
-                    "Mathios 2021 Validation": 431,
-                    "Nordentoft 2024 and Frydendahl 2024": 274,
-                    "train_only(Prostate Cancer (Aarhus cohorts))": 349,
                 },
             },
         },
