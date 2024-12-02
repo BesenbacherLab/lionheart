@@ -9,7 +9,8 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
     output_subdir = "prediction_output"
 
     scores = np.expand_dims(np.array(lionheart_features), 0)
-    assert scores.shape == (1, 489)
+    scores = np.concatenate([scores for _ in range(10)], axis=0)
+    assert scores.shape == (10, 489)
     np.save(sample_dir / "dataset" / "feature_dataset.npy", scores)
 
     command_args = [
