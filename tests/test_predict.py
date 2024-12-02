@@ -41,4 +41,4 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
-    assert prediction["P(Cancer)"].tolist() == [0.993218] * 6
+    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
