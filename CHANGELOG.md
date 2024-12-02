@@ -1,6 +1,6 @@
 # Change log
 
-## 1.0.xx
+## 1.0.2
 
  - Fixes bug when training model on a single dataset.
  - Adds tests for a subset of the CLI tools.
