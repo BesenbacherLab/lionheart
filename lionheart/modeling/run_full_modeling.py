@@ -352,6 +352,7 @@ def run_full_model_training(
                 positive_class=positive_label,
                 identifier_cols_dict=prepared_modeling_dict["identifier_cols_dict"],
             )
+            print(combined_predictions)
 
             # Save the predictions to disk
             Evaluator.save_combined_predictions(
