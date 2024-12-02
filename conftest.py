@@ -1,4 +1,5 @@
 import subprocess
+import pathlib
 import pytest
 import os
 
@@ -45,7 +46,7 @@ def resource_path():
         pytest.fail("Missing environment variable: `LIONHEART_RESOURCE_DIR`")
     if not os.path.exists(resource_dir):
         pytest.fail(f"Resource directory does not exist: {resource_dir}")
-    return resource_dir
+    return pathlib.Path(resource_dir)
 
 
 @pytest.fixture
