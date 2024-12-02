@@ -1,27 +1,6 @@
 import json
-import numpy as np
 import pandas as pd
 from utipy import mk_dir
-
-# """
-# examples.add_example(
-#     description="Simple example using defaults:",
-#     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
-# --meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
-# --out_dir path/to/output/directory
-# --use_included_features
-# --resources_dir path/to/resource/directory""",
-# )
-# # TODO Implement this:
-# examples.add_example(
-#     description="Train a model on a single dataset. This uses within-dataset cross-validation for hyperparameter optimization:",
-#     example="""--dataset_paths path/to/dataset/feature_dataset.npy
-# --meta_data_paths path/to/dataset/meta_data.csv
-# --out_dir path/to/output/directory
-# --resources_dir path/to/resource/directory""",
-# )
-
-# """
 
 
 def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):

@@ -141,6 +141,7 @@ def setup_parser(parser):
             "\nUse quotes (e.g. 'colorectal cancer') in case of whitespace."
             "\nControls can be included with 'control' although this is untested territory.",
         )
+    # TODO: For help, check if k is used when <4 datasets are specified
     parser.add_argument(
         "--k",
         type=int,
