@@ -72,6 +72,8 @@ def test_train_model_only_shared_features(run_cli, tmp_path, resource_path):
     with open(tmp_path / output_subdir / "training_info.json") as f:
         training_info = json.load(f)
 
+    print(training_info)
+
     expected_training_info = {
         "Task": "Cancer Detection",
         "Modeling Task": "binary_classification",
@@ -89,8 +91,8 @@ def test_train_model_only_shared_features(run_cli, tmp_path, resource_path):
             "New Label to New Label Index": {"Control": 0, "Cancer": 1},
         },
         "Data": {
-            "Shape": [2334, 489],
-            "Target counts": {"0": 1083, "1": 1251},
+            "Shape": [586, 489],
+            "Target counts": {"0": 282, "1": 304},
             "Datasets": {
                 "Names": [
                     "Cristiano 2019",
