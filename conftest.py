@@ -41,6 +41,8 @@ def run_cli():
 def resource_path():
     # Fetch the resource folder path from the environment variable
     resource_dir = os.getenv("LIONHEART_RESOURCE_DIR")
+    if resource_dir is None:
+        pytest.fail("Missing environment variable: `LIONHEART_RESOURCE_DIR`")
     if not os.path.exists(resource_dir):
         pytest.fail(f"Resource directory does not exist: {resource_dir}")
     return resource_dir
