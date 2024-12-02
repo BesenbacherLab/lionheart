@@ -21,7 +21,11 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
         "--resources_dir",
         resource_path,
     ]
-    generated_files, output_dir = run_cli(command_args, tmp_path)
+    generated_files, output_dir = run_cli(
+        command_args=command_args,
+        tmp_path=tmp_path,
+        output_subdir=output_subdir,
+    )
 
     # Expected files
     expected_files = ["prediction.csv", "README.txt"]
