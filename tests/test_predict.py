@@ -5,7 +5,7 @@ from utipy import mk_dir
 
 def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
     sample_dir = tmp_path / "test_sample"
-    mk_dir(sample_dir)
+    mk_dir(sample_dir / "dataset")
     output_subdir = "prediction_output"
 
     scores = np.expand_dims(np.array(lionheart_features), 0)
