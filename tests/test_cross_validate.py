@@ -1,6 +1,7 @@
-import json
+import numpy as np
 import pandas as pd
 from utipy import mk_dir
+import numpy.testing as npt
 
 
 def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
@@ -40,7 +41,7 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         output_subdir=output_subdir,
     )
 
-    print(generated_files)
+    # print(generated_files)
 
     # Expected files
     expected_files = [
@@ -51,7 +52,7 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         "confusion_matrices.json",
         "total_confusion_matrices.json",
         "ROC_curves.json",
-        "splits_summary.csv", 
+        "splits_summary.csv",
         "inner_results.csv",
         "best_coefficients.csv",
         "inner_cv_Score_HP_C.png",
@@ -72,6 +73,12 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
 
     splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
     print(splits_summary)
+    print(splits_summary["AUC"])
+    npt.assert_equal(
+        np.unique(splits_summary["Fold"]),
+        ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
+    )
+
     assert False
 
 
