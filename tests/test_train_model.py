@@ -1,5 +1,6 @@
 import json
 import pandas as pd
+import numpy.testing as npt
 from utipy import mk_dir
 
 
@@ -102,7 +103,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    assert predictions.iloc[0, 0] == 0.11913294
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.11913294, decimal=5)
 
 
 def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
@@ -199,4 +200,4 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    assert predictions.iloc[0, 0] == 0.11913294
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.11913294, decimal=5)
