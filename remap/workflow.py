@@ -1,4 +1,4 @@
-# Workflow for (re)mapping data (e.g. (hg19 BAM or FASTQ) -> hg38 BAM).
+# Workflow for (re)mapping data (e.g., (hg19 BAM or FASTQ) -> hg38 BAM).
 # Adapted from Genome-Mapping-0.1.4 by Michael Knudsen @ MOMA.
 # Generalized by Ludvig Renbo Olsen @ MOMA.
 

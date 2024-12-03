@@ -23,7 +23,7 @@ def normalize_megabins(
     return_coverage: bool = False,
 ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Tuple[np.ndarray, pd.DataFrame]]:
     """
-    Normalize coverages in megabins, E.g. to reduce
+    Normalize coverages in megabins, E.g., to reduce
     the effect of copy number alterations.
 
     Either:
@@ -186,7 +186,7 @@ def describe_megabins(
 
     # Create a data frame with all the megabin combinations across offsets
     # That is, one overall average for each striding/offsetting (~ genome / stride bins)
-    # E.g. for plotting the "smoothed" averages across the genome
+    # E.g., for plotting the "smoothed" averages across the genome
     mbin_offset_combination_averages = (
         df_aggregates.groupby(["chromosome"] + idx_columns)
         .head(1)

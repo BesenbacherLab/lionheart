@@ -19,7 +19,7 @@ class PoissonPMF:
         Parameters
         ----------
         handle_negatives : str
-            How to handle negative numbers (e.g. numeric versions of NaN).
+            How to handle negative numbers (e.g., numeric versions of NaN).
             One of: {"raise", "warn_truncate", "truncate"}.
         max_num_negatives : int or `None`
             How many negative numbers to allow when
@@ -248,7 +248,7 @@ class ZIPoissonPMF(PoissonPMF):
         Parameters
         ----------
         handle_negatives : str
-            How to handle negative numbers (e.g. numeric versions of NaN).
+            How to handle negative numbers (e.g., numeric versions of NaN).
             One of: {"raise", "warn_truncate", "truncate"}.
         max_num_negatives : int or `None`
             How many negative numbers to allow when

@@ -111,7 +111,7 @@ def setup_parser(parser):
         "--identifier",
         type=str,
         help="A string to add to the output data frame in an ID column. "
-        "E.g. the subject ID. Optional.",
+        "E.g., the subject ID. Optional.",
     )
     parser.set_defaults(func=main)
 

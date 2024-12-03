@@ -87,7 +87,7 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         help="Names of datasets. <i>Optional</i> but helps interpretability of secondary outputs."
-        "\nUse quotes (e.g. 'name of dataset 1') in case of whitespace."
+        "\nUse quotes (e.g., 'name of dataset 1') in case of whitespace."
         "\nWhen passed, one name per specified dataset in the same order as --dataset_paths.",
     )
     parser.add_argument(

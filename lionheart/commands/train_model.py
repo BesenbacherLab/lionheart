@@ -94,7 +94,7 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         help="Names of datasets. <i>Optional</i> but helps interpretability of secondary outputs."
-        "\nUse quotes (e.g. 'name of dataset 1') in case of whitespace."
+        "\nUse quotes (e.g., 'name of dataset 1') in case of whitespace."
         "\nWhen passed, one name per specified dataset in the same order as --dataset_paths.",
     )
     parser.add_argument(
@@ -135,7 +135,7 @@ def setup_parser(parser):
             ],
             help="The cancer types to include in the model when --subtype is specified."
             "\nBy default, only cancer types with >10 samples in the included features are used.\n"
-            "\nUse quotes (e.g. 'colorectal cancer') in case of whitespace."
+            "\nUse quotes (e.g., 'colorectal cancer') in case of whitespace."
             "\nControls can be included with 'control' although this is untested territory.",
         )
     # TODO: For help, check if k is used when <4 datasets are specified

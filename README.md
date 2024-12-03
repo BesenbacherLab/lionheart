@@ -39,7 +39,7 @@ $ curl https://nim-lang.org/choosenim/init.sh -sSf | sh
 
 # Add to PATH
 # Change the path to fit with your system
-# Tip: Consider adding it to the terminal configuration file (e.g. ~/.bashrc)
+# Tip: Consider adding it to the terminal configuration file (e.g., ~/.bashrc)
 $ export PATH=/home/<username>/.nimble/bin:$PATH
 
 # Install and use nim 1.6.4 
@@ -77,9 +77,9 @@ $ lionheart -h
 
 # Extract feature from a given BAM file
 # `mosdepth_path` is the path to the customized `mosdepth` installation
-# E.g. "/home/<username>/mosdepth/mosdepth"
+# E.g., "/home/<username>/mosdepth/mosdepth"
 # `ld_library_path` is the path to the `lib` folder in the conda environment
-# E.g. "/home/<username>/anaconda3/envs/lionheart/lib/"
+# E.g., "/home/<username>/anaconda3/envs/lionheart/lib/"
 $ lionheart extract_features --bam_file {bam_file} --resources_dir {resources_dir} --out_dir {out_dir} --mosdepth_path {mosdepth_path} --ld_library_path {ld_library_path} --n_jobs {cores}
 
 # `sample_dir` is the `out_dir` of `extract_features`

@@ -57,7 +57,7 @@ def extract_features(
     walltime
         A string specifying the available time for the target.
         For large samples, this might need to be increased.
-        Tip: Run for a single sample (e.g. the largest)
+        Tip: Run for a single sample (e.g., the largest)
         first, to ensure the assigned time is enough.
     memory
         The memory (RAM) available to the target.
@@ -169,7 +169,7 @@ def predict_sample(
         `'max_j'`:
             The threshold at the max. Youden's J (`sensitivity + specificity + 1`).
         `'spec_xx'`:
-            Prefix a specificity-based threshold with 'spec_' (e.g. 'spec_0.95').
+            Prefix a specificity-based threshold with 'spec_' (e.g., 'spec_0.95').
             The first threshold that should lead to a specificity above this level is chosen.
             The specificity should be within the [0., 1.] range.
         `'sens_xx'`:
@@ -177,7 +177,7 @@ def predict_sample(
             The first threshold that should lead to a specificity above this level is chosen.
             The sensitivity should be within the [0., 1.] range.
         floating point:
-            Pass a specific threshold (as str, e.g. "0.5").
+            Pass a specific threshold (as str, e.g., "0.5").
             The nearest threshold in the ROC curve is used.
         NOTE*: The thresholds are taken from the included ROC curve,
         which was fitted to the *training* data during full model training

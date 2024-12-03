@@ -73,7 +73,7 @@ def run_nested_cross_validation(
         The labels to use in classification. When specified, at least two labels/groups
         should be specified (separated by a whitespace). When more than two labels are specified,
         multiclass classification is used. When no labels are specified, all labels are used.
-        Combine multiple labels to a single label/group (e.g. cancer <- colon,rectal,prostate)
+        Combine multiple labels to a single label/group (e.g., cancer <- colon,rectal,prostate)
         by giving a name and the paranthesis-wrapped, comma-separated labels. E.g.
         'cancer(colon,rectal,prostate)'.
     feature_sets: Optional[List[int]], default=None
@@ -90,7 +90,7 @@ def run_nested_cross_validation(
     merge_datasets:  Optional[Dict[str, List[str]]], default=None
         Dict mapping collapsed dataset name to a list with names of the dataset members.
         List of named dataset groups that should be merged to a single dataset.
-        E.g. `["BestDataset(D1,D2,D3)", "WorstDataset(D4,D5)"]`.
+        E.g., `["BestDataset(D1,D2,D3)", "WorstDataset(D4,D5)"]`.
     k_outer: int, default=10
         The number of outer folds for nested cross-validation or folds in regular cross-validation.
         Ignored when `dataset_paths` is a dict with multiple dataset paths.
@@ -134,14 +134,14 @@ def run_nested_cross_validation(
         **Ignored** when no groups are present in the meta data.
     weight_per_dataset : bool
         Whether to weight training loss (by class and/or group) separately per dataset.
-        E.g. when each dataset has bias that shouldn't be associated with the majority class.
+        E.g., when each dataset has bias that shouldn't be associated with the majority class.
         *Ignored* when `dataset_paths` only has 1 path.
     num_jobs: int, default=1
         The number of jobs to use for parallel processing.
         If set to -1, use all available CPUs.
     seed: Optional[int], default=1
         Random state.
-        E.g. used for splitting data into folds and for deterministic model initialization.
+        E.g., used for splitting data into folds and for deterministic model initialization.
         Each cross-validation repetition will use `seed`+repetition as seed.
         When the model is a neural network, the seed is not used during model initialization,
         as that would cause all models to have the same initialization (per repetition at least).
@@ -151,7 +151,7 @@ def run_nested_cross_validation(
     messenger : `utipy.Messenger` or `None`
         A `utipy.Messenger` instance used to print/log/... information.
         When `None`, no printing/logging is performed.
-        The messenger determines the messaging function (e.g. `print`)
+        The messenger determines the messaging function (e.g., `print`)
         and potential indentation.
     """
 

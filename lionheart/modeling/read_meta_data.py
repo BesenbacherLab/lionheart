@@ -24,9 +24,9 @@ def read_meta_data(
         For classification tasks:
             Path to `.csv` file where:
                 1) the first column contains the sample IDs\n
-                2) the second column contains their cancer status (e.g. from {'control', 'cancer', 'exclude'})\n
+                2) the second column contains their cancer status (e.g., from {'control', 'cancer', 'exclude'})\n
                 3) the third column contains the cancer type (for subtyping)\n
-                4) the (optional) fourth column contains the group (e.g. Subject ID when
+                4) the (optional) fourth column contains the group (e.g., Subject ID when
                 subjects have multiple samples).\n
             Note that the cancer status is returned for `task='binary_classification'`
             and cancer type is returned for `task='multiclass_classification'`.
@@ -34,7 +34,7 @@ def read_meta_data(
             Path to `.csv` file where:
                 1) the first column contains the sample IDs\n
                 2) the second column contains their target value\n
-                3) the (optional) third column contains the group (e.g. Subject ID when
+                3) the (optional) third column contains the group (e.g., Subject ID when
                 subjects have multiple samples).\n
         Other columns are ignored.\n
         The file must contain a header but the actual column names are ignored.

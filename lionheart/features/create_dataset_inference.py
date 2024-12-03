@@ -549,7 +549,7 @@ def create_dataset_for_inference(
                 del sample_cov_raw_counts
 
                 # Normalize large-scale average shifts
-                # e.g. due to copy number alterations
+                # e.g., due to copy number alterations
                 # Must come after insert size correction!
                 # Scaling by _mean_ is probably the best version
                 # as it keeps the relative spread and keeps
