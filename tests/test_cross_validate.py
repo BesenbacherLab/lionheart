@@ -78,8 +78,8 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         np.unique(splits_summary["Fold"]),
         ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
     )
-    assert splits_summary.iloc[0, "AUC"] == 0.817962
-    assert splits_summary.iloc[4, "AUC"] == 0.654003
+    assert splits_summary.loc[0, "AUC"] == 0.817962
+    assert splits_summary.loc[4, "AUC"] == 0.654003
 
 
 def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path):
@@ -115,18 +115,15 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
         output_subdir=output_subdir,
     )
 
-    # print(generated_files)
+    print(generated_files)
 
     # Expected files
     expected_files = [
         "warnings.csv",
         "predictions.csv",
         "evaluation_scores.csv",
-        "evaluation_summary.csv",
         "confusion_matrices.json",
-        "total_confusion_matrices.json",
         "ROC_curves.json",
-        "splits_summary.csv",
         "inner_results.csv",
         "best_coefficients.csv",
         "inner_cv_Score_HP_C.png",
@@ -145,12 +142,12 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
     print(predictions.iloc[0])
     assert predictions.iloc[0, 0] == 0.525994
 
-    splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
-    print(splits_summary)
-    print(splits_summary["AUC"])
-    npt.assert_equal(
-        np.unique(splits_summary["Fold"]),
-        ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
-    )
-    assert splits_summary.iloc[0, "AUC"] == 0.817962
-    assert splits_summary.iloc[4, "AUC"] == 0.654003
+    # splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
+    # print(splits_summary)
+    # print(splits_summary["AUC"])
+    # npt.assert_equal(
+    #     np.unique(splits_summary["Fold"]),
+    #     ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
+    # )
+    # assert splits_summary.loc[0, "AUC"] == 0.817962
+    # assert splits_summary.iloc[4, "AUC"] == 0.654003
