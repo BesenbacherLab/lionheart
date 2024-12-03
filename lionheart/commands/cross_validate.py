@@ -33,25 +33,48 @@ def setup_parser(parser):
         "--dataset_paths",
         type=str,
         nargs="*",
-        help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. ",
+        default=[],
+        help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
+        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nOnly the first feature set is used.",
     )
     parser.add_argument(
         "--meta_data_paths",
         type=str,
         nargs="*",
-        help="Path(s) to csv file(s) where 1) the first column contains the sample IDs, "
-        "and 2) the second contains their label, and 3) the (optional) third column contains subject ID "
-        "(for when subjects have more than one sample). "
-        "When `dataset_paths` has multiple paths, there must be "
-        "one meta data path per dataset, in the same order.",
+        default=[],
+        help="Path(s) to csv file(s) where:"
+        "\n  1) the first column contains the <b>sample IDs</b>"
+        "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
+        "\n  3) the third column contains the <b>cancer type</b> "
+        + (
+            (
+                "for subtyping (see --subtype)"
+                "\n     Either one of:"
+                "\n       {<i>'control', 'colorectal cancer', 'bladder cancer', 'prostate cancer',"
+                "\n       'lung cancer', 'breast cancer', 'pancreatic cancer', 'ovarian cancer',"
+                "\n       'gastric cancer', 'bile duct cancer', 'hepatocellular carcinoma',"
+                "\n       'head and neck squamous cell carcinoma', 'nasopharyngeal carcinoma',"
+                "\n       'exclude'</i>} (Must match exactly (case-insensitive) when using included features!) "
+                "\n     or a custom cancer type."
+                "\n     <b>NOTE</b>: When not running subtyping, any character value is fine."
+            )
+            if False  # ENABLE_SUBTYPING
+            else "[NOTE: Not currently used so can be any string value!]."
+        )
+        + "\n  4) the (optional) fourth column contains the <b>subject ID</b> "
+        "(for when subjects have more than one sample)"
+        "\nWhen --dataset_paths has multiple paths, there must be "
+        "one meta data path per dataset, in the same order."
+        "\nSamples with the <i>'exclude'</i> label are excluded from the training.",
     )
     parser.add_argument(
         "--out_dir",
         type=str,
         required=True,
         help=(
-            "Path to directory to store the collected features at. "
-            "A `log` directory will be placed in the same directory."
+            "Path to directory to store the cross-validation results at. "
+            "\nA `log` directory will be placed in the same directory."
         ),
     )
     parser.add_argument(
@@ -70,23 +93,23 @@ def setup_parser(parser):
     parser.add_argument(
         "--use_included_features",
         action="store_true",
-        help="Whether to use the included features in the model training. "
-        "When specified, the `--resources_dir` must also be specified. "
-        "When NOT specified, only the manually specified datasets are used.",
+        help="Whether to use the included features in the cross-validation."
+        "\nWhen specified, the --resources_dir must also be specified. "
+        "\nWhen NOT specified, only the manually specified datasets are used.",
     )
-    parser.add_argument(  # TODO Fix help
+    parser.add_argument(
         "--k_outer",
         type=int,
         default=10,
-        help="Number of outer folds in **within-dataset** cross-validation for tuning hyperparameters via grid search. "
-        "**Ignored** when multiple test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
+        help="Number of outer folds in <i>within-dataset</i> cross-validation for tuning hyperparameters via grid search. "
+        "\n<u><b>Ignored</b></u> when multiple test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
     )
-    parser.add_argument(  # TODO Fix help
+    parser.add_argument(  # TODO Check >=4 is the case
         "--k_inner",
         type=int,
         default=10,
-        help="Number of inner folds in **within-dataset** cross-validation for tuning hyperparameters via grid search. "
-        "**Ignored** when 4 or more test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
+        help="Number of inner folds in <i>within-dataset</i>* cross-validation for tuning hyperparameters via grid search. "
+        "\n<u><b>Ignored</b></u> when 4 or more test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
     )
     parser.add_argument(
         "--max_iter",
@@ -98,36 +121,40 @@ def setup_parser(parser):
         "--train_only",
         type=str,
         nargs="*",
-        help="Indices of specified datasets that should only be used for training "
-        "during CV for hyperparameter tuning. 0-index so in the range 0->(num_datasets-1). "
+        help="Indices of specified datasets that should only be used for training."
+        "\n0-indexed so in the range 0->(num_datasets-1)."
         # TODO: Figure out what to do with one test dataset and n train-only datasets?
-        "When `--use_included_features` is NOT specified, at least one dataset cannot be train-only. "
-        # TODO: Should we allow setting included features to train-only?
-        "",
+        "\nWhen --use_included_features is NOT specified, at least one dataset cannot be train-only."
+        "\nWHEN TO USE: If you have a dataset with only one of the classes (controls or cancer) "
+        "\nwe cannot test on the dataset. It may still be a great addition"
+        "\nto the training data, so flag it as 'train-only'.",
     )
     parser.add_argument(
         "--pca_target_variance",
         type=float,
         default=[0.994, 0.995, 0.996, 0.997, 0.998],
         nargs="*",
-        help="Target(s) for explained variance of principal components. Selects number of components by this. "
-        "When multiple targets are provided, they are used in grid search.",
+        help="Target(s) for the explained variance of selected principal components."
+        "\nUsed to select the most-explaining components."
+        "\nWhen multiple targets are provided, they are used in grid search.",
     )
     parser.add_argument(
         "--lasso_c",
         type=float,
-        default=np.array([0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4, 0.5]),
+        default=np.array(
+            [0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]
+        ),
         nargs="*",
-        help="Inverse Lasso regularization strength value(s) for `sklearn.linear_model.LogisticRegression`. "
-        "When multiple values are provided, they are used in grid search.",
+        help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
+        "\nWhen multiple values are provided, they are used in grid search.",
     )
     parser.add_argument(
         "--aggregate_by_subjects",
         action="store_true",
-        help="Whether to aggregate *predictions* per subject before evaluations. "
-        "The predicted probabilities averaged per group."
-        "Only the evaluations are affected by this. "
-        "**Ignored** when no subjects are present in the meta data.",
+        help="Whether to aggregate <i>predictions</i> per subject before evaluations. "
+        "\nThe predicted probabilities are averaged per group."
+        "\nOnly the evaluations are affected by this. "
+        "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
     parser.add_argument(
         "--num_jobs",
@@ -152,7 +179,21 @@ examples.add_example(
     description="Simple example using defaults:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
+--dataset_names 'dataset_1' 'dataset_2'
 --out_dir path/to/output/directory
+--use_included_features
+--resources_dir path/to/resource/directory""",
+)
+examples.add_example(
+    description="Cross-validating on a single dataset. This uses classic K-fold cross-validation:",
+    example="""--dataset_paths path/to/dataset_1/feature_dataset.npy
+--meta_data_paths path/to/dataset_1/meta_data.csv
+--out_dir path/to/output/directory
+--resources_dir path/to/resource/directory""",
+)
+examples.add_example(
+    description="Cross-validate with only the shared features:",
+    example="""--out_dir path/to/output/directory
 --use_included_features
 --resources_dir path/to/resource/directory""",
 )
