@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from utipy import Messenger, IOPaths
@@ -122,7 +123,7 @@ def prepare_modeling_command(args, paths: IOPaths, messenger: Messenger):
             "tol": 0.0001,
             "random_state": args.seed,
         },
-        grid={"model__C": args.lasso_c},
+        grid={"model__C": np.asarray(args.lasso_c)},
     )
 
     transformers_fn = prepare_transformers_fn(
