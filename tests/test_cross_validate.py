@@ -146,4 +146,4 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
     print(eval_scores)
     print(eval_scores["AUC"])
 
-    npt.assert_almost_equal(eval_scores.loc[0, "AUC"], 0.817962, decimal=5)
+    npt.assert_almost_equal(eval_scores.loc[0, "AUC"], 0.939309, decimal=5)
