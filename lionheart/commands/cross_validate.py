@@ -101,14 +101,14 @@ def setup_parser(parser):
         "--k_outer",
         type=int,
         default=10,
-        help="Number of outer folds in <i>within-dataset</i> cross-validation for tuning hyperparameters via grid search. "
+        help="Number of outer folds in <i>within-dataset</i> cross-validation. "
         "\n<u><b>Ignored</b></u> when multiple test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
     )
     parser.add_argument(  # TODO Check >=4 is the case
         "--k_inner",
         type=int,
         default=10,
-        help="Number of inner folds in <i>within-dataset</i>* cross-validation for tuning hyperparameters via grid search. "
+        help="Number of inner folds in cross-validation for tuning hyperparameters via grid search. "
         "\n<u><b>Ignored</b></u> when 4 or more test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
     )
     parser.add_argument(
