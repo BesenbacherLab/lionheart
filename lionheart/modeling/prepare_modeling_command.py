@@ -7,6 +7,9 @@ from lionheart.modeling.model_dict import create_model_dict
 
 
 def prepare_modeling_command(args, paths: IOPaths, messenger: Messenger):
+    if not hasattr(args, "subtype"):
+        args.subtype = False
+
     if len(args.meta_data_paths) != len(args.dataset_paths):
         raise ValueError(
             "`--meta_data_paths` and `--dataset_paths` did not "
