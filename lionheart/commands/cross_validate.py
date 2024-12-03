@@ -185,7 +185,7 @@ examples.add_example(
 --resources_dir path/to/resource/directory""",
 )
 examples.add_example(
-    description="Cross-validating on a single dataset. This uses classic K-fold cross-validation:",
+    description="Cross-validating on a single dataset. This uses classic nested K-fold cross-validation:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv
 --out_dir path/to/output/directory

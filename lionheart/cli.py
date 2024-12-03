@@ -120,7 +120,8 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         help="Cross-validate the cancer detection model on your own data and/or the included features",
         description=wrap_command_description(
             "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
-            "Use your extracted features and/or the included features."
+            "Use your extracted features and/or the included features. "
+            "Allows seeing the effect on generalization of adding your own data to the training. "
         ),
         formatter_class=parser.formatter_class,
         epilog=cross_validate.EPILOG,
