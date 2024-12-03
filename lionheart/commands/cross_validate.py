@@ -60,6 +60,14 @@ def setup_parser(parser):
         help="Path to directory with framework resources such as the included features.",
     )
     parser.add_argument(
+        "--dataset_names",
+        type=str,
+        nargs="*",
+        help="Names of datasets. <i>Optional</i> but helps interpretability of secondary outputs."
+        "\nUse quotes (e.g. 'name of dataset 1') in case of whitespace."
+        "\nWhen passed, one name per specified dataset in the same order as --dataset_paths.",
+    )
+    parser.add_argument(
         "--use_included_features",
         action="store_true",
         help="Whether to use the included features in the model training. "
