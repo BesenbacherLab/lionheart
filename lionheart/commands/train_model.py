@@ -17,7 +17,9 @@ from lionheart.utils.global_vars import (
     JOBLIB_VERSION,
     ENABLE_SUBTYPING,
     LASSO_C_OPTIONS,
+    LASSO_C_OPTIONS_STRING,
     PCA_TARGET_VARIANCE_OPTIONS,
+    PCA_TARGET_VARIANCE_OPTIONS_STRING,
 )
 from lionheart.utils.cli_utils import Examples
 from lionheart import __version__ as lionheart_version
@@ -176,7 +178,8 @@ def setup_parser(parser):
         nargs="*",
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
-        "\nWhen multiple targets are provided, they are used in grid search.",
+        "\nWhen multiple targets are provided, they are used in grid search."
+        "\nDefaults to: " + PCA_TARGET_VARIANCE_OPTIONS_STRING,
     )
     parser.add_argument(
         "--lasso_c",
@@ -184,7 +187,8 @@ def setup_parser(parser):
         default=LASSO_C_OPTIONS,
         nargs="*",
         help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
-        "\nWhen multiple values are provided, they are used in grid search.",
+        "\nWhen multiple values are provided, they are used in grid search."
+        "\nDefaults to: " + LASSO_C_OPTIONS_STRING,
     )
     parser.add_argument(
         "--aggregate_by_subjects",

@@ -11,7 +11,12 @@ from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_cross_validate import run_nested_cross_validation
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
-from lionheart.utils.global_vars import LASSO_C_OPTIONS, PCA_TARGET_VARIANCE_OPTIONS
+from lionheart.utils.global_vars import (
+    LASSO_C_OPTIONS,
+    LASSO_C_OPTIONS_STRING,
+    PCA_TARGET_VARIANCE_OPTIONS,
+    PCA_TARGET_VARIANCE_OPTIONS_STRING,
+)
 
 """
 Todos
@@ -138,7 +143,7 @@ def setup_parser(parser):
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
         "\nWhen multiple targets are provided, they are used in grid search. "
-        "\nDefaults to: " + ", ".join(PCA_TARGET_VARIANCE_OPTIONS),
+        "\nDefaults to: " + PCA_TARGET_VARIANCE_OPTIONS_STRING,
     )
     parser.add_argument(
         "--lasso_c",
@@ -147,7 +152,7 @@ def setup_parser(parser):
         nargs="*",
         help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
         "\nWhen multiple values are provided, they are used in grid search."
-        "\nDefaults to: " + ", ".join(LASSO_C_OPTIONS),
+        "\nDefaults to: " + LASSO_C_OPTIONS_STRING,
     )
     parser.add_argument(
         "--aggregate_by_subjects",
