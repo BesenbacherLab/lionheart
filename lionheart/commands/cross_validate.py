@@ -91,8 +91,8 @@ def setup_parser(parser):
     parser.add_argument(
         "--max_iter",
         type=int,
-        help="Number of iterations/epochs to train the model. A good default is around 5000. "
-        "Not necessarily used in all models.",
+        default=30000,
+        help="Number of iterations/epochs to train the model.",
     )
     parser.add_argument(
         "--train_only",
