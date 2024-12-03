@@ -365,7 +365,7 @@ def run_nested_cross_validation(
             inner_results=inner_results,
             messenger=messenger,
             metric_name=inner_metric,
-            save_dir=paths["plotting_path"],
+            save_dir=paths["out_path"],
         )
 
     except Exception as e:

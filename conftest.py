@@ -27,8 +27,6 @@ def run_cli():
         )
 
         # Check the return code
-        if result.returncode != 0:
-            print(result.stderr)
         assert result.returncode == 0, f"Command failed with error:\n{result.stderr}"
 
         # Collect the list of generated files
