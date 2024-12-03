@@ -19,7 +19,7 @@ REPO_URL = "https://github.com/besenbacherlab/lionheart"
 
 PCA_TARGET_VARIANCE_OPTIONS = [0.994, 0.995, 0.996, 0.997, 0.998]
 LASSO_C_OPTIONS = [0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]
-PCA_TARGET_VARIANCE_OPTIONS_STRING = ", ".join(
-    [str(x) for x in PCA_TARGET_VARIANCE_OPTIONS]
+PCA_TARGET_VARIANCE_OPTIONS_STRING = (
+    "[" + ", ".join([str(x) for x in PCA_TARGET_VARIANCE_OPTIONS]) + "]"
 )
-LASSO_C_OPTIONS_STRING = ", ".join([str(x) for x in LASSO_C_OPTIONS])
+LASSO_C_OPTIONS_STRING = "[" + ", ".join([str(x) for x in LASSO_C_OPTIONS]) + "]"
