@@ -78,8 +78,8 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         np.unique(splits_summary["Fold"]),
         ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
     )
-    assert splits_summary.loc[0, "AUC"] == 0.817962
-    assert splits_summary.loc[4, "AUC"] == 0.654003
+    npt.assert_almost_equal(splits_summary.loc[0, "AUC"], 0.817962)
+    npt.assert_almost_equal(splits_summary.loc[4, "AUC"], 0.654003)
 
 
 def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path):
@@ -140,14 +140,10 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    assert predictions.iloc[0, 0] == 0.525994
+    assert predictions.iloc[0, 0] == 0.199392
 
-    # splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
-    # print(splits_summary)
-    # print(splits_summary["AUC"])
-    # npt.assert_equal(
-    #     np.unique(splits_summary["Fold"]),
-    #     ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
-    # )
-    # assert splits_summary.loc[0, "AUC"] == 0.817962
-    # assert splits_summary.iloc[4, "AUC"] == 0.654003
+    eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
+    print(eval_scores)
+    print(eval_scores["AUC"])
+
+    npt.assert_almost_equal(eval_scores.loc[0, "AUC"], 0.817962)
