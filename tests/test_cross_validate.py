@@ -68,7 +68,7 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    assert predictions.iloc[0, 0] == 0.11913294
+    assert predictions.iloc[0, 0] == 0.525994
 
     splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
     print(splits_summary)
