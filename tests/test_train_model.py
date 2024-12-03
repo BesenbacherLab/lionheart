@@ -102,7 +102,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    predictions.iloc[0, 0] = 0.11913294
+    assert predictions.iloc[0, 0] == 0.11913294
 
 
 def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
@@ -199,4 +199,4 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    predictions.iloc[0, 0] = 0.11913294
+    assert predictions.iloc[0, 0] == 0.11913294

@@ -44,17 +44,20 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
 
     # Expected files
     expected_files = [
-        "predictions.csv",
-        "model.joblib",
-        "confusion_matrices.json",
-        "evaluation_scores.csv",
-        "feature_contributions.csv",
-        "feature_effects_on_probability.csv",
-        "probability_densities.csv",
-        "ROC_curves.json",
-        "threshold_versions.txt",
-        "training_info.json",
         "warnings.csv",
+        "predictions.csv",
+        "evaluation_scores.csv",
+        "evaluation_summary.csv",
+        "confusion_matrices.json",
+        "total_confusion_matrices.json",
+        "ROC_curves.json",
+        "splits_summary.csv", 
+        "inner_results.csv",
+        "best_coefficients.csv",
+        "inner_cv_Score_HP_C.png",
+        "inner_cv_Score_HP_Target_Variance.png",
+        "inner_cv_Time_HP_C.png",
+        "inner_cv_Time_HP_Target_Variance.png",
     ]
 
     # Check that expected files are generated
@@ -63,14 +66,13 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
-    # Check prediction
-    with open(tmp_path / output_subdir / "training_info.json") as f:
-        training_info = json.load(f)
-
-    print(training_info)
-
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    predictions.iloc[0, 0] = 0.11913294
+    print(predictions.iloc[0])
+    assert predictions.iloc[0, 0] == 0.11913294
+
+    splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
+    print(splits_summary)
+    assert False
 
 
 # def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
