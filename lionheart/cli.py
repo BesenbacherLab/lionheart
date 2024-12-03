@@ -115,17 +115,18 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     # validate.setup_parser(parser_va)
 
     # # Command 6
-    # parser_cv = subparsers.add_parser(
-    #     "cross_validate",
-    #     help="Cross-validate the cancer detection model on your own data and/or the included features",
-    #     description=wrap_command_description(
-    #         "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
-    #         "Use your extracted features and/or the included features."
-    #     ),
-    #     formatter_class=parser.formatter_class,
-    # )
-    # # Delegate the argument setup to the respective command module
-    # cross_validate.setup_parser(parser_cv)
+    parser_cv = subparsers.add_parser(
+        "cross_validate",
+        help="Cross-validate the cancer detection model on your own data and/or the included features",
+        description=wrap_command_description(
+            "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
+            "Use your extracted features and/or the included features."
+        ),
+        formatter_class=parser.formatter_class,
+        epilog=cross_validate.EPILOG,
+    )
+    # Delegate the argument setup to the respective command module
+    cross_validate.setup_parser(parser_cv)
 
     args = parser.parse_args()
     if args.command == "guide_me":

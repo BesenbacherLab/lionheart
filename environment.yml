@@ -16,6 +16,7 @@ dependencies:
   - scipy=1.7.3
   - statsmodels=0.14.1
   - seaborn=0.13.2
+  - matplotlib=3.9.1
   - pip:
     - nattrs==0.2.2
     - pytest==7.1.2

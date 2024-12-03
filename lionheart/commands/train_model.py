@@ -7,15 +7,12 @@ import logging
 import pathlib
 import joblib
 import numpy as np
-import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
 from packaging import version
-from sklearn.linear_model import LogisticRegression
 from generalize.model.cross_validate import make_simplest_model_refit_strategy
 
-from lionheart.modeling.transformers import prepare_transformers_fn
+from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_full_modeling import run_full_model_training
-from lionheart.modeling.model_dict import create_model_dict
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION, ENABLE_SUBTYPING
 from lionheart.utils.cli_utils import Examples
@@ -227,7 +224,6 @@ examples.add_example(
 --use_included_features
 --resources_dir path/to/resource/directory""",
 )
-# TODO Implement this:
 examples.add_example(
     description="Train a model on a single dataset. This uses within-dataset cross-validation for hyperparameter optimization:",
     example="""--dataset_paths path/to/dataset/feature_dataset.npy
@@ -280,7 +276,14 @@ def main(args):
     resources_dir = pathlib.Path(args.resources_dir)
 
     # Create output directory
-    paths = IOPaths(out_dirs={"out_path": out_path})
+    paths = IOPaths(
+        in_dirs={
+            "resources_dir": resources_dir,
+        },
+        out_dirs={
+            "out_path": out_path,
+        },
+    )
     paths.mk_output_dirs(collection="out_dirs")
 
     # Prepare logging messenger
@@ -296,126 +299,17 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    if len(args.meta_data_paths) != len(args.dataset_paths):
-        raise ValueError(
-            "`--meta_data_paths` and `--dataset_paths` did not "
-            "have the same number of paths."
-        )
-    if len(args.dataset_paths) == 0 and not args.use_included_features:
-        raise ValueError(
-            "When `--use_included_features` is not enabled, "
-            "at least 1 dataset needs to be specified."
-        )
-    if args.dataset_names is not None and len(args.dataset_names) != len(
-        args.dataset_paths
-    ):
-        raise ValueError(
-            "When specifying `--dataset_names`, it must have one name per dataset "
-            "(i.e. same length as `--dataset_paths`)."
-        )
-
-    dataset_paths = {}
-    meta_data_paths = {}
-    for path_idx, dataset_path in enumerate(args.dataset_paths):
-        nm = f"new_dataset_{path_idx}"
-        if args.dataset_names is not None:
-            nm = args.dataset_names[path_idx]
-        dataset_paths[nm] = dataset_path
-        meta_data_paths[nm] = args.meta_data_paths[path_idx]
-
-    messenger(f"Got paths to {len(dataset_paths)} external datasets")
-
-    train_only = []
-    if args.train_only:
-        if (
-            len(args.train_only) == len(args.meta_data_paths)
-            and not args.use_included_features
-        ):
-            raise ValueError(
-                "At least one dataset cannot be mentioned in `train_only`."
-            )
-        if len(args.train_only) > len(args.meta_data_paths):
-            raise ValueError(
-                "At least one dataset cannot be mentioned in `train_only`."
-            )
-        for idx in args.train_only:
-            if idx > len(dataset_paths):
-                raise ValueError(
-                    "A dataset index in `--train_only` was greater "
-                    f"than the number of specified datasets: {idx}"
-                )
-        train_only = [
-            f"new_dataset_{train_only_idx}" for train_only_idx in args.train_only
-        ]
-
-    # Add included features
-    if args.use_included_features:
-        shared_features_dir = resources_dir / "shared_features"
-        shared_features_paths = pd.read_csv(shared_features_dir / "dataset_paths.csv")
-
-        # Remove validation datasets
-        shared_features_paths = shared_features_paths.loc[
-            ~shared_features_paths.Validation
-        ]
-
-        messenger(f"Using {len(shared_features_paths)} included datasets")
-
-        # Extract dataset paths
-        shared_features_dataset_paths = {
-            nm: shared_features_dir / rel_path
-            for nm, rel_path in zip(
-                shared_features_paths["Dataset Name"],
-                shared_features_paths["Dataset Path"],
-            )
-        }
-
-        # Extract meta data paths
-        shared_features_meta_data_paths = {
-            nm: shared_features_dir / rel_path
-            for nm, rel_path in zip(
-                shared_features_paths["Dataset Name"],
-                shared_features_paths["Meta Data Path"],
-            )
-        }
-
-        # Extract train-only status
-        shared_features_train_only_flag = {
-            nm: t_o
-            for nm, t_o in zip(
-                shared_features_paths["Dataset Name"],
-                shared_features_paths[
-                    f"Train Only {'Subtype' if args.subtype else 'Status'}"
-                ],
-            )
-        }
-
-        # Add new paths and settings to user's specificationss
-        dataset_paths.update(shared_features_dataset_paths)
-        meta_data_paths.update(shared_features_meta_data_paths)
-        train_only += [nm for nm, t_o in shared_features_train_only_flag.items() if t_o]
-
-    feature_name_to_feature_group_path = (
-        resources_dir / "feature_names_and_grouping.csv"
-    )
-
-    model_dict = create_model_dict(
-        name="Lasso Logistic Regression",
-        model_class=LogisticRegression,
-        settings={
-            "penalty": "l1",
-            "solver": "saga",
-            "max_iter": args.max_iter,
-            "tol": 0.0001,
-            "random_state": args.seed,
-        },
-        grid={"model__C": args.lasso_c},
-    )
-
-    transformers_fn = prepare_transformers_fn(
-        pca_target_variance=args.pca_target_variance,
-        min_var_thresh=[0.0],
-        scale_rows=["mean", "std"],
-        standardize=True,
+    (
+        model_dict,
+        transformers_fn,
+        dataset_paths,
+        train_only,
+        meta_data_paths,
+        feature_name_to_feature_group_path,
+    ) = prepare_modeling_command(
+        args=args,
+        paths=paths,
+        messenger=messenger,
     )
 
     run_full_model_training(

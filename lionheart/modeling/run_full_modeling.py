@@ -84,7 +84,6 @@ def run_full_model_training(
     messenger("Preparing to run full model training")
 
     # Init timestamp handler
-    # Note: Does not handle nested timing!
     # When using the messenger as msg_fn, messages are indented properly
     timer = StepTimer(msg_fn=messenger, verbose=messenger.verbose)
 
@@ -145,7 +144,7 @@ def run_full_model_training(
         collection="out_files",
     )
 
-    paths.print_note = "Some output file paths are defined in generalize::evaluate()."
+    paths.print_note = "Some output file paths are defined later."
 
     # Create output directories
     paths.mk_output_dirs(collection="out_dirs", messenger=messenger)

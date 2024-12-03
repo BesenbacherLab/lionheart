@@ -6,10 +6,12 @@ Script that cross-validates with specified features / cohorts..
 import logging
 import pathlib
 import numpy as np
-import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
 
+from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
+from lionheart.modeling.run_cross_validate import run_nested_cross_validation
 from lionheart.utils.dual_log import setup_logging
+from lionheart.utils.cli_utils import Examples
 
 """
 Todos
@@ -64,8 +66,15 @@ def setup_parser(parser):
         "When specified, the `--resources_dir` must also be specified. "
         "When NOT specified, only the manually specified datasets are used.",
     )
-    parser.add_argument(
-        "--k",
+    parser.add_argument(  # TODO Fix help
+        "--k_outer",
+        type=int,
+        default=10,
+        help="Number of folds in **within-dataset** cross-validation for tuning hyperparameters via grid search. "
+        "**Ignored** when multiple test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
+    )
+    parser.add_argument(  # TODO Fix help
+        "--k_inner",
         type=int,
         default=10,
         help="Number of folds in **within-dataset** cross-validation for tuning hyperparameters via grid search. "
@@ -127,19 +136,38 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
+examples = Examples(
+    introduction="While the examples don't use parallelization, it is recommended to use `--num_jobs 10` for a big speedup."
+)
+# TODO: Make into CV example
+examples.add_example(
+    description="Simple example using defaults:",
+    example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
+--meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
+--out_dir path/to/output/directory
+--use_included_features
+--resources_dir path/to/resource/directory""",
+)
+EPILOG = examples.construct()
+
+
 def main(args):
     out_path = pathlib.Path(args.out_dir)
+    resources_dir = pathlib.Path(args.resources_dir)
 
     # Create output directory
     paths = IOPaths(
+        in_dirs={
+            "resources_dir": resources_dir,
+        },
         out_dirs={
             "out_path": out_path,
-        }
+        },
     )
     paths.mk_output_dirs(collection="out_dirs")
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="cross-validate model-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="cross-validate-model-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
     messenger("Running cross-validation of model")
     messenger.now()
@@ -151,7 +179,42 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    # TODO: training code
+    (
+        model_dict,
+        transformers_fn,
+        dataset_paths,
+        train_only,
+        meta_data_paths,
+        feature_name_to_feature_group_path,
+    ) = prepare_modeling_command(
+        args=args,
+        paths=paths,
+        messenger=messenger,
+    )
+
+    run_nested_cross_validation(
+        dataset_paths=dataset_paths,
+        out_path=paths["out_path"],
+        meta_data_paths=meta_data_paths,
+        feature_name_to_feature_group_path=feature_name_to_feature_group_path,
+        task="binary_classification",
+        model_dict=model_dict,
+        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
+        feature_sets=[0],
+        train_only_datasets=train_only,
+        k_outer=args.k_outer,
+        k_inner=args.k_inner,
+        transformers=transformers_fn,
+        aggregate_by_groups=args.aggregate_by_subjects,
+        weight_loss_by_groups=True,
+        weight_per_dataset=True,
+        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        inner_metric="balanced_accuracy",
+        refit=True,
+        num_jobs=args.num_jobs,
+        seed=args.seed,
+        messenger=messenger,
+    )
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
