@@ -6,7 +6,6 @@ Command for training a new model on specified features.
 import logging
 import pathlib
 import joblib
-import numpy as np
 from utipy import Messenger, StepTimer, IOPaths
 from packaging import version
 from generalize.model.cross_validate import make_simplest_model_refit_strategy
@@ -14,7 +13,12 @@ from generalize.model.cross_validate import make_simplest_model_refit_strategy
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_full_modeling import run_full_model_training
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.global_vars import JOBLIB_VERSION, ENABLE_SUBTYPING
+from lionheart.utils.global_vars import (
+    JOBLIB_VERSION,
+    ENABLE_SUBTYPING,
+    LASSO_C_OPTIONS,
+    PCA_TARGET_VARIANCE_OPTIONS,
+)
 from lionheart.utils.cli_utils import Examples
 from lionheart import __version__ as lionheart_version
 
@@ -168,7 +172,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=[0.994, 0.995, 0.996, 0.997, 0.998, 0.999],
+        default=PCA_TARGET_VARIANCE_OPTIONS,
         nargs="*",
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
@@ -177,9 +181,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--lasso_c",
         type=float,
-        default=np.array(
-            [0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]
-        ),
+        default=LASSO_C_OPTIONS,
         nargs="*",
         help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
         "\nWhen multiple values are provided, they are used in grid search.",

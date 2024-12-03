@@ -5,13 +5,13 @@ Script that cross-validates with specified features / cohorts..
 
 import logging
 import pathlib
-import numpy as np
 from utipy import Messenger, StepTimer, IOPaths
 
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_cross_validate import run_nested_cross_validation
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
+from lionheart.utils.global_vars import LASSO_C_OPTIONS, PCA_TARGET_VARIANCE_OPTIONS
 
 """
 Todos
@@ -129,24 +129,25 @@ def setup_parser(parser):
         "\nwe cannot test on the dataset. It may still be a great addition"
         "\nto the training data, so flag it as 'train-only'.",
     )
+
     parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=[0.994, 0.995, 0.996, 0.997, 0.998],
+        default=PCA_TARGET_VARIANCE_OPTIONS,
         nargs="*",
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
-        "\nWhen multiple targets are provided, they are used in grid search.",
+        "\nWhen multiple targets are provided, they are used in grid search. "
+        "\nDefaults to: " + ", ".join(PCA_TARGET_VARIANCE_OPTIONS),
     )
     parser.add_argument(
         "--lasso_c",
         type=float,
-        default=np.array(
-            [0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.3, 0.4]
-        ),
+        default=LASSO_C_OPTIONS,
         nargs="*",
         help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
-        "\nWhen multiple values are provided, they are used in grid search.",
+        "\nWhen multiple values are provided, they are used in grid search."
+        "\nDefaults to: " + ", ".join(LASSO_C_OPTIONS),
     )
     parser.add_argument(
         "--aggregate_by_subjects",
