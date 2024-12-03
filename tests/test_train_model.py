@@ -22,6 +22,12 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         "Jiang 2015",
         "--resources_dir",
         resource_path,
+        "--pca_target_variance",
+        "0.996",
+        "0.997",
+        "--lasso_c",
+        "0.04",
+        "0.05",
     ]
     generated_files, output_dir = run_cli(
         command_args=command_args,
@@ -115,6 +121,12 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         "Cristiano 2019",
         "--resources_dir",
         resource_path,
+        "--pca_target_variance",
+        "0.996",
+        "0.997",
+        "--lasso_c",
+        "0.04",
+        "0.05",
     ]
     generated_files, output_dir = run_cli(
         command_args=command_args,
