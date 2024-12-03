@@ -5,7 +5,7 @@ import numpy as np
 from utipy import StepTimer, Messenger, check_messenger, random_alphanumeric
 from generalize import Evaluator, nested_cross_validate
 
-from lionheart.plotting import plot_inner_scores
+from lionheart.plotting.plot_inner_scores import plot_inner_scores
 from lionheart.modeling.prepare_modeling import prepare_modeling
 
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
