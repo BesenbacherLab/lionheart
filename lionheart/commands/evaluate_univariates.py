@@ -195,6 +195,8 @@ def main(args):
         args=args,
         paths=paths,
         messenger=messenger,
+        init_model=False,
+        prep_transformers=False,
     )
 
     # Feature names and groups

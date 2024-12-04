@@ -7,7 +7,13 @@ from lionheart.modeling.transformers import prepare_transformers_fn
 from lionheart.modeling.model_dict import create_model_dict
 
 
-def prepare_modeling_command(args, paths: IOPaths, messenger: Messenger):
+def prepare_modeling_command(
+    args,
+    paths: IOPaths,
+    messenger: Messenger,
+    init_model: bool = True,
+    prep_transformers: bool = True,
+):
     if not hasattr(args, "subtype"):
         args.subtype = False
 
@@ -113,25 +119,29 @@ def prepare_modeling_command(args, paths: IOPaths, messenger: Messenger):
         paths["resources_dir"] / "feature_names_and_grouping.csv"
     )
 
-    model_dict = create_model_dict(
-        name="Lasso Logistic Regression",
-        model_class=LogisticRegression,
-        settings={
-            "penalty": "l1",
-            "solver": "saga",
-            "max_iter": args.max_iter,
-            "tol": 0.0001,
-            "random_state": args.seed,
-        },
-        grid={"model__C": np.asarray(args.lasso_c)},
-    )
+    model_dict = None
+    if init_model:
+        model_dict = create_model_dict(
+            name="Lasso Logistic Regression",
+            model_class=LogisticRegression,
+            settings={
+                "penalty": "l1",
+                "solver": "saga",
+                "max_iter": args.max_iter,
+                "tol": 0.0001,
+                "random_state": args.seed,
+            },
+            grid={"model__C": np.asarray(args.lasso_c)},
+        )
 
-    transformers_fn = prepare_transformers_fn(
-        pca_target_variance=args.pca_target_variance,
-        min_var_thresh=[0.0],
-        scale_rows=["mean", "std"],
-        standardize=True,
-    )
+    transformers_fn = None
+    if prep_transformers:
+        transformers_fn = prepare_transformers_fn(
+            pca_target_variance=args.pca_target_variance,
+            min_var_thresh=[0.0],
+            scale_rows=["mean", "std"],
+            standardize=True,
+        )
 
     return (
         model_dict,
