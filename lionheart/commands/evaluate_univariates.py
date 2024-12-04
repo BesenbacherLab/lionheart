@@ -198,19 +198,13 @@ def main(args):
         init_model=False,
         prep_transformers=False,
     )
-
-    # Feature names and groups
-    feature_name_to_feature_group = pd.read_csv(feature_name_to_feature_group_path)
-    feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
-    feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
-
+    
     run_univariate_analyses(
         dataset_paths=dataset_paths,
         out_path=paths["out_path"],
         meta_data_paths=meta_data_paths,
         task="binary_classification",
-        names=feature_names,
-        cell_groups=feature_group_names,
+        feature_name_to_feature_group_path=feature_name_to_feature_group_path,
         labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
         feature_sets=[0],
         train_only_datasets=train_only,
