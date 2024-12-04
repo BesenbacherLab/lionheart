@@ -121,9 +121,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         description=wrap_command_description(
             "CROSS-VALIDATE your features with nested leave-one-dataset-out (or classic) cross-validation. "
             "Use your extracted features and/or the included features. "
-            "Allows seeing the effect on generalization of adding your own data to the training. "
-            "\nNote: The settings are optimized for use with the included features and, optionally, "
-            "any additional datasets you may have access to. They may not fit more custom designs."
+            "\nAllows seeing the effect on generalization of adding your own data to the training. "
+            "\n\nNote: The settings are optimized for use with the included features and optional "
+            "additional datasets. They may not be optimal for more custom designs."
         ),
         formatter_class=parser.formatter_class,
         epilog=cross_validate.EPILOG,
