@@ -107,14 +107,16 @@ def setup_parser(parser):
         type=int,
         default=10,
         help="Number of outer folds in <i>within-dataset</i> cross-validation. "
-        "\n<u><b>Ignored</b></u> when multiple test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
+        "\n<u><b>Ignored</b></u> when multiple test datasets are specified, "
+        "as leave-one-dataset-out cross-validation is used instead.",
     )
-    parser.add_argument(  # TODO Check >=4 is the case
+    parser.add_argument(
         "--k_inner",
         type=int,
         default=10,
         help="Number of inner folds in cross-validation for tuning hyperparameters via grid search. "
-        "\n<u><b>Ignored</b></u> when 4 or more test datasets are specified, as leave-one-dataset-out cross-validation is used instead.",
+        "\n<u><b>Ignored</b></u> when 4 or more <i>test</i> datasets (incl. included features) are specified, "
+        "as leave-one-dataset-out cross-validation is used instead.",
     )
     parser.add_argument(
         "--max_iter",
@@ -246,6 +248,13 @@ def main(args):
         paths=paths,
         messenger=messenger,
     )
+
+    if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4:
+        args.k_inner = None
+        messenger(
+            "Overriding --k_inner: Inner loop will use leave-one-dataset-out cross-validation "
+            "to optimize hyperparameters for cross-dataset generalization. "
+        )
 
     run_nested_cross_validation(
         dataset_paths=dataset_paths,
