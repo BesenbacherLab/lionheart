@@ -182,9 +182,15 @@ def setup_parser(parser):
 examples = Examples(
     introduction="While the examples don't use parallelization, it is recommended to use `--num_jobs 10` for a big speedup."
 )
-# TODO: Make into CV example
+
 examples.add_example(
-    description="Simple example using defaults:",
+    description="Cross-validate with only the shared features:",
+    example="""--out_dir path/to/output/directory
+--use_included_features
+--resources_dir path/to/resource/directory""",
+)
+examples.add_example(
+    description="Cross-validating with two custom datasets and the included datasets:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
 --dataset_names 'dataset_1' 'dataset_2'
@@ -197,12 +203,6 @@ examples.add_example(
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv
 --out_dir path/to/output/directory
---resources_dir path/to/resource/directory""",
-)
-examples.add_example(
-    description="Cross-validate with only the shared features:",
-    example="""--out_dir path/to/output/directory
---use_included_features
 --resources_dir path/to/resource/directory""",
 )
 EPILOG = examples.construct()
