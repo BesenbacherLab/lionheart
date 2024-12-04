@@ -6,6 +6,7 @@ from lionheart.commands import (
     train_model,
     validate,
     cross_validate,
+    evaluate_univariates,
     guides,
 )
 from lionheart.utils.cli_utils import (
@@ -130,6 +131,20 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     )
     # Delegate the argument setup to the respective command module
     cross_validate.setup_parser(parser_cv)
+
+    # # Command 7
+    parser_eu = subparsers.add_parser(
+        "evaluate_univariates",
+        help="Evaluate the cancer detection potential of each feature separately on your own data and/or the included features",
+        description=wrap_command_description(
+            "EVALUATE your features separately on their cancer detection potential. "
+            "Use your extracted features and/or the included features. "
+        ),
+        formatter_class=parser.formatter_class,
+        epilog=evaluate_univariates.EPILOG,
+    )
+    # Delegate the argument setup to the respective command module
+    evaluate_univariates.setup_parser(parser_eu)
 
     args = parser.parse_args()
     if args.command == "guide_me":

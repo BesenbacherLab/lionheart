@@ -5,32 +5,13 @@ Script that cross-validates with specified features / cohorts..
 
 import logging
 import pathlib
+import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
 
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
-from lionheart.modeling.run_cross_validate import run_nested_cross_validation
+from lionheart.modeling.run_univariate_analyses import run_univariate_analyses
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
-from lionheart.utils.global_vars import (
-    LASSO_C_OPTIONS,
-    LASSO_C_OPTIONS_STRING,
-    PCA_TARGET_VARIANCE_OPTIONS,
-    PCA_TARGET_VARIANCE_OPTIONS_STRING,
-)
-
-"""
-Todos
-
-- The "included" features must have meta data for labels and cohort
-- The specified "new" features must have meta data for labels and (optionally) cohort
-    - Probably should allow specifying multiple cohorts from different files
-- Parameters should be fixed, to reproduce paper? Or be settable to allow optimizing? (The latter but don't clutter the API!)
-- Describe that when --use_included_features is NOT specified and only one --dataset_paths is specified, within-dataset cv is used for hparams optim
-- Figure out train_only edge cases
-- Allow calculating thresholds from a validation dataset? Perhaps that is a separate script? 
-    Then in predict() we can have an optional arg for setting custom path to a roc curve object?
-- Ensure Control is the negative label and Cancer is the positive label!
-"""
 
 
 def setup_parser(parser):
@@ -104,26 +85,12 @@ def setup_parser(parser):
         "\nWhen NOT specified, only the manually specified datasets are used.",
     )
     parser.add_argument(
-        "--k_outer",
+        "--k",
         type=int,
         default=10,
-        help="Number of outer folds in <i>within-dataset</i> cross-validation. "
+        help="Number of folds in <i>within-dataset</i> cross-validation. "
         "\n<u><b>Ignored</b></u> when multiple test datasets are specified, "
         "as leave-one-dataset-out cross-validation is used instead.",
-    )
-    parser.add_argument(
-        "--k_inner",
-        type=int,
-        default=10,
-        help="Number of inner folds in cross-validation for tuning hyperparameters via grid search. "
-        "\n<u><b>Ignored</b></u> when 4 or more <i>test</i> datasets (incl. included features) are specified, "
-        "as leave-one-dataset-out cross-validation is used instead.",
-    )
-    parser.add_argument(
-        "--max_iter",
-        type=int,
-        default=30000,
-        help="Number of iterations/epochs to train the model.",
     )
     parser.add_argument(
         "--train_only",
@@ -136,26 +103,6 @@ def setup_parser(parser):
         "\nWHEN TO USE: If you have a dataset with only one of the classes (controls or cancer) "
         "\nwe cannot test on the dataset. It may still be a great addition"
         "\nto the training data, so flag it as 'train-only'.",
-    )
-
-    parser.add_argument(
-        "--pca_target_variance",
-        type=float,
-        default=PCA_TARGET_VARIANCE_OPTIONS,
-        nargs="*",
-        help="Target(s) for the explained variance of selected principal components."
-        "\nUsed to select the most-explaining components."
-        "\nWhen multiple targets are provided, they are used in grid search. "
-        "\nDefaults to: " + PCA_TARGET_VARIANCE_OPTIONS_STRING,
-    )
-    parser.add_argument(
-        "--lasso_c",
-        type=float,
-        default=LASSO_C_OPTIONS,
-        nargs="*",
-        help="Inverse LASSO regularization strength value(s) for `sklearn.linear_model.LogisticRegression`."
-        "\nWhen multiple values are provided, they are used in grid search."
-        "\nDefaults to: " + LASSO_C_OPTIONS_STRING,
     )
     parser.add_argument(
         "--aggregate_by_subjects",
@@ -185,13 +132,13 @@ examples = Examples(
 )
 
 examples.add_example(
-    description="Cross-validate with only the shared features:",
+    description="Evaluate univariates with only the shared features:",
     example="""--out_dir path/to/output/directory
 --use_included_features
 --resources_dir path/to/resource/directory""",
 )
 examples.add_example(
-    description="Cross-validating with two custom datasets and the included datasets:",
+    description="Evaluate univariates with two custom datasets and the included datasets:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy path/to/dataset_2/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv path/to/dataset_2/meta_data.csv
 --dataset_names 'dataset_1' 'dataset_2'
@@ -200,7 +147,7 @@ examples.add_example(
 --resources_dir path/to/resource/directory""",
 )
 examples.add_example(
-    description="Cross-validating on a single dataset. This uses classic nested K-fold cross-validation:",
+    description="Evaluate univariates on a single dataset. This uses classic nested K-fold cross-validation:",
     example="""--dataset_paths path/to/dataset_1/feature_dataset.npy
 --meta_data_paths path/to/dataset_1/meta_data.csv
 --out_dir path/to/output/directory
@@ -225,9 +172,9 @@ def main(args):
     paths.mk_output_dirs(collection="out_dirs")
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="cross-validate-model-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="evaluate-univariates-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running cross-validation of model")
+    messenger("Running univariate analysis of model")
     messenger.now()
 
     # Init timestamp handler
@@ -238,8 +185,8 @@ def main(args):
     timer.stamp()
 
     (
-        model_dict,
-        transformers_fn,
+        _,
+        _,
         dataset_paths,
         train_only,
         meta_data_paths,
@@ -250,32 +197,29 @@ def main(args):
         messenger=messenger,
     )
 
-    if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4:
-        args.k_inner = None
-        messenger(
-            "Overriding --k_inner: Inner loop will use leave-one-dataset-out cross-validation "
-            "to optimize hyperparameters for cross-dataset generalization. "
-        )
+    # Feature names and groups
+    feature_name_to_feature_group = pd.read_csv(feature_name_to_feature_group_path)
+    feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+    feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
 
-    run_nested_cross_validation(
+    run_univariate_analyses(
         dataset_paths=dataset_paths,
         out_path=paths["out_path"],
         meta_data_paths=meta_data_paths,
-        feature_name_to_feature_group_path=feature_name_to_feature_group_path,
         task="binary_classification",
-        model_dict=model_dict,
+        names=feature_names,
+        cell_groups=feature_group_names,
         labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
         feature_sets=[0],
         train_only_datasets=train_only,
-        k_outer=args.k_outer,
-        k_inner=args.k_inner,
-        transformers=transformers_fn,
-        aggregate_by_groups=args.aggregate_by_subjects,
+        k=args.k,
+        standardize_cols=True,
+        standardize_rows=True,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
         expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
-        inner_metric="balanced_accuracy",
-        refit=True,
+        aggregate_by_groups=args.aggregate_by_subjects,
+        bonferroni_correct=True,
         num_jobs=args.num_jobs,
         seed=args.seed,
         messenger=messenger,
