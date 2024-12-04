@@ -20,6 +20,7 @@ from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS
 
 # TODO Not implemented
+# - Add the figure of sens/spec thresholds in train and test ROCs
 
 
 def setup_parser(parser):
@@ -37,10 +38,26 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         default=[],
-        help="Path(s) to csv file(s) where the:"
+        help="Path(s) to csv file(s) where:"
         "\n  1) the first column contains the <b>sample IDs</b>"
-        "\n  2) the second column contains the <b>label</b> (one of {<i>'control', 'cancer', 'exclude'</i>})"
-        "\n  3) the (optional) third column contains <b>subject ID</b> "
+        "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
+        "\n  3) the third column contains the <b>cancer type</b> "
+        + (
+            (
+                "for subtyping (see --subtype)"
+                "\n     Either one of:"
+                "\n       {<i>'control', 'colorectal cancer', 'bladder cancer', 'prostate cancer',"
+                "\n       'lung cancer', 'breast cancer', 'pancreatic cancer', 'ovarian cancer',"
+                "\n       'gastric cancer', 'bile duct cancer', 'hepatocellular carcinoma',"
+                "\n       'head and neck squamous cell carcinoma', 'nasopharyngeal carcinoma',"
+                "\n       'exclude'</i>} (Must match exactly (case-insensitive) when using included features!) "
+                "\n     or a custom cancer type."
+                "\n     <b>NOTE</b>: When not running subtyping, any character value is fine."
+            )
+            if False  # ENABLE_SUBTYPING
+            else "[NOTE: Not currently used so can be any string value!]."
+        )
+        + "\n  4) the (optional) fourth column contains the <b>subject ID</b> "
         "(for when subjects have more than one sample)"
         "\nWhen --dataset_paths has multiple paths, there must be "
         "one meta data path per dataset, in the same order."
@@ -72,13 +89,13 @@ def setup_parser(parser):
         "--model_name",
         choices=INCLUDED_MODELS,
         type=str,
-        help="Name of an included model(s) to validate."
+        help="Name of the included model to validate."
         "\nNOTE: only one of `--model_name` and `--model_dir` can be specified.",
     )
     parser.add_argument(
         "--model_dir",
         type=str,
-        help="Path( to a directory with a custom model to use. "
+        help="Path to a directory with a custom model to use. "
         "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
@@ -95,9 +112,9 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         default=threshold_defaults,
-        help="The probability thresholds to use."
+        help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`)."
+        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity + 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "
@@ -105,13 +122,8 @@ def setup_parser(parser):
         "\nWhen passing specific float thresholds, the nearest threshold "
         "in the ROC curve is used. "
         "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
-        "\nwhich was fitted to the <b>training</b> data during model training.",
-    )
-    parser.add_argument(
-        "--identifier",
-        type=str,
-        help="A string to add to the output data frame in an ID column. "
-        "E.g., the subject ID. Optional.",
+        "\nwhich was fitted to the <b>training</b> data during model training."
+        + ("\n<b>NOTE></b>: Ignored for subtyping models." if False else ""),
     )
     parser.set_defaults(func=main)
 
@@ -149,6 +161,17 @@ def main(args):
             "should be specified at a time."
         )
 
+    model_dir = (
+        (resources_dir / "models" / args.model_name)
+        if args.model_name is not None
+        else args.model_dir
+    )
+    model_name = (
+        args.model_name
+        if args.model_name is not None
+        else pathlib.Path(args.model_dir).name
+    )
+
     # Prepare logging messenger
     setup_logging(dir=str(out_path / "logs"), fname_prefix="predict-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
@@ -162,56 +185,17 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    model_name_to_dir = {
-        model_name: resources_dir / "models" / model_name
-        for model_name in args.model_names
-        if model_name != "none"
-    }
-    if args.custom_model_dirs is not None and args.custom_model_dirs:
-        for custom_model_path in args.custom_model_dirs:
-            custom_model_path = pathlib.Path(custom_model_path)
-            if not custom_model_path.is_dir():
-                raise ValueError(
-                    "A path in --custom_model_dirs was not a directory: "
-                    f"{custom_model_path}"
-                )
-            model_name = custom_model_path.stem
-            if model_name in model_name_to_dir.keys():
-                raise ValueError(f"Got a duplicate model name: {model_name}")
-            model_name_to_dir[model_name] = custom_model_path
-
-    if not model_name_to_dir:
-        raise ValueError(
-            "No models where selected. Select one or more models to predict the sample."
-        )
-
-    model_paths = {
-        f"model_{model_name}": model_dir / "model.joblib"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
-    training_roc_paths = {
-        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
-    custom_roc_paths = {}
-    if args.custom_roc_paths is not None and args.custom_roc_paths:
-        custom_roc_paths = {
-            f"custom_roc_curve_{roc_idx}": roc_path
-            for roc_idx, roc_path in enumerate(args.custom_roc_paths)
-        }
-
     paths = IOPaths(
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
-            **model_paths,
-            **training_roc_paths,
-            **custom_roc_paths,
+            "model_file": model_dir / "model.joblib",
+            "roc_curve": model_dir / "ROC_curves.json",
         },
         in_dirs={
             "resources_dir": resources_dir,
             "dataset_dir": sample_dir / "dataset",
             "sample_dir": sample_dir,
-            **model_name_to_dir,
+            **{"model_dir": model_dir},
         },
         out_dirs={
             "out_path": out_path,
