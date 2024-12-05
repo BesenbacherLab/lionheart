@@ -12,6 +12,7 @@ This release adds multiple CLI commands that
 2) expands what you can do with your own data:
 
  - Adds `lionheart extract_roc` command. Calculate the ROC curve (for deciding probability thresholds) on your own data and/or the included features. Can be performed for either a custom model or an included model. Allows using probability thresholds suited to your own data when using `lionheart predict_sample`.
+ - Adds `--custom_roc_paths` argument in `lionheart predict_sample`. Allows passing the ROC curves extracted with `lionheart extract_roc`.
  
 Also:
 
