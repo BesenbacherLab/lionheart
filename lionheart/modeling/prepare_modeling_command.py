@@ -160,6 +160,8 @@ def prepare_validation_command(
 ):
     if not hasattr(args, "subtype"):
         args.subtype = False
+    if not hasattr(args, "dataset_names"):
+        args.dataset_names = None
 
     if len(args.meta_data_paths) != len(args.dataset_paths):
         raise ValueError(
