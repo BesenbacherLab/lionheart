@@ -1,3 +1,4 @@
+import numpy.testing as npt
 from generalize.evaluate.roc_curves import ROCCurves
 
 
@@ -32,12 +33,9 @@ def test_extract_roc_shared_resources(
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
-    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json")
-    print(roc)
+    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").get("Custom ROC")
 
-    print(roc.get("Custom ROC"))
-
-    assert False
+    npt.assert_almost_equal(roc.auc, 0.8837, decimal=4)
 
 
 def test_extract_roc_single_dataset_custom_model(
@@ -72,9 +70,6 @@ def test_extract_roc_single_dataset_custom_model(
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
-    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json")
-    print(roc)
+    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").get("Custom ROC")
 
-    print(roc.get("Custom ROC"))
-
-    assert False
+    npt.assert_almost_equal(roc.auc, 0.8479, decimal=4)
