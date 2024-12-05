@@ -18,6 +18,7 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import JOBLIB_VERSION
 from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS
+from lionheart.modeling.prepare_modeling_command import prepare_validation_command
 
 # TODO Not implemented
 # - Add the figure of sens/spec thresholds in train and test ROCs
@@ -173,9 +174,9 @@ def main(args):
     )
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="predict-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="validate-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running model prediction on a single sample")
+    messenger("Running model validation")
     messenger.now()
 
     # Init timestamp handler
@@ -187,21 +188,37 @@ def main(args):
 
     paths = IOPaths(
         in_files={
-            "features": sample_dir / "dataset" / "feature_dataset.npy",
             "model_file": model_dir / "model.joblib",
-            "roc_curve": model_dir / "ROC_curves.json",
+            "input_roc_curve": model_dir / "ROC_curves.json",
         },
         in_dirs={
             "resources_dir": resources_dir,
             "dataset_dir": sample_dir / "dataset",
-            "sample_dir": sample_dir,
-            **{"model_dir": model_dir},
+            "model_dir": model_dir,
         },
         out_dirs={
             "out_path": out_path,
         },
-        out_files={"prediction_path": out_path / "prediction.csv"},
     )
+
+    dataset_paths, meta_data_paths = prepare_validation_command(
+        args=args,
+        paths=paths,
+        messenger=messenger,
+    )
+
+    # Specificy ROC curve paths
+    roc_paths = {
+        dataset_name + "_roc_curve": out_path / dataset_name / "ROC_curves.json"
+        for dataset_name in dataset_paths.keys()
+    }
+
+    if len(dataset_paths) > 1:
+        # Add combined ROC curve path
+        roc_paths["combined_roc_curve"] = out_path / "Combined" / "ROC_curves.json"
+        paths.set_path("combined_dir", out_path / "Combined", "out_dirs")
+
+    paths.set_paths(roc_paths, "out_files")
 
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
@@ -244,140 +261,137 @@ def main(args):
 
     prediction_dfs = []
 
-    for model_name in model_name_to_dir.keys():
-        messenger(f"Model: {model_name}")
+    messenger("Start: Loading ROC Curve", indent=4)
+    with timer.time_step(indent=8, name_prefix="load_roc_curves"):
+        with messenger.indentation(add_indent=8):
+            roc_curves: Dict[str, ROCCurve] = {}
+            # Load training-data-based ROC curve collection
+            try:
+                rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
+            except:
+                messenger(
+                    "Failed to load ROC curve collection at: "
+                    f"{paths[f'roc_curve_{model_name}']}"
+                )
+                raise
 
-        messenger("Start: Loading ROC Curve(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="load_roc_curves"):
-            with messenger.indentation(add_indent=8):
-                roc_curves: Dict[str, ROCCurve] = {}
-                # Load training-data-based ROC curve collection
-                try:
-                    rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
-                except:
-                    messenger(
-                        "Failed to load ROC curve collection at: "
-                        f"{paths[f'roc_curve_{model_name}']}"
-                    )
-                    raise
+            try:
+                roc = rocs.get("Average")  # TODO: Fix path
+            except:
+                messenger(
+                    "`ROCCurves` collection did not have the expected `Average` ROC curve. "
+                    f"File: {paths[f'roc_curve_{model_name}']}"
+                )
+                raise
 
-                try:
-                    roc = rocs.get("Average")  # TODO: Fix path
-                except:
-                    messenger(
-                        "`ROCCurves` collection did not have the expected `Average` ROC curve. "
-                        f"File: {paths[f'roc_curve_{model_name}']}"
-                    )
-                    raise
+            roc_curves["Average (training data)"] = roc
 
-                roc_curves["Average (training data)"] = roc
-
-                # Load custom ROC curves
-                if custom_roc_paths:
-                    for roc_key in custom_roc_paths.keys():
-                        # Load training-data-based ROC curve collection
-                        try:
-                            rocs = ROCCurves.load(paths[roc_key])
-                        except:
-                            messenger(
-                                "Failed to load ROC curve collection at: "
-                                f"{paths[roc_key]}"
-                            )
-                            raise
-
-                        try:
-                            roc = rocs.get("Validation")  # TODO: Fix path
-                        except:
-                            messenger(
-                                "`ROCCurves` collection did not have the expected "
-                                f"`Validation` ROC curve. File: {paths[roc_key]}"
-                            )
-                            raise
-                        roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
-
-        messenger("Start: Calculating probability threshold(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="threshold_calculation"):
-            with messenger.indentation(add_indent=8):
-                roc_to_thresholds = {}
-
-                for roc_name, roc_curve in roc_curves.items():
-                    roc_to_thresholds[roc_name] = []
-
-                    if thresholds_to_calculate["max_j"]:
-                        max_j = roc_curve.get_threshold_at_max_j()
-                        max_j["Name"] = "Max. Youden's J"
-                        roc_to_thresholds[roc_name].append(max_j)
-
-                    for s in thresholds_to_calculate["sensitivity"]:
-                        thresh = roc_curve.get_threshold_at_sensitivity(
-                            above_sensitivity=s
+            # Load custom ROC curves
+            if custom_roc_paths:
+                for roc_key in custom_roc_paths.keys():
+                    # Load training-data-based ROC curve collection
+                    try:
+                        rocs = ROCCurves.load(paths[roc_key])
+                    except:
+                        messenger(
+                            "Failed to load ROC curve collection at: "
+                            f"{paths[roc_key]}"
                         )
-                        thresh["Name"] = f"Sensitivity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
+                        raise
 
-                    for s in thresholds_to_calculate["specificity"]:
-                        thresh = roc_curve.get_threshold_at_specificity(
-                            above_specificity=s
+                    try:
+                        roc = rocs.get("Validation")  # TODO: Fix path
+                    except:
+                        messenger(
+                            "`ROCCurves` collection did not have the expected "
+                            f"`Validation` ROC curve. File: {paths[roc_key]}"
                         )
-                        thresh["Name"] = f"Specificity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
+                        raise
+                    roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
 
-                    for t in thresholds_to_calculate["numerics"]:
-                        thresh = roc_curve.get_nearest_threshold(threshold=t)
-                        thresh["Name"] = f"Threshold ~{t}"
-                        roc_to_thresholds[roc_name].append(thresh)
+    messenger("Start: Calculating probability threshold(s)", indent=4)
+    with timer.time_step(indent=8, name_prefix="threshold_calculation"):
+        with messenger.indentation(add_indent=8):
+            roc_to_thresholds = {}
 
-                    messenger(f"ROC curve: {roc_name}")
-                    messenger(
-                        "Calculated the following thresholds: \n",
-                        pd.DataFrame(roc_to_thresholds[roc_name]),
-                        add_indent=4,
+            for roc_name, roc_curve in roc_curves.items():
+                roc_to_thresholds[roc_name] = []
+
+                if thresholds_to_calculate["max_j"]:
+                    max_j = roc_curve.get_threshold_at_max_j()
+                    max_j["Name"] = "Max. Youden's J"
+                    roc_to_thresholds[roc_name].append(max_j)
+
+                for s in thresholds_to_calculate["sensitivity"]:
+                    thresh = roc_curve.get_threshold_at_sensitivity(
+                        above_sensitivity=s
                     )
+                    thresh["Name"] = f"Sensitivity ~{s}"
+                    roc_to_thresholds[roc_name].append(thresh)
 
-        messenger("Start: Loading and applying model pipeline", indent=4)
-        with timer.time_step(indent=8, name_prefix="model_inference"):
-            with messenger.indentation(add_indent=8):
-                try:
-                    pipeline = joblib_load(paths[f"model_{model_name}"])
-                    messenger("Pipeline:\n", pipeline)
-                except:
-                    messenger("Model failed to be loaded.")
-                    raise
-
-                predicted_probability = pipeline.predict_proba(features).flatten()
-                if len(predicted_probability) == 1:
-                    predicted_probability = float(predicted_probability[0])
-                elif len(predicted_probability) == 2:
-                    predicted_probability = float(predicted_probability[1])
-                else:
-                    raise NotImplementedError(
-                        f"The predicted probability had the wrong shape: {predicted_probability}. "
-                        "Multiclass is not currently supported."
+                for s in thresholds_to_calculate["specificity"]:
+                    thresh = roc_curve.get_threshold_at_specificity(
+                        above_specificity=s
                     )
-                messenger(f"Predicted probability: {predicted_probability}")
+                    thresh["Name"] = f"Specificity ~{s}"
+                    roc_to_thresholds[roc_name].append(thresh)
 
-                for roc_name, thresholds in roc_to_thresholds.items():
-                    # Calculate predicted classes based on cutoffs
-                    for thresh_info in thresholds:
-                        thresh_info["Prediction"] = (
-                            "Cancer"
-                            if predicted_probability > thresh_info["Threshold"]
-                            else "No Cancer"
-                        )
-                    prediction_df = pd.DataFrame(thresholds)
+                for t in thresholds_to_calculate["numerics"]:
+                    thresh = roc_curve.get_nearest_threshold(threshold=t)
+                    thresh["Name"] = f"Threshold ~{t}"
+                    roc_to_thresholds[roc_name].append(thresh)
 
-                    prediction_df["Probability"] = predicted_probability
-                    prediction_df.columns = [
-                        "Threshold",
-                        "Exp. Specificity",
-                        "Exp. Sensitivity",
-                        "Threshold Name",
-                        "Prediction",
-                        "Probability",
-                    ]
-                    prediction_df["ROC Curve"] = roc_name
-                    prediction_df["Model"] = model_name
-                prediction_dfs.append(prediction_df)
+                messenger(f"ROC curve: {roc_name}")
+                messenger(
+                    "Calculated the following thresholds: \n",
+                    pd.DataFrame(roc_to_thresholds[roc_name]),
+                    add_indent=4,
+                )
+
+    messenger("Start: Loading and applying model pipeline", indent=4)
+    with timer.time_step(indent=8, name_prefix="model_inference"):
+        with messenger.indentation(add_indent=8):
+            try:
+                pipeline = joblib_load(paths[f"model_{model_name}"])
+                messenger("Pipeline:\n", pipeline)
+            except:
+                messenger("Model failed to be loaded.")
+                raise
+
+            predicted_probability = pipeline.predict_proba(features).flatten()
+            if len(predicted_probability) == 1:
+                predicted_probability = float(predicted_probability[0])
+            elif len(predicted_probability) == 2:
+                predicted_probability = float(predicted_probability[1])
+            else:
+                raise NotImplementedError(
+                    f"The predicted probability had the wrong shape: {predicted_probability}. "
+                    "Multiclass is not currently supported."
+                )
+            messenger(f"Predicted probability: {predicted_probability}")
+
+            for roc_name, thresholds in roc_to_thresholds.items():
+                # Calculate predicted classes based on cutoffs
+                for thresh_info in thresholds:
+                    thresh_info["Prediction"] = (
+                        "Cancer"
+                        if predicted_probability > thresh_info["Threshold"]
+                        else "No Cancer"
+                    )
+                prediction_df = pd.DataFrame(thresholds)
+
+                prediction_df["Probability"] = predicted_probability
+                prediction_df.columns = [
+                    "Threshold",
+                    "Exp. Specificity",
+                    "Exp. Sensitivity",
+                    "Threshold Name",
+                    "Prediction",
+                    "Probability",
+                ]
+                prediction_df["ROC Curve"] = roc_name
+                prediction_df["Model"] = model_name
+            prediction_dfs.append(prediction_df)
 
     # Combine data frames and clean it up a bit
     all_predictions_df = pd.concat(prediction_dfs, axis=0, ignore_index=True)

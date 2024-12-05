@@ -46,8 +46,6 @@ def run_nested_cross_validation(
     """
     Run cross-validation on one or more datasets.
 
-    Used in scripts/cross_validate.py.
-
     Parameters
     ----------
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path]

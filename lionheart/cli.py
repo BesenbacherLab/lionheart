@@ -7,6 +7,7 @@ from lionheart.commands import (
     validate,
     cross_validate,
     evaluate_univariates,
+    extract_roc,
     guides,
 )
 from lionheart.utils.cli_utils import (
@@ -90,6 +91,21 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     collect_samples.setup_parser(parser_cl)
 
     # Command 4
+    parser_er = subparsers.add_parser(
+        "extract_roc",
+        help="Extract ROC curve for custom probability thresholds",
+        description=wrap_command_description(
+            "Extract the ROC curve for model's predictions on one or more datasets. "
+            "\nAllows using probability thresholds fitted to your own data in "
+            "`lionheart predict_sample` and `lionheart validate`."
+        ),
+        formatter_class=parser.formatter_class,
+        epilog=extract_roc.EPILOG,
+    )
+    # Delegate the argument setup to the respective command module
+    extract_roc.setup_parser(parser_er)
+
+    # Command 5
     parser_tm = subparsers.add_parser(
         "train_model",
         help="Train a model on your own data and/or the included features",
@@ -115,7 +131,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     # # Delegate the argument setup to the respective command module
     # validate.setup_parser(parser_va)
 
-    # # Command 6
+    # # Command 7
     parser_cv = subparsers.add_parser(
         "cross_validate",
         help="Cross-validate the cancer detection model on your own data and/or the included features",
@@ -132,7 +148,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     # Delegate the argument setup to the respective command module
     cross_validate.setup_parser(parser_cv)
 
-    # # Command 7
+    # # Command 8
     parser_eu = subparsers.add_parser(
         "evaluate_univariates",
         help="Evaluate the cancer detection potential of each feature separately on your own data and/or the included features",

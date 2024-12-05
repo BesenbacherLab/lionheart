@@ -151,3 +151,88 @@ def prepare_modeling_command(
         meta_data_paths,
         feature_name_to_feature_group_path,
     )
+
+
+def prepare_validation_command(
+    args,
+    paths: IOPaths,
+    messenger: Messenger,
+):
+    if not hasattr(args, "subtype"):
+        args.subtype = False
+
+    if len(args.meta_data_paths) != len(args.dataset_paths):
+        raise ValueError(
+            "`--meta_data_paths` and `--dataset_paths` did not "
+            "have the same number of paths."
+        )
+    if len(args.dataset_paths) == 0 and not args.use_included_features:
+        raise ValueError(
+            "When `--use_included_features` is not enabled, "
+            "at least 1 dataset needs to be specified."
+        )
+    if args.dataset_names is not None and len(args.dataset_names) != len(
+        args.dataset_paths
+    ):
+        raise ValueError(
+            "When specifying `--dataset_names`, it must have one name per dataset "
+            "(i.e. same length as `--dataset_paths`)."
+        )
+
+    dataset_paths = {}
+    meta_data_paths = {}
+    for path_idx, dataset_path in enumerate(args.dataset_paths):
+        nm = f"new_dataset_{path_idx}"
+        if args.dataset_names is not None:
+            nm = args.dataset_names[path_idx]
+        dataset_paths[nm] = dataset_path
+        meta_data_paths[nm] = args.meta_data_paths[path_idx]
+
+    messenger(f"Got paths to {len(dataset_paths)} external datasets")
+
+    # Add included features
+    for attr in ["use_included_validation", "use_included_features"]:
+        if hasattr(args, attr) and getattr(args, attr):
+            shared_features_dir = paths["resources_dir"] / "shared_features"
+            shared_features_paths = pd.read_csv(
+                shared_features_dir / "dataset_paths.csv"
+            )
+
+            # Get validation datasets
+            if attr == "use_included_validation":
+                shared_features_paths = shared_features_paths.loc[
+                    shared_features_paths.Validation
+                ]
+            elif attr == "use_included_features":
+                shared_features_paths = shared_features_paths.loc[
+                    ~shared_features_paths.Validation
+                ]
+
+            messenger(f"Using {len(shared_features_paths)} included datasets")
+
+            # Extract dataset paths
+            shared_features_dataset_paths = {
+                nm: shared_features_dir / rel_path
+                for nm, rel_path in zip(
+                    shared_features_paths["Dataset Name"],
+                    shared_features_paths["Dataset Path"],
+                )
+            }
+
+            # Extract meta data paths
+            shared_features_meta_data_paths = {
+                nm: shared_features_dir / rel_path
+                for nm, rel_path in zip(
+                    shared_features_paths["Dataset Name"],
+                    shared_features_paths["Meta Data Path"],
+                )
+            }
+
+            # Add new paths and settings to user's specificationss
+            dataset_paths.update(shared_features_dataset_paths)
+            meta_data_paths.update(shared_features_meta_data_paths)
+
+    return (
+        dataset_paths,
+        meta_data_paths,
+    )

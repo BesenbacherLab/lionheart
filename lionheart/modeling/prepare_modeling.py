@@ -19,8 +19,8 @@ def prepare_modeling(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
-    feature_name_to_feature_group_path: Union[str, pathlib.Path],
     task: str,
+    feature_name_to_feature_group_path: Optional[Union[str, pathlib.Path]] = None,
     # Containing partial model function, grid (hparams), etc.
     model_dict: Optional[dict] = None,
     labels_to_use: Optional[List[str]] = None,
@@ -172,12 +172,17 @@ def prepare_modeling(
         in_files={
             **dataset_paths,
             **meta_data_paths,
-            "feature_name_to_feature_group_path": feature_name_to_feature_group_path,
         },
         out_dirs={
             "out_path": out_path,
         },
     )
+    if feature_name_to_feature_group_path is not None:
+        paths.set_path(
+            "feature_name_to_feature_group_path",
+            feature_name_to_feature_group_path,
+            "in_files",
+        )
 
     if mk_plots_dir:
         paths.set_path(

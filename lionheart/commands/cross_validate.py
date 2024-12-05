@@ -161,7 +161,7 @@ def setup_parser(parser):
         "--aggregate_by_subjects",
         action="store_true",
         help="Whether to aggregate <i>predictions</i> per subject before evaluations. "
-        "\nThe predicted probabilities are averaged per group."
+        "\nThe predicted probabilities are averaged per subject."
         "\nOnly the evaluations are affected by this. "
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
