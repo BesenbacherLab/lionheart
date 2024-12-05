@@ -174,7 +174,9 @@ def run_extract_roc(
         )
 
     messenger("Start: Saving ROC curve")
-    ROCCurves.add(path="Custom ROC", roc_curve=eval["ROC"]).save(paths["roc_path"])
+    rocs = ROCCurves()
+    rocs.add(path="Custom ROC", roc_curve=eval["ROC"])
+    rocs.save(paths["roc_path"])
 
 
 def _load_json(filename):
