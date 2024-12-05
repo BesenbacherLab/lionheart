@@ -166,7 +166,7 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    paths = IOPaths()
+    paths = IOPaths(out_dirs={"out_dir": out_path})
     if resources_dir is not None:
         paths.set_path("resources_dir", resources_dir, "in_dirs")
 
