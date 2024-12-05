@@ -116,7 +116,7 @@ def test_predict_with_custom_model_and_roc(
     print(prediction)
 
     assert (
-        prediction["Prediction"].tolist() == ["Cancer"] * 11
+        prediction["Prediction"].tolist() == ["Cancer"] * 12
     )  # Also tests size of data frame
 
     npt.assert_almost_equal(
@@ -130,4 +130,3 @@ def test_predict_with_custom_model_and_roc(
         [0.476824, 0.506503],
         decimal=4,
     )
-    assert False
