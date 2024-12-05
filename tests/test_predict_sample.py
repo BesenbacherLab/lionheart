@@ -122,7 +122,6 @@ def test_predict_with_custom_model_and_roc(
     npt.assert_equal(
         prediction.loc[[0, 6], "ROC Curve"].tolist(),
         ["Average (training data)", "Custom 0"],
-        decimal=4,
     )
     # Max. J differs between the thresholds
     npt.assert_almost_equal(
