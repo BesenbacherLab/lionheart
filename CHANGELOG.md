@@ -17,6 +17,8 @@ This release adds multiple CLI commands that
 Also:
 
  - Adds `matplotlib` as dependency.
+ - Bumps `generalize` dependency requirement to `0.2.1`.
+ - Bumps `utipy` dependency requirement to `1.0.3`.
 
 ## 1.0.2
 
