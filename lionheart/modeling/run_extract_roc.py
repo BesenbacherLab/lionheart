@@ -156,7 +156,7 @@ def run_extract_roc(
                 and predicted_probabilities.shape[1] == 2
             ):
                 # If two columns, get for second column
-                predicted_probabilities = predicted_probabilities.iloc[:, 1]
+                predicted_probabilities = predicted_probabilities[:, 1]
 
             predicted_probabilities = predicted_probabilities.flatten()
 
