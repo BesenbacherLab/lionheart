@@ -23,3 +23,5 @@ PCA_TARGET_VARIANCE_OPTIONS_STRING = (
     "[" + ", ".join([str(x) for x in PCA_TARGET_VARIANCE_OPTIONS]) + "]"
 )
 LASSO_C_OPTIONS_STRING = "[" + ", ".join([str(x) for x in LASSO_C_OPTIONS]) + "]"
+
+LABELS_TO_USE = ["0_Control(control)", "1_Cancer(cancer)"]

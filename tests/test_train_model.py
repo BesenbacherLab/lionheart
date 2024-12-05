@@ -3,6 +3,8 @@ import pandas as pd
 import numpy.testing as npt
 from utipy import mk_dir
 
+from lionheart.utils.global_vars import LABELS_TO_USE
+
 
 def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
     sample_dir = tmp_path / "test_sample"
@@ -74,7 +76,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
             "Min. Required lionheart": "N/A",
         },
         "Labels": {
-            "Labels to Use": ["0_Control(control)", "1_Cancer(cancer)"],
+            "Labels to Use": LABELS_TO_USE,
             "Positive Label": 1,
             "New Label Index to New Label": {"0": "Control", "1": "Cancer"},
             "New Label to New Label Index": {"Control": 0, "Cancer": 1},
@@ -173,7 +175,7 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
             "Min. Required lionheart": "N/A",
         },
         "Labels": {
-            "Labels to Use": ["0_Control(control)", "1_Cancer(cancer)"],
+            "Labels to Use": LABELS_TO_USE,
             "Positive Label": 1,
             "New Label Index to New Label": {"0": "Control", "1": "Cancer"},
             "New Label to New Label Index": {"Control": 0, "Cancer": 1},

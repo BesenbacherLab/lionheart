@@ -16,6 +16,7 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.global_vars import (
     JOBLIB_VERSION,
     ENABLE_SUBTYPING,
+    LABELS_TO_USE,
     LASSO_C_OPTIONS,
     LASSO_C_OPTIONS_STRING,
     PCA_TARGET_VARIANCE_OPTIONS,
@@ -327,7 +328,7 @@ def main(args):
         if not args.subtype
         else "multiclass_classification",
         model_dict=model_dict,
-        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"]
+        labels_to_use=LABELS_TO_USE
         if not args.subtype
         else [
             f"{i}_{c.title().replace(' ', '_')}({c.lower()})"

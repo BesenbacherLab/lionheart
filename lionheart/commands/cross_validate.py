@@ -12,6 +12,7 @@ from lionheart.modeling.run_cross_validate import run_nested_cross_validation
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
 from lionheart.utils.global_vars import (
+    LABELS_TO_USE,
     LASSO_C_OPTIONS,
     LASSO_C_OPTIONS_STRING,
     PCA_TARGET_VARIANCE_OPTIONS,
@@ -264,7 +265,7 @@ def main(args):
         feature_name_to_feature_group_path=feature_name_to_feature_group_path,
         task="binary_classification",
         model_dict=model_dict,
-        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
+        labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         train_only_datasets=train_only,
         k_outer=args.k_outer,

@@ -12,6 +12,7 @@ from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_univariate_analyses import run_univariate_analyses
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
+from lionheart.utils.global_vars import LABELS_TO_USE
 
 
 def setup_parser(parser):
@@ -198,14 +199,14 @@ def main(args):
         init_model=False,
         prep_transformers=False,
     )
-    
+
     run_univariate_analyses(
         dataset_paths=dataset_paths,
         out_path=paths["out_path"],
         meta_data_paths=meta_data_paths,
         task="binary_classification",
         feature_name_to_feature_group_path=feature_name_to_feature_group_path,
-        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
+        labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         train_only_datasets=train_only,
         k=args.k,

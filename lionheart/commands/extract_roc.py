@@ -9,7 +9,7 @@ from utipy import Messenger, StepTimer, IOPaths
 from lionheart.modeling.run_extract_roc import run_extract_roc
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
-from lionheart.utils.global_vars import INCLUDED_MODELS
+from lionheart.utils.global_vars import INCLUDED_MODELS, LABELS_TO_USE
 from lionheart.modeling.prepare_modeling_command import prepare_validation_command
 
 # TODO Not implemented
@@ -166,15 +166,7 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    paths = IOPaths(
-        in_files={
-            "model_file": model_dir / "model.joblib",
-        },
-        in_dirs={
-            "model_dir": model_dir,
-        },
-        out_dirs={"out_path": out_path, "roc_path": out_path / "ROC_curve.json"},
-    )
+    paths = IOPaths()
     if resources_dir is not None:
         paths.set_path("resources_dir", resources_dir, "in_dirs")
 
@@ -195,7 +187,7 @@ def main(args):
         out_path=out_path,
         meta_data_paths=meta_data_paths,
         model_dir=model_dir,
-        labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
+        labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         aggregate_by_groups=args.aggregate_by_subjects,
         expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
