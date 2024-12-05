@@ -32,7 +32,7 @@ def test_extract_roc_shared_resources(
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
-    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").to_dict()
+    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json")
     print(roc)
 
     print(roc.get("Custom ROC"))
@@ -72,7 +72,7 @@ def test_extract_roc_single_dataset_custom_model(
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
-    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").to_dict()
+    roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json")
     print(roc)
 
     print(roc.get("Custom ROC"))
