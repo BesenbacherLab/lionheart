@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pandas as pd
 from utipy import mk_dir
 
@@ -114,6 +115,19 @@ def test_predict_with_custom_model_and_roc(
     pd.set_option("display.max_columns", None)
     print(prediction)
 
-    assert prediction["Prediction"].tolist() == ["Cancer"] * 6
-    # assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+    assert (
+        prediction["Prediction"].tolist() == ["Cancer"] * 11
+    )  # Also tests size of data frame
+
+    npt.assert_almost_equal(
+        prediction.loc[[0, 6], "ROC Curve"].tolist(),
+        ["Average (training data)", "Custom 0"],
+        decimal=4,
+    )
+    # Max. J differs between the thresholds
+    npt.assert_almost_equal(
+        prediction.loc[[0, 6], "Threshold"].tolist(),
+        [0.476824, 0.506503],
+        decimal=4,
+    )
     assert False
