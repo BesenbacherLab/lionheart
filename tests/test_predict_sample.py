@@ -111,8 +111,9 @@ def test_predict_with_custom_model_and_roc(
 
     # Check prediction
     prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
+    pd.set_option("display.max_columns", None)
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
-    #assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+    # assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
     assert False
