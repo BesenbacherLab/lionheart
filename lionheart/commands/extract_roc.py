@@ -132,8 +132,7 @@ EPILOG = examples.construct()
 
 
 def main(args):
-    sample_dir = pathlib.Path(args.sample_dir)
-    out_path = pathlib.Path(args.out_dir) if args.out_dir is not None else sample_dir
+    out_path = pathlib.Path(args.out_dir)
 
     if sum([args.model_name is not None, args.custom_model_dir is not None]) != 1:
         raise ValueError(
