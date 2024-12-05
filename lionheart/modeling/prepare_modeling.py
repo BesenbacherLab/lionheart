@@ -474,11 +474,21 @@ def prepare_modeling(
 
     # Feature names and groups
     # for plotting cell type contributions
-    feature_name_to_feature_group = pd.read_csv(
-        paths["feature_name_to_feature_group_path"]
-    )
-    feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
-    feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+    try:
+        feature_name_to_feature_group = pd.read_csv(
+            paths["feature_name_to_feature_group_path"]
+        )
+        feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+        feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+    except ValueError as e:
+        if (
+            "feature_name_to_feature_group_path was not a known key in any of the path collections"
+            in str(e)
+        ):
+            feature_names = None
+            feature_group_names = None
+        else:
+            raise
 
     # Record end timestamp
     timer.stamp(name="prepare_modeling() end")
