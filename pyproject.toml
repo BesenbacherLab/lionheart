@@ -8,8 +8,8 @@ packages = [{include = "lionheart"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-generalize = "^0.2.0"
-utipy = "^1.0.2"
+generalize = "^0.2.1"
+utipy = "^1.0.3"
 scikit-learn = "1.0.2"
 pandas = "1.5.3"
 numpy = "1.26.4"
