@@ -1,6 +1,8 @@
 import numpy.testing as npt
 from generalize.evaluate.roc_curves import ROCCurves
 
+from lionheart.utils.global_vars import INCLUDED_MODELS
+
 
 def test_extract_roc_shared_resources(
     run_cli,
@@ -53,7 +55,7 @@ def test_extract_roc_single_dataset_custom_model(
         "--meta_data_paths",
         resource_path / "shared_features" / "GECOCA" / "meta_data.csv",
         "--custom_model_dir",
-        resource_path / "models" / "detect_cancer__001__25_11_24",
+        resource_path / "models" / INCLUDED_MODELS[0],
     ]
     generated_files, output_dir = run_cli(
         command_args=command_args,

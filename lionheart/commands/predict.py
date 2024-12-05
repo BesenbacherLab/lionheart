@@ -71,21 +71,21 @@ def setup_parser(parser):
         "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
-    # TODO: Since `validate` allows multiple datasets, how does one specify the curve from the collection?
-    # parser.add_argument(
-    #     "--custom_roc_paths",
-    #     type=str,
-    #     nargs="*",
-    #     help="Path(s) to a `.json` file with a ROC curve made with `lionheart validate`"
-    #     "\nfor extracting the probability thresholds."
-    #     "\nThe output will have predictions for thresholds based on both"
-    #     "\nthe training data ROC curves and these custom ROC curves."
-    #     + (
-    #         "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
-    #         if ENABLE_SUBTYPING
-    #         else ""
-    #     ),
-    # )
+    parser.add_argument(
+        "--custom_roc_paths",
+        type=str,
+        nargs="*",
+        help="Path(s) to a `.json` file with a ROC curve made with `lionheart extract_roc`"
+        "\nfor extracting the probability thresholds."
+        "\nThe output will have predictions for thresholds "
+        "based on each of the available ROC curves "
+        "from the training data, the custom models, and these custom ROC curves."
+        + (
+            "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
+            if ENABLE_SUBTYPING
+            else ""
+        ),
+    )
     threshold_defaults = [
         "max_j",
         "spec_0.95",
@@ -136,15 +136,14 @@ examples.add_example(
 --custom_model_dirs path/to/model/directory""",
 )
 
-# TODO: Add when `lionheart validate` is implemented
-# examples.add_example(
-#     description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart validate`).
-# This is useful when you have validated a model on your own data and want to use the found thresholds on new data.""",
-#     example="""--sample_dir path/to/subject_1/features
-# --resources_dir path/to/resource/directory
-# --out_dir path/to/subject_1/predictions
-# --custom_roc_paths path/to/validation_ROC_curves.json""",
-# )
+examples.add_example(
+    description="""Using a custom ROC curve for calculating probability thresholds (created with `lionheart extract_roc`).
+This lets you use probability thresholds optimized for your own data.""",
+    example="""--sample_dir path/to/subject_1/features
+--resources_dir path/to/resource/directory
+--out_dir path/to/subject_1/predictions
+--custom_roc_paths path/to/ROC_curves.json""",
+)
 examples.add_example(
     description="""Specifying custom probability thresholds for 1) a specificity of ~0.975 and 2) a sensitivity of ~0.8.""",
     example="""--sample_dir path/to/subject_1/features
@@ -208,7 +207,7 @@ def main(args):
 
     custom_roc_paths = {}
     # Currently disabled
-    if False and args.custom_roc_paths is not None and args.custom_roc_paths:
+    if args.custom_roc_paths is not None and args.custom_roc_paths:
         custom_roc_paths = {
             f"custom_roc_curve_{roc_idx}": roc_path
             for roc_idx, roc_path in enumerate(args.custom_roc_paths)
@@ -378,14 +377,14 @@ def main(args):
                             raise
 
                         try:
-                            roc = rocs.get("Validation")  # TODO: Fix path
+                            roc = rocs.get("Custom ROC")
                         except:
                             messenger(
                                 "`ROCCurves` collection did not have the expected "
-                                f"`Validation` ROC curve. File: {paths[roc_key]}"
+                                f"`Custom ROC` curve. File: {paths[roc_key]}"
                             )
                             raise
-                        roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
+                        roc_curves[f"Custom {roc_key.split('_')[-1]}"] = roc
 
             messenger("Start: Loading Probability Densities", indent=4)
             with timer.time_step(
