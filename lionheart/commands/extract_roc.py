@@ -194,7 +194,7 @@ def main(args):
         dataset_paths=dataset_paths,
         out_path=out_path,
         meta_data_paths=meta_data_paths,
-        model_path=model_dir / "model.joblib",
+        model_dir=model_dir / "model.joblib",
         labels_to_use=["0_Control(control)", "1_Cancer(cancer)"],
         feature_sets=[0],
         aggregate_by_groups=args.aggregate_by_subjects,
