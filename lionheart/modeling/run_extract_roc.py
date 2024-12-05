@@ -8,6 +8,7 @@ from sklearn import __version__ as sklearn_version
 from packaging import version
 from utipy import Messenger, StepTimer, check_messenger
 from generalize.evaluate.evaluate import Evaluator
+from generalize.evaluate.roc_curves import ROCCurves
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
 from lionheart import __version__ as lionheart_version
@@ -173,7 +174,7 @@ def run_extract_roc(
         )
 
     messenger("Start: Saving ROC curve")
-    eval["ROC"].save(paths["roc_path"])
+    ROCCurves.add(path="Custom ROC", roc_curve=eval["ROC"]).save(paths["roc_path"])
 
 
 def _load_json(filename):
