@@ -35,6 +35,8 @@ def test_extract_roc_shared_resources(
     roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").to_dict()
     print(roc)
 
+    print(roc.get("Custom ROC"))
+
     assert False
 
 
@@ -51,7 +53,7 @@ def test_extract_roc_single_dataset_custom_model(
         "--dataset_paths",
         resource_path / "shared_features" / "GECOCA" / "feature_dataset.npy",
         "--meta_data_paths",
-        resource_path / "shared_features" / "GECOCA" / "feature_dataset.npy",
+        resource_path / "shared_features" / "GECOCA" / "meta_data.csv",
         "--custom_model_dir",
         resource_path / "models" / "detect_cancer__001__25_11_24",
     ]
@@ -72,5 +74,7 @@ def test_extract_roc_single_dataset_custom_model(
 
     roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").to_dict()
     print(roc)
+
+    print(roc.get("Custom ROC"))
 
     assert False
