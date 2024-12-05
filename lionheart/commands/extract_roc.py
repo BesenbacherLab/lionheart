@@ -151,7 +151,7 @@ def main(args):
 
     else:
         resources_dir = None
-        model_dir = args.custom_model_dir
+        model_dir = pathlib.Path(args.custom_model_dir)
 
     # Prepare logging messenger
     setup_logging(dir=str(out_path / "logs"), fname_prefix="extract-roc-")
