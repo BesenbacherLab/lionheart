@@ -6,7 +6,7 @@ Script that validates a model on one or more specified validation datasets.
 import logging
 import pathlib
 from utipy import Messenger, StepTimer, IOPaths
-from lionheart.modeling import run_extract_roc
+from lionheart.modeling.run_extract_roc import run_extract_roc
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS
