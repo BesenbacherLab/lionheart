@@ -20,7 +20,9 @@ from lionheart.utils.global_vars import INCLUDED_MODELS
 # --model_name {INCLUDED_MODELS[0]}
 
 
-def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_features):
+def test_validate_model_custom_dataset(
+    run_cli, tmp_path, resource_path, lionheart_features
+):
     mk_dir(tmp_path / "dataset")
     output_subdir = "validate_output"
 
@@ -79,7 +81,7 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
     assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
 
 
-def test_validate_reproducibility(run_cli, tmp_path, resource_path):
+def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
     output_subdir = "validate_output"
 
     command_args = [
