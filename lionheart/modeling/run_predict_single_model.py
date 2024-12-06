@@ -276,7 +276,7 @@ def run_predict_single_model(
                         # Single sample prediction
 
                         for thresh_info in thresholds:
-                            thresh_info["Prediction"] = [](
+                            thresh_info["Prediction"] = (
                                 "Cancer"
                                 if predicted_probabilities[0] > thresh_info["Threshold"]
                                 else "No Cancer"
