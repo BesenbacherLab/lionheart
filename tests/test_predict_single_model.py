@@ -89,11 +89,11 @@ def test_predict_single_model(resource_path, lionheart_features):
     )
 
     npt.assert_equal(
-        predictions_single_sample.columns,
-        predictions_three_samples.columns,
+        list(predictions_single_sample.columns),
+        list(predictions_three_samples.columns),
     )
 
     npt.assert_equal(
-        predictions_single_sample.loc[0],
-        predictions_three_samples.loc[0],
+        list(predictions_single_sample.loc[0]),
+        list(predictions_three_samples.loc[0]),
     )
