@@ -390,12 +390,27 @@ def main(args):
                     task="binary_classification",
                 )["Scores"]
 
+                eval_["Model"] = model_nm
                 eval_["Threshold Name"] = thresh_name
                 eval_["ROC Curve"] = roc_name
+                eval_["Task"] = thresh_rows["Task"].to_numpy()[0]
 
                 evals.append(eval_)
 
     all_evaluations = pd.concat(evals)
+
+    first_columns = [
+        "Model",
+        "Task",
+        "ROC Curve",
+        "Threshold Name",
+        "Threshold",
+    ]
+    remaining_columns = [
+        col_ for col_ in all_evaluations.columns if col_ not in first_columns
+    ]
+    all_evaluations = all_evaluations.loc[:, first_columns + remaining_columns]
+
     messenger("Evaluations:\n", all_evaluations, indent=2)
 
     timer.stamp()
