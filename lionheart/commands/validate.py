@@ -292,16 +292,18 @@ def main(args):
         model_name: load_json(paths[f"training_info_{model_name}"])
     }
 
-    print(prepared_modeling_dict["sample_ids"])
-    print(prepared_modeling_dict["labels"])
-
     # Construct data frame with sample identifiers for the predictions data frame
     sample_identifiers = pd.DataFrame(
         {
-            "Sample ID": prepared_modeling_dict["sample_ids"],
-            "Target": prepared_modeling_dict["labels"],
+            "Sample ID": prepared_modeling_dict["sample_ids"].flatten(),
+            "Target": prepared_modeling_dict["labels"].flatten(),
         }
     )
+
+    # Ensure we have a row of sample identifiers per dataset
+    assert len(sample_identifiers) == len(prepared_modeling_dict["dataset"])
+
+    # Add optional columns
     if prepared_modeling_dict["groups"] is not None:
         sample_identifiers["Subject ID"] = prepared_modeling_dict["groups"]
     if prepared_modeling_dict["split"] is not None:
