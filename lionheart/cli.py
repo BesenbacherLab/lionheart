@@ -130,7 +130,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         help="Train a model on your own data and/or the included features",
         description=wrap_command_description(
             "TRAIN A MODEL on your extracted features and/or the included features. "
-            "\nNOTE: The included evaluation is of predictions of the training data."
+            "\n\nNOTE: The included evaluation is of predictions of the training data."
         ),
         formatter_class=parser.formatter_class,
         epilog=train_model.EPILOG,
