@@ -106,9 +106,11 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
+    pd.set_option("display.max_columns", None)
+
     # Check prediction
     prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    print(prediction)
+    print(prediction.iloc[:3])
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
     assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
