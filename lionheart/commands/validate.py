@@ -398,7 +398,7 @@ def main(args):
 
                 evals.append(eval_)
 
-    all_evaluations = pd.concat(evals)
+    all_evaluations = pd.concat(evals).reset_index(drop=True)
 
     first_columns = [
         "Model",
