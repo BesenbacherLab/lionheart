@@ -183,8 +183,6 @@ $ lionheart train_model --out_dir {new_model_dir} --resources_dir {resources_dir
 $ lionheart validate --out_dir {val_out_dir} --resources_dir {resources_dir} --model_dir {new_model_dir} --use_included_validation --thresholds 'max_j'
 ```
 
-[TODO Describe outputs!]
+The model training creates the `model.joblib` file along with predictions and evaluations from the training data (e.g., `predictions.csv`, `evaluation_scores.csv`, and `ROC_curves.json`).
 
-TODO:
- - validate
- - evaluate univariates
+The validation creates `evaluation_scores.csv` and `predictions.csv` from applying the model on the validation dataset.
