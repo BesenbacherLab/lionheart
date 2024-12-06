@@ -12,6 +12,8 @@ The code was developed and implemented by [@ludvigolsen](https://github.com/Ludv
 
 ## Installation
 
+This section describes the installation of `lionheart` and the custom version of `mosdepth` (exp. time: <10m). The code has only been tested on linux but should also work on Mac and Windows.
+
 Install the main package:
 
 ```
@@ -62,6 +64,22 @@ $ wget https://zenodo.org/records/14215762/files/inference_resources_v002.tar.gz
 $ tar -xvzf inference_resources_v002.tar.gz 
 ```
 
+## Main commands
+
+This section describes the commands in `lionheart` and lists their *main* output files:
+
+| Command                          | Description                                                         | Main Output                                                                         |
+| :------------------------------- | :------------------------------------------------------------------ | :---------------------------------------------------------------------------------- |
+| `lionheart extract_features`     | Extract features from a BAM file.                                   | `feature_dataset.npy` and correction profiles                                       |
+| `lionheart predict_sample`       | Predict cancer status of a sample.                                  | `prediction.csv`                                                                    |
+| `lionheart collect`              | Collect predictions and/or features across samples.                 | `predictions.csv`, `feature_dataset.npy`, and correction profiles *for all samples* |
+| `lionheart customize_thresholds` | Extract ROC curve and more for using custom probability thresholds. | `ROC_curves.json` and `probability_densities.csv`                                   |
+| `lionheart cross_validate`       | Cross-validate the model on new data and/or the included features.  | `evaluation_summary.csv`,  `splits_summary.csv`                                     |
+| `lionheart train_model`          | Train a model on your own data and/or the included features.        | `model.joblib` and training data results                                            |
+| `lionheart validate`             | Validate a model on a validation dataset.                           | TODO                                                                                |
+| `lionheart evaluate_univariates` | Evaluate the cancer detection potential of each feature separately. | `univariate_evaluations.csv`                                                        |
+
+
 ## Examples
 
 ### Run via command-line interface
@@ -87,6 +105,7 @@ $ lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_
 ```
 
 After running these commands for a set of samples, you can use `lionheart collect` to collect features and predictions across the samples. You can then use `lionheart train_model` to train a model on your own data (and optionally the included features).
+
 
 ### Via `gwf` workflow
 
@@ -124,3 +143,50 @@ $ gwf run
 $ gwf status
 $ gwf status -f summary
 ```
+
+### Reproduction of results
+
+This section shows how to reproduce the main results (cross-validation and external validation) from the paper. It uses the included features so the reproduction can be run without access to the raw sequencing data.
+
+Note that different compilations of scikit-learn on different operating systems may lead to slightly different results. On linux, the results should match the reported results.
+
+#### Cross-validation analysis
+
+We start by performing the nested leave-one-dataset-out cross-validation analysis from Figure 3A (not including the benchmarks).
+
+Note that the default settings are the ones used in the paper.
+
+```
+# Perform the cross-validation
+# {cv_out_dir} should specify where you want the output files
+$ lionheart cross_validate --out_dir {cv_out_dir} --resources_dir {resources_dir} --use_included_features --num_jobs 10
+```
+
+The output directory should now include multiple files. The main results are in `evaluation_summary.csv` and `splits_summary.csv`. Note that the results are given for multiple probability thresholds. The threshold reported in the paper is the "Max. J Threshold". You can extract the relevant lines of the summaries with:
+
+```
+$ awk 'NR==1 || /Average/ && /J Threshold/' {cv_out_dir}/evaluation_summary.csv
+$ awk 'NR==1 || /Average/ && /J Threshold/' {cv_out_dir}/splits_summary.csv
+```
+
+#### External validation analysis
+
+To reproduce the external validation, we first train a model on all the included training datasets and then validate it on the included validation dataset:
+
+```
+# Train a model on the included datasets
+# {new_model_dir} should specify where you want the model files
+$ lionheart train_model --out_dir {new_model_dir} --resources_dir {resources_dir} --use_included_features
+
+# Validate the model on the included validation dataset
+# {val_out_dir} should specify where you want the output files
+$ lionheart validate --out_dir {val_out_dir} --resources_dir {resources_dir} --model_dir {new_model_dir} --use_included_validation --thresholds 'max_j'
+```
+
+[TODO Describe outputs!]
+
+TODO:
+ - cross-validate
+ - train model
+ - validate
+ - evaluate univariates
