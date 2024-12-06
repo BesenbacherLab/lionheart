@@ -1,3 +1,4 @@
+import pathlib
 from typing import Dict
 import warnings
 import joblib
@@ -301,8 +302,39 @@ def run_predict_single_model(
 
                     else:
                         # Multi-sample prediction
-                        pass
+                        prediction_sets = []
+                        for thresh_info in thresholds:
+                            pred_set = pd.DataFrame(
+                                {
+                                    **thresh_info,
+                                    "Prediction": [
+                                        "Cancer"
+                                        if prob > thresh_info["Threshold"]
+                                        else "No Cancer"
+                                        for prob in predicted_probabilities
+                                    ],
+                                    "Expected Accuracy": [
+                                        probability_densitites[
+                                            roc_name  # Same keys to ensure we use the right densities per ROC
+                                        ].get_expected_accuracy(new_probability=prob)[
+                                            "Cancer"
+                                            if prob > thresh_info["Threshold"]
+                                            else "Control"  # Label during model training
+                                        ]
+                                        for prob in predicted_probabilities
+                                    ],
+                                    probability_colname: predicted_probabilities,
+                                }
+                            )
 
+                            prediction_sets.append(pred_set)
+
+                        prediction_df = pd.concat(prediction_sets, axis=0).reset_index(
+                            drop=True
+                        )
+
+                    # NOTE: Assumes insertion order is intact!
+                    # TODO: Make more robust!
                     prediction_df.columns = [
                         "Threshold",
                         "Exp. Specificity",
@@ -340,3 +372,25 @@ def run_predict_single_model(
                 prediction_dfs.append(prediction_df)
 
     return prediction_dfs
+
+
+def extract_custom_threshold_paths(args):
+    custom_threshold_dirs = {}
+    custom_roc_paths = {}
+    custom_prob_density_paths = {}
+    if args.custom_threshold_dirs is not None and args.custom_threshold_dirs:
+        custom_threshold_dirs = {
+            f"custom_threshold_dir_{idx}": pathlib.Path(path)
+            for idx, path in enumerate(args.custom_threshold_dirs)
+        }
+        custom_roc_paths = {
+            f"custom_roc_curve_{idx}": pathlib.Path(path) / "ROC_curves.json"
+            for idx, path in enumerate(args.custom_threshold_dirs)
+        }
+        custom_prob_density_paths = {
+            f"custom_prob_densities_{idx}": pathlib.Path(path)
+            / "probability_densities.csv"
+            for idx, path in enumerate(args.custom_threshold_dirs)
+        }
+
+    return custom_threshold_dirs, custom_roc_paths, custom_prob_density_paths
