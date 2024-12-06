@@ -38,6 +38,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     predictions_list_single_sample = run_predict_single_model(
         features=scores,
+        sample_identifiers=None,
         model_name=INCLUDED_MODELS[0],
         model_name_to_training_info=model_name_to_training_info,
         custom_roc_paths={},
@@ -63,6 +64,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     predictions_list_three_samples = run_predict_single_model(
         features=three_scores,
+        sample_identifiers=None,
         model_name=INCLUDED_MODELS[0],
         model_name_to_training_info=model_name_to_training_info,
         custom_roc_paths={},
