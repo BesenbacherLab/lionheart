@@ -73,6 +73,8 @@ def test_validate_model_custom_dataset(
             expected_file in generated_files
         ), f"Expected file {expected_file} not found."
 
+    pd.set_option("display.max_columns", None)
+
     # Check prediction
     prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(prediction)
