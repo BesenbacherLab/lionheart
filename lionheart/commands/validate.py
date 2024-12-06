@@ -367,31 +367,33 @@ def main(args):
             "Multiple probability columns are not currently supported."
         )
 
-    # NOTE: Only one model currently, otherwise need an extra loop
-    for roc_name in all_predictions_df["ROC Curve"].unique():
-        for thresh_name in all_predictions_df["Threshold Name"].unique():
-            thresh_rows = all_predictions_df.loc[
-                (all_predictions_df["Threshold Name"] == thresh_name)
-                & (all_predictions_df["ROC Curve"] == roc_name)
-            ]
+    # Model loop is just future proofing
+    for model_nm in all_predictions_df["Model"].unique():
+        for roc_name in all_predictions_df["ROC Curve"].unique():
+            for thresh_name in all_predictions_df["Threshold Name"].unique():
+                thresh_rows = all_predictions_df.loc[
+                    (all_predictions_df["Model"] == model_nm)
+                    & (all_predictions_df["Threshold Name"] == thresh_name)
+                    & (all_predictions_df["ROC Curve"] == roc_name)
+                ]
 
-            eval_ = Evaluator.evaluate(
-                targets=thresh_rows["Target"].to_numpy(),
-                predictions=thresh_rows[prob_columns[0]].to_numpy(),
-                groups=thresh_rows["Subject ID"].to_numpy()
-                if args.aggregate_by_subjects
-                and prepared_modeling_dict["groups"] is not None
-                else None,
-                positive=1,
-                thresh=thresh_rows["Threshold"].to_numpy()[0],
-                labels=label_idx_to_label,
-                task="binary_classification",
-            )["Scores"]
+                eval_ = Evaluator.evaluate(
+                    targets=thresh_rows["Target"].to_numpy(),
+                    predictions=thresh_rows[prob_columns[0]].to_numpy(),
+                    groups=thresh_rows["Subject ID"].to_numpy()
+                    if args.aggregate_by_subjects
+                    and prepared_modeling_dict["groups"] is not None
+                    else None,
+                    positive=1,
+                    thresh=thresh_rows["Threshold"].to_numpy()[0],
+                    labels=label_idx_to_label,
+                    task="binary_classification",
+                )["Scores"]
 
-            eval_["Threshold Name"] = thresh_name
-            eval_["ROC Curve"] = roc_name
+                eval_["Threshold Name"] = thresh_name
+                eval_["ROC Curve"] = roc_name
 
-            evals.append(eval_)
+                evals.append(eval_)
 
     all_evaluations = pd.concat(evals)
     messenger("Evaluations:\n", all_evaluations, indent=2)
