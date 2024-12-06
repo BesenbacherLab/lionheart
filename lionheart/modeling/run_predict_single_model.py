@@ -225,9 +225,10 @@ def run_predict_single_model(
             }
 
             if modeling_task == "binary_classification":
-                predicted_probabilities = pipeline.predict_proba(features).flatten()
+                predicted_probabilities = pipeline.predict_proba(features)
 
                 if features.shape[0] == 1:
+                    predicted_probabilities = predicted_probabilities.flatten()
                     if len(predicted_probabilities) == 1:
                         predicted_probabilities = [float(predicted_probabilities[0])]
                     elif len(predicted_probabilities) == 2:

@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.testing as npt
 import pandas as pd
 from utipy import IOPaths, Messenger, StepTimer
 from lionheart.modeling.run_predict_single_model import run_predict_single_model
@@ -50,6 +51,17 @@ def test_predict_single_model(resource_path, lionheart_features):
     pd.set_option("display.max_columns", None)
     print(predictions_single_sample)
 
+    npt.assert_almost_equal(
+        predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
+        [0.993221, 0.993221],
+        decimal=4,
+    )
+    # npt.assert_almost_equal(
+    #     predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
+    #     [0.993221, 0.993221],
+    #     decimal=4,
+    # )
+
     # Three samples
 
     predictions_three_samples = run_predict_single_model(
@@ -66,4 +78,11 @@ def test_predict_single_model(resource_path, lionheart_features):
     )
 
     print(predictions_three_samples)
+    
+    # npt.assert_almost_equal(
+    #     predictions_single_sample.loc[0, ].tolist(),
+    #     [0.990602, 0.999808],
+    #     decimal=4,
+    # )
+    predictions_single_sample
     assert False
