@@ -193,7 +193,8 @@ def main(args):
         model_name = args.model_name
 
     else:
-        resources_dir = None
+        if resources_dir is not None:
+            resources_dir = pathlib.Path(args.resources_dir)
         model_dir = pathlib.Path(args.custom_model_dir)
         model_name = model_dir.stem
 
