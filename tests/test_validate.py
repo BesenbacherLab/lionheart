@@ -63,7 +63,7 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
     )
 
     # Expected files
-    expected_files = ["prediction.csv", "README.txt"]
+    expected_files = ["predictions.csv", "README.txt"]
 
     # Check that expected files are generated
     for expected_file in expected_files:
@@ -72,7 +72,7 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
         ), f"Expected file {expected_file} not found."
 
     # Check prediction
-    prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
+    prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
@@ -143,7 +143,7 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
         [0.476824, 0.273344, 0.179274, 0.602376, 0.712597, 0.500000],
         decimal=4,
     )
-    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.858754] * 6
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8588] * 6
 
 
 # def test_predict_with_custom_model_and_roc(
