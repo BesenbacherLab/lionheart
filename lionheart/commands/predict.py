@@ -18,7 +18,10 @@ from utipy import Messenger, StepTimer, IOPaths
 from generalize.dataset import assert_shape
 from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
 from generalize.evaluate.probability_densities import ProbabilityDensities
-from lionheart.modeling.run_predict_single_model import run_predict_single_model
+from lionheart.modeling.run_predict_single_model import (
+    extract_custom_threshold_paths,
+    run_predict_single_model,
+)
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
@@ -70,7 +73,7 @@ def setup_parser(parser):
         nargs="*",
         help="Path(s) to a directory with a custom model to use. "
         "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
-        "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
+        "\nThe directory name will be used to identify the model in the output.",
     )
     parser.add_argument(
         "--custom_threshold_dirs",
@@ -207,23 +210,9 @@ def main(args):
         for model_name, model_dir in model_name_to_dir.items()
     }
 
-    custom_threshold_dirs = {}
-    custom_roc_paths = {}
-    custom_prob_density_paths = {}
-    if args.custom_threshold_dirs is not None and args.custom_threshold_dirs:
-        custom_threshold_dirs = {
-            f"custom_threshold_dir_{idx}": pathlib.Path(path)
-            for idx, path in enumerate(args.custom_threshold_dirs)
-        }
-        custom_roc_paths = {
-            f"custom_roc_curve_{idx}": pathlib.Path(path) / "ROC_curves.json"
-            for idx, path in enumerate(args.custom_threshold_dirs)
-        }
-        custom_prob_density_paths = {
-            f"custom_prob_densities_{idx}": pathlib.Path(path)
-            / "probability_densities.csv"
-            for idx, path in enumerate(args.custom_threshold_dirs)
-        }
+    custom_threshold_dirs, custom_roc_paths, custom_prob_density_paths = (
+        extract_custom_threshold_paths(args)
+    )
 
     paths = IOPaths(
         in_files={
