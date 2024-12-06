@@ -346,6 +346,7 @@ def main(args):
 
     messenger("Start: Saving predicted probability to disk")
     all_predictions_df.to_csv(paths["prediction_path"], index=False)
+    messenger("First few predictions:\n", all_predictions_df.head(3), indent=2)
 
     messenger("Start: Evaluating predictions")
 
@@ -368,25 +369,27 @@ def main(args):
         thresh_rows = all_predictions_df.loc[
             all_predictions_df["Threshold Name"] == thresh_name
         ]
-        evals.append(
-            (
-                thresh_name,
-                Evaluator.evaluate(
-                    targets=thresh_rows["Target"].to_numpy(),
-                    predictions=thresh_rows[prob_columns[0]].to_numpy(),
-                    groups=thresh_rows["Subject ID"].to_numpy()
-                    if args.aggregate_by_subjects
-                    and prepared_modeling_dict["groups"] is not None
-                    else None,
-                    positive=1,
-                    thresh=thresh_rows["Threshold"].to_numpy()[0],
-                    labels=label_idx_to_label,
-                    task="binary_classification",
-                ),
-            )
-        )
 
-    print(evals)
+        eval_ = (
+            Evaluator.evaluate(
+                targets=thresh_rows["Target"].to_numpy(),
+                predictions=thresh_rows[prob_columns[0]].to_numpy(),
+                groups=thresh_rows["Subject ID"].to_numpy()
+                if args.aggregate_by_subjects
+                and prepared_modeling_dict["groups"] is not None
+                else None,
+                positive=1,
+                thresh=thresh_rows["Threshold"].to_numpy()[0],
+                labels=label_idx_to_label,
+                task="binary_classification",
+            )["Scores"],
+        )
+        eval_["Threshold Name"] = thresh_name
+
+        evals.append(eval_)
+
+    all_evaluations = pd.concat(evals)
+    print(all_evaluations)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
