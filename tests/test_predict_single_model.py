@@ -11,7 +11,7 @@ def test_predict_single_model(resource_path, lionheart_features):
     scores = np.expand_dims(np.array(lionheart_features), 0)
     assert scores.shape == (1, 489)
     three_scores = np.concatenate([scores for _ in range(3)], axis=0)
-    assert three_scores.shape == (10, 489)
+    assert three_scores.shape == (3, 489)
 
     model_name = INCLUDED_MODELS[0]
     model_dir = resource_path / "models" / INCLUDED_MODELS[0]
