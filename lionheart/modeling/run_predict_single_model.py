@@ -1,5 +1,5 @@
 import pathlib
-from typing import Dict
+from typing import Dict, Optional
 import warnings
 import joblib
 from joblib import load as joblib_load
@@ -19,6 +19,7 @@ if not ENABLE_SUBTYPING:
 
 def run_predict_single_model(
     features: np.ndarray,
+    sample_identifiers: Optional[pd.DataFrame],
     model_name: str,
     model_name_to_training_info: Dict[str, dict],
     custom_roc_paths: dict,
@@ -301,6 +302,10 @@ def run_predict_single_model(
 
                         prediction_df[probability_colname] = predicted_probabilities[0]
 
+                        if sample_identifiers is not None:
+                            for col in sample_identifiers.columns:
+                                prediction_df[col] = sample_identifiers[col][0]
+
                     else:
                         # Multi-sample prediction
                         prediction_sets = []
@@ -328,6 +333,12 @@ def run_predict_single_model(
                                 }
                             )
 
+                            if sample_identifiers is not None:
+                                assert len(pred_set) == len(sample_identifiers)
+                                pred_set = pd.concat(
+                                    [pred_set, sample_identifiers], axis=1
+                                )
+
                             prediction_sets.append(pred_set)
 
                         prediction_df = pd.concat(prediction_sets, axis=0).reset_index(
@@ -336,7 +347,7 @@ def run_predict_single_model(
 
                     # NOTE: Assumes insertion order is intact!
                     # TODO: Make more robust!
-                    prediction_df.columns = [
+                    new_cols = [
                         "Threshold",
                         "Exp. Specificity",
                         "Exp. Sensitivity",
@@ -345,6 +356,12 @@ def run_predict_single_model(
                         "Exp. Accuracy for Class at Probability",
                         probability_colname,
                     ]
+
+                    if sample_identifiers is not None:
+                        new_cols += list(sample_identifiers.columns)
+
+                    prediction_df.columns = new_cols
+
                     prediction_df["ROC Curve"] = roc_name
                     prediction_df["Model"] = model_name
                     prediction_df["Task"] = cancer_task

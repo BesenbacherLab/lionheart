@@ -58,11 +58,6 @@ def test_predict_single_model(resource_path, lionheart_features):
         [0.993221] * len(threshold_names),  # 2 x num thresholds
         decimal=4,
     )
-    # npt.assert_almost_equal(
-    #     predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
-    #     [0.993221, 0.993221],
-    #     decimal=4,
-    # )
 
     # Three samples
 
@@ -88,10 +83,16 @@ def test_predict_single_model(resource_path, lionheart_features):
         decimal=4,
     )
 
+    # Comparing single sample and multi sample output
+
+    # Ensure that the colnames are the same
+
     npt.assert_equal(
         list(predictions_single_sample.columns),
         list(predictions_three_samples.columns),
     )
+
+    # Ensure that the first row of each version is the same
 
     npt.assert_equal(
         list(predictions_single_sample.loc[0]),
