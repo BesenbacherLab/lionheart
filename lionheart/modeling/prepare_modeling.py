@@ -398,6 +398,7 @@ def prepare_modeling(
                         )
 
         # Check labels are valid in case of binary classification
+        print("Num Labels: ", num_labels, "  labels: ", labels)
         if task == "binary_classification" and num_labels != 2:
             ltu_string = ""
             if labels_to_use is not None and num_labels < 2:
