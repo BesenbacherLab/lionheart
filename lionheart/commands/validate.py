@@ -299,7 +299,7 @@ def main(args):
             "Target": prepared_modeling_dict["labels"].flatten(),
         }
     )
-    print(sample_identifiers)
+    print(sample_identifiers["Sample ID"].tolist())
 
     # Ensure we have a row of sample identifiers per dataset
     assert len(sample_identifiers) == len(prepared_modeling_dict["dataset"])
