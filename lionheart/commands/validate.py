@@ -218,7 +218,6 @@ def main(args):
 
     paths = IOPaths(
         out_dirs={"out_path": out_path},
-        out_files={"prediction_path": out_path / "predictions.csv"},
     )
     if resources_dir is not None:
         paths.set_path("resources_dir", resources_dir, "in_dirs")
@@ -262,7 +261,11 @@ def main(args):
         messenger=messenger,
     )
 
-    paths = paths.update(prepared_modeling_dict["paths"])
+    # Paths is a new object from prepare_modeling
+    paths = prepared_modeling_dict["paths"]
+    paths.set_path("prediction_path", out_path / "predictions.csv", "out_files")
+    paths.set_path("resources_dir", resources_dir, "in_dirs")
+
     # NOTE: These names must match what's used in
     # predict_sample (since they both use run_predict_single_model())
     paths.set_paths(
