@@ -168,11 +168,7 @@ def prepare_validation_command(
             "`--meta_data_paths` and `--dataset_paths` did not "
             "have the same number of paths."
         )
-    if len(args.dataset_paths) == 0 and not args.use_included_features:
-        raise ValueError(
-            "When `--use_included_features` is not enabled, "
-            "at least 1 dataset needs to be specified."
-        )
+
     if args.dataset_names is not None and len(args.dataset_names) != len(
         args.dataset_paths
     ):
@@ -194,6 +190,15 @@ def prepare_validation_command(
 
     # Add included features
     for attr in ["use_included_validation", "use_included_features"]:
+        if (
+            len(args.dataset_paths) == 0
+            and hasattr(args, attr)
+            and not getattr(args, attr)
+        ):
+            raise ValueError(
+                f"When `--{attr}` is not enabled, a dataset needs to be specified."
+            )
+
         if hasattr(args, attr) and getattr(args, attr):
             shared_features_dir = paths["resources_dir"] / "shared_features"
             shared_features_paths = pd.read_csv(
