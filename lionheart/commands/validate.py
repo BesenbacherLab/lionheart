@@ -292,6 +292,9 @@ def main(args):
         model_name: load_json(paths[f"training_info_{model_name}"])
     }
 
+    print(prepared_modeling_dict["sample_ids"])
+    print(prepared_modeling_dict["labels"])
+
     # Construct data frame with sample identifiers for the predictions data frame
     sample_identifiers = pd.DataFrame(
         {
