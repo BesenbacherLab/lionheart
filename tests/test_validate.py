@@ -114,9 +114,9 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
 
     assert len(prediction) == 2106
 
-    assert prediction.iloc[:3, "Prediction"].tolist() == ["No Cancer"] * 3
+    assert prediction.loc[:3, "Prediction"].tolist() == ["No Cancer"] * 3
     npt.assert_almost_equal(
-        prediction.iloc[:3, "P(Cancer)"],
+        prediction.loc[:3, "P(Cancer)"],
         [
             0.371896,
             0.348255,
