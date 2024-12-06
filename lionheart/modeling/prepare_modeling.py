@@ -401,7 +401,10 @@ def prepare_modeling(
         if task == "binary_classification" and num_labels != 2:
             ltu_string = ""
             if labels_to_use is not None and num_labels < 2:
-                ltu_string = " Perhaps you misspelled the labels in `labels_to_use`?"
+                ltu_string = (
+                    " Perhaps you misspelled the labels in `labels_to_use`? "
+                    "Or added an index in the meta data file?"
+                )
             raise ValueError(
                 f"Binary classification requires exactly 2 target labels, "
                 f"found {num_labels}.{ltu_string}"

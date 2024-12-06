@@ -65,7 +65,7 @@ def test_validate_model_custom_dataset(
     )
 
     # Expected files
-    expected_files = ["predictions.csv", "README.txt"]
+    expected_files = ["predictions.csv", "evaluation_scores.csv"]
 
     # Check that expected files are generated
     for expected_file in expected_files:
