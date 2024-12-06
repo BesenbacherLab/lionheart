@@ -100,7 +100,7 @@ def test_validate_model_custom_dataset(
         decimal=4,
     )
     # We must have 50/50 with the 50/50 labels for the same features
-    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.50] * (10 * 6)
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.50] * 6
 
 
 def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
