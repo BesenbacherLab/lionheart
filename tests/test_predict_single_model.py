@@ -31,7 +31,8 @@ def test_predict_single_model(resource_path, lionheart_features):
         model_name: load_json(paths[f"training_info_{model_name}"])
     }
 
-    thresholds_to_calculate = parse_thresholds(["max_j", "spec_0.99"])
+    threshold_names = ["max_j", "spec_0.99"]
+    thresholds_to_calculate = parse_thresholds(threshold_names)
 
     # Single sample
 
@@ -54,7 +55,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
-        [0.993221] * len(thresholds_to_calculate),  # 2 x num thresholds
+        [0.993221] * len(threshold_names),  # 2 x num thresholds
         decimal=4,
     )
     # npt.assert_almost_equal(
@@ -83,7 +84,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_three_samples.loc[:, "P(Cancer)"].tolist(),
-        [0.993221] * 3 * len(thresholds_to_calculate),
+        [0.993221] * 3 * len(threshold_names),
         decimal=4,
     )
 
