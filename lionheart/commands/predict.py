@@ -307,19 +307,17 @@ def main(args):
     for model_idx, model_name in enumerate(model_name_to_dir.keys()):
         messenger(f"Model: {model_name}")
 
-        prediction_dfs.append(
-            run_predict_single_model(
-                features=features,
-                model_name=model_name,
-                model_name_to_training_info=model_name_to_training_info,
-                custom_roc_paths=custom_roc_paths,
-                custom_prob_density_paths=custom_prob_density_paths,
-                thresholds_to_calculate=thresholds_to_calculate,
-                paths=paths,
-                messenger=messenger,
-                timer=timer,
-                model_idx=model_idx,
-            )
+        prediction_dfs += run_predict_single_model(
+            features=features,
+            model_name=model_name,
+            model_name_to_training_info=model_name_to_training_info,
+            custom_roc_paths=custom_roc_paths,
+            custom_prob_density_paths=custom_prob_density_paths,
+            thresholds_to_calculate=thresholds_to_calculate,
+            paths=paths,
+            messenger=messenger,
+            timer=timer,
+            model_idx=model_idx,
         )
 
     # Combine data frames and clean it up a bit

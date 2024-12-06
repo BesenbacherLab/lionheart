@@ -28,6 +28,8 @@ def run_predict_single_model(
     timer: StepTimer,
     model_idx=0,
 ):
+    prediction_dfs = []
+
     messenger("Start: Extracting training info", indent=4)
     with timer.time_step(indent=8, name_prefix=f"{model_idx}_training_info"):
         with messenger.indentation(add_indent=8):
@@ -313,7 +315,7 @@ def run_predict_single_model(
                     prediction_df["ROC Curve"] = roc_name
                     prediction_df["Model"] = model_name
                     prediction_df["Task"] = cancer_task
-                    return prediction_df
+                    prediction_dfs.append(prediction_df)
 
             elif modeling_task == "multiclass_classification":
                 # Predict samples
@@ -335,4 +337,6 @@ def run_predict_single_model(
                 prediction_df["Prediction"] = prediction
                 prediction_df["Model"] = model_name
                 prediction_df["Task"] = cancer_task
-                return prediction_df
+                prediction_dfs.append(prediction_df)
+
+    return prediction_dfs
