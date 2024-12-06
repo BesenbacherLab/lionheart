@@ -79,6 +79,49 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
     assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
 
 
+def test_validate_reproducibility(run_cli, tmp_path, resource_path):
+    output_subdir = "validate_output"
+
+    command_args = [
+        "lionheart",
+        "validate",
+        "--resources_dir",
+        resource_path,
+        "--model_name",
+        INCLUDED_MODELS[0],
+        "--use_included_validation",
+    ]
+    generated_files, output_dir = run_cli(
+        command_args=command_args,
+        tmp_path=tmp_path,
+        output_subdir=output_subdir,
+    )
+
+    # Expected files
+    expected_files = ["predictions.csv", "evaluation_scores.csv"]
+
+    # Check that expected files are generated
+    for expected_file in expected_files:
+        assert (
+            expected_file in generated_files
+        ), f"Expected file {expected_file} not found."
+
+    # Check prediction
+    prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
+    print(prediction)
+
+    assert prediction["Prediction"].tolist() == ["Cancer"] * 6
+    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+
+    # Check evaluation scores
+    eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
+    print(eval_scores)
+
+    # assert eval_scores["Prediction"].tolist() == ["Cancer"] * 6
+    # assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+    assert False
+
+
 # def test_predict_with_custom_model_and_roc(
 #     run_cli, tmp_path, resource_path, lionheart_features
 # ):

@@ -264,6 +264,7 @@ def main(args):
     # Paths is a new object from prepare_modeling
     paths = prepared_modeling_dict["paths"]
     paths.set_path("prediction_path", out_path / "predictions.csv", "out_files")
+    paths.set_path("evaluation_path", out_path / "evaluation_scores.csv", "out_files")
     paths.set_path("resources_dir", resources_dir, "in_dirs")
 
     # NOTE: These names must match what's used in
@@ -410,6 +411,9 @@ def main(args):
         col_ for col_ in all_evaluations.columns if col_ not in first_columns
     ]
     all_evaluations = all_evaluations.loc[:, first_columns + remaining_columns]
+
+    messenger("Start: Saving evaluations to disk")
+    all_evaluations.to_csv(paths["evaluation_path"], index=False)
 
     messenger("Evaluations:\n", all_evaluations, indent=2)
 
