@@ -7,8 +7,6 @@ from lionheart.utils.global_vars import LABELS_TO_USE
 
 
 def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
-    sample_dir = tmp_path / "test_sample"
-    mk_dir(sample_dir / "dataset")
     output_subdir = "model_output"
 
     command_args = [
@@ -109,8 +107,6 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
 
 
 def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
-    sample_dir = tmp_path / "test_sample"
-    mk_dir(sample_dir / "dataset")
     output_subdir = "model_output"
 
     command_args = [
