@@ -107,7 +107,7 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
         ), f"Expected file {expected_file} not found."
 
     # Check prediction
-    prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
+    prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
