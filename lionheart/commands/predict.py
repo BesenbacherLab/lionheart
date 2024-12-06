@@ -219,9 +219,11 @@ def main(args):
             for idx, path in enumerate(args.custom_threshold_dirs)
         }
         custom_prob_density_paths = {
-            f"custom_prob_densities_{idx}": pathlib.Path(path) / "probability_densities.csv"
+            f"custom_prob_densities_{idx}": pathlib.Path(path)
+            / "probability_densities.csv"
             for idx, path in enumerate(args.custom_threshold_dirs)
         }
+
     paths = IOPaths(
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
@@ -423,9 +425,9 @@ def main(args):
                     for prob_key in custom_prob_density_paths.keys():
                         # Load training-data-based ROC curve collection
                         try:
-                            roc_curves[f"Custom {prob_key.split('_')[-1]}"] = (
-                                ProbabilityDensities.from_file(paths[prob_key])
-                            )
+                            probability_densitites[
+                                f"Custom {prob_key.split('_')[-1]}"
+                            ] = ProbabilityDensities.from_file(paths[prob_key])
                         except:
                             messenger(
                                 "Failed to load probability densities from: "
