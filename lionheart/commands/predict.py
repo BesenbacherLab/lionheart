@@ -72,16 +72,17 @@ def setup_parser(parser):
         "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
     )
     parser.add_argument(
-        "--custom_roc_paths",
+        "--custom_threshold_dirs",
         type=str,
         nargs="*",
-        help="Path(s) to a `.json` file with a ROC curve made with `lionheart extract_roc`"
-        "\nfor extracting the probability thresholds."
+        help="Path(s) to a directory with `ROC_curves.json` and `probability_densities.csv` "
+        "files made with `lionheart customize_thresholds` "
+        "for extracting the probability thresholds."
         "\nThe output will have predictions for thresholds "
-        "based on each of the available ROC curves "
-        "from the training data, the custom models, and these custom ROC curves."
+        "based on each of the available ROC curves and probability densities "
+        "from the training data, the custom models, and these directories."
         + (
-            "\n<b>NOTE></b>: ROC curves are ignored for subtyping models."
+            "\n<b>NOTE></b>: These are ignored for subtyping models."
             if ENABLE_SUBTYPING
             else ""
         ),
@@ -108,8 +109,8 @@ def setup_parser(parser):
         "that should lead to a specificity above this level is chosen. "
         "\nWhen passing specific float thresholds, the nearest threshold "
         "in the ROC curve is used. "
-        "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
-        "\nwhich was fitted to the <b>training</b> data during model training."
+        "\n<b>NOTE</b>: The thresholds are extracted from each of the specified ROC curves,"
+        "namely the ROC curve fitted on the model's training data and those in --custom_threshold_dirs."
         + ("\n<b>NOTE></b>: Ignored for subtyping models." if ENABLE_SUBTYPING else ""),
     )
     parser.add_argument(
@@ -205,19 +206,26 @@ def main(args):
         for model_name, model_dir in model_name_to_dir.items()
     }
 
-    custom_roc_paths = {}
-    # Currently disabled
-    if args.custom_roc_paths is not None and args.custom_roc_paths:
-        custom_roc_paths = {
-            f"custom_roc_curve_{roc_idx}": roc_path
-            for roc_idx, roc_path in enumerate(args.custom_roc_paths)
+    custom_threshold_dirs = {}
+    if args.custom_threshold_dirs is not None and args.custom_threshold_dirs:
+        custom_threshold_dirs = {
+            f"custom_threshold_dir_{idx}": path
+            for idx, path in enumerate(args.custom_threshold_dirs)
         }
-
+        custom_roc_paths = {
+            f"custom_roc_curve_{idx}": path / "ROC_curves.json"
+            for idx, path in enumerate(args.custom_threshold_dirs)
+        }
+        custom_prob_density_paths = {
+            f"custom_roc_curve_{idx}": path / "probability_densities.csv"
+            for idx, path in enumerate(args.custom_threshold_dirs)
+        }
     paths = IOPaths(
         in_files={
             "features": sample_dir / "dataset" / "feature_dataset.npy",
             **model_paths,
             **custom_roc_paths,
+            **custom_prob_density_paths,
             **training_info_paths,
         },
         in_dirs={
@@ -225,6 +233,7 @@ def main(args):
             "dataset_dir": sample_dir / "dataset",
             "sample_dir": sample_dir,
             **model_name_to_dir,
+            **custom_threshold_dirs,
         },
         out_dirs={
             "out_path": out_path,
@@ -342,6 +351,7 @@ def main(args):
             messenger("Start: Loading ROC Curve(s)", indent=4)
             with timer.time_step(indent=8, name_prefix=f"{model_idx}_load_roc_curves"):
                 roc_curves: Dict[str, ROCCurve] = {}
+
                 # Load training-data-based ROC curve collection
                 try:
                     rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
@@ -371,7 +381,7 @@ def main(args):
                             rocs = ROCCurves.load(paths[roc_key])
                         except:
                             messenger(
-                                "Failed to load ROC curve collection at: "
+                                "Failed to load ROC curve collection from: "
                                 f"{paths[roc_key]}"
                             )
                             raise
@@ -390,9 +400,14 @@ def main(args):
             with timer.time_step(
                 indent=8, name_prefix=f"{model_idx}_load_probability_densities"
             ):
+                probability_densitites: Dict[str, ProbabilityDensities] = {}
+
+                # Load training-data-based ROC curve collection
                 try:
-                    prob_densities = ProbabilityDensities.from_file(
-                        paths[f"prob_densities_{model_name}"]
+                    probability_densitites["Average (training data)"] = (
+                        ProbabilityDensities.from_file(
+                            paths[f"prob_densities_{model_name}"]
+                        )
                     )
                 except:
                     messenger(
@@ -400,6 +415,27 @@ def main(args):
                         f"{paths[f'prob_densities_{model_name}']}"
                     )
                     raise
+
+                # Load custom probability densities
+                if custom_prob_density_paths:
+                    for prob_key in custom_prob_density_paths.keys():
+                        # Load training-data-based ROC curve collection
+                        try:
+                            roc_curves[f"Custom {prob_key.split('_')[-1]}"] = (
+                                ProbabilityDensities.from_file(paths[prob_key])
+                            )
+                        except:
+                            messenger(
+                                "Failed to load probability densities from: "
+                                f"{paths[prob_key]}"
+                            )
+                            raise
+
+            assert sorted(probability_densitites.keys()) == sorted(roc_curves.keys()), (
+                "Did not get matching ROC curves and probability density files. "
+                f"Keys: [{', '.join(sorted(roc_curves.keys()))}] != "
+                f"[{', '.join(sorted(probability_densitites.keys()))}]."
+            )
 
             messenger("Start: Calculating probability threshold(s)", indent=4)
             with timer.time_step(
@@ -494,15 +530,16 @@ def main(args):
                             )
                             # Get the expected accuracy for the given prediction
                             # at this probability (based on the training data)
-                            thresh_info["Expected Accuracy"] = (
-                                prob_densities.get_expected_accuracy(
-                                    new_probability=predicted_probability
-                                )[
-                                    "Cancer"
-                                    if predicted_probability > thresh_info["Threshold"]
-                                    else "Control"  # Label during model training
-                                ]
-                            )
+                            thresh_info["Expected Accuracy"] = probability_densitites[
+                                roc_name  # Same keys to ensure we use the right densities per ROC
+                            ].get_expected_accuracy(
+                                new_probability=predicted_probability
+                            )[
+                                "Cancer"
+                                if predicted_probability > thresh_info["Threshold"]
+                                else "Control"  # Label during model training
+                            ]
+
                         prediction_df = pd.DataFrame(thresholds)
 
                         prediction_df[probability_colname] = predicted_probability

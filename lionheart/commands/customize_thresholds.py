@@ -6,7 +6,7 @@ Script that validates a model on one or more specified validation datasets.
 import logging
 import pathlib
 from utipy import Messenger, StepTimer, IOPaths
-from lionheart.modeling.run_extract_roc import run_extract_roc
+from lionheart.modeling.run_customize_thresholds import run_customize_thresholds
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, LABELS_TO_USE
@@ -154,9 +154,9 @@ def main(args):
         model_dir = pathlib.Path(args.custom_model_dir)
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="extract-roc-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="customize-thresholds-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running ROC curve calculation")
+    messenger("Running threshold customization")
     messenger.now()
 
     # Init timestamp handler
@@ -182,7 +182,7 @@ def main(args):
     # Show overview of the paths
     messenger(paths)
 
-    run_extract_roc(
+    run_customize_thresholds(
         dataset_paths=dataset_paths,
         out_path=out_path,
         meta_data_paths=meta_data_paths,

@@ -186,7 +186,5 @@ $ lionheart validate --out_dir {val_out_dir} --resources_dir {resources_dir} --m
 [TODO Describe outputs!]
 
 TODO:
- - cross-validate
- - train model
  - validate
  - evaluate univariates

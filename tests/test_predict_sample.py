@@ -63,7 +63,7 @@ def test_predict_with_custom_model_and_roc(
 
     command_args = [
         "lionheart",
-        "extract_roc",
+        "customize_thresholds",
         "--dataset_paths",
         resource_path / "shared_features" / "GECOCA" / "feature_dataset.npy",
         "--meta_data_paths",
@@ -77,7 +77,7 @@ def test_predict_with_custom_model_and_roc(
         output_subdir="roc_output",
     )
 
-    custom_roc_path = tmp_path / "roc_output" / "ROC_curves.json"
+    custom_threshold_dir = tmp_path / "roc_output"
 
     # Predict
 
@@ -88,8 +88,8 @@ def test_predict_with_custom_model_and_roc(
         tmp_path / "test_sample",
         "--resources_dir",
         resource_path,
-        "--custom_roc_paths",
-        custom_roc_path,
+        "--custom_threshold_dirs",
+        custom_threshold_dir,
         "--custom_model_dirs",
         resource_path / "models" / INCLUDED_MODELS[0],
         "--model_names",
@@ -129,3 +129,5 @@ def test_predict_with_custom_model_and_roc(
         [0.476824, 0.506503],
         decimal=4,
     )
+    
+    assert False

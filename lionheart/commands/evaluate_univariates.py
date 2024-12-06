@@ -5,7 +5,6 @@ Script that cross-validates with specified features / cohorts..
 
 import logging
 import pathlib
-import pandas as pd
 from utipy import Messenger, StepTimer, IOPaths
 
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command

@@ -9,12 +9,13 @@ from packaging import version
 from utipy import Messenger, StepTimer, check_messenger
 from generalize.evaluate.evaluate import Evaluator
 from generalize.evaluate.roc_curves import ROCCurves
+from generalize.evaluate.probability_densities import ProbabilityDensities
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
 from lionheart import __version__ as lionheart_version
 
 
-def run_extract_roc(
+def run_customize_thresholds(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
@@ -109,7 +110,13 @@ def run_extract_roc(
         },
         "in_files",
     )
-    paths.set_path("roc_path", out_path / "ROC_curves.json", "out_files")
+    paths.set_paths(
+        {
+            "roc_path": out_path / "ROC_curves.json",
+            "prob_densities_path": out_path / "probability_densities.csv",
+        },
+        collection="out_files",
+    )
 
     # Create output directories
     paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
@@ -177,6 +184,27 @@ def run_extract_roc(
     rocs = ROCCurves()
     rocs.add(path="Custom ROC", roc_curve=eval["ROC"])
     rocs.save(paths["roc_path"])
+
+    # Calculate probability densities
+    combined_predictions = Evaluator.combine_predictions(
+        predictions_list=[predicted_probabilities],
+        targets=prepared_modeling_dict["labels"],
+        groups=prepared_modeling_dict["groups"]
+        if prepared_modeling_dict["aggregate_by_groups"]
+        else None,
+        positive_class="Cancer",
+        target_idx_to_target_label_map={0: "Control", 1: "Cancer"},
+    )
+
+    messenger("Start: Calculating probability densities")
+    prob_densities = ProbabilityDensities().calculate_densities(
+        combined_predictions,
+        probability_col="P(Cancer)",
+        target_col="Target Label",
+        group_cols="Split" if "Split" in combined_predictions.columns else None,
+    )
+    messenger("Start: Saving probability densities")
+    prob_densities.save(path=paths["prob_densities_path"])
 
 
 def _load_json(filename):

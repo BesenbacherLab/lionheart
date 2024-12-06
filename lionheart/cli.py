@@ -1,13 +1,13 @@
 import argparse
 from lionheart.commands import (
     collect_samples,
+    customize_thresholds,
     extract_features,
     predict,
     train_model,
     validate,
     cross_validate,
     evaluate_univariates,
-    extract_roc,
     guides,
 )
 from lionheart.utils.cli_utils import (
@@ -83,7 +83,9 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         "collect",
         help="Collect predictions and/or features across samples",
         description=wrap_command_description(
-            "COLLECT predictions and/or extracted features for multiple samples."
+            "COLLECT predictions and/or extracted features for multiple samples. "
+            "\nCollecting the features creates a 'dataset' that can be used in "
+            "other `lionheart` commands."
         ),
         formatter_class=parser.formatter_class,
     )
@@ -92,18 +94,18 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
 
     # Command 4
     parser_er = subparsers.add_parser(
-        "extract_roc",
-        help="Extract ROC curve for custom probability thresholds",
+        "customize_thresholds",
+        help="Extract ROC curve and probability densitities for using custom probability thresholds",
         description=wrap_command_description(
-            "Extract the ROC curve for model's predictions on one or more datasets. "
-            "\nAllows using probability thresholds fitted to your own data in "
+            "Extract the ROC curve and probability densities for a model's predictions on one or more datasets. "
+            "\nThis allows using probability thresholds fitted to your own data in "
             "`lionheart predict_sample` and `lionheart validate`."
         ),
         formatter_class=parser.formatter_class,
-        epilog=extract_roc.EPILOG,
+        epilog=customize_thresholds.EPILOG,
     )
     # Delegate the argument setup to the respective command module
-    extract_roc.setup_parser(parser_er)
+    customize_thresholds.setup_parser(parser_er)
 
     # Command 5
     parser_tm = subparsers.add_parser(

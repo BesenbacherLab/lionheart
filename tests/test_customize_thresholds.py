@@ -4,7 +4,7 @@ from generalize.evaluate.roc_curves import ROCCurves
 from lionheart.utils.global_vars import INCLUDED_MODELS
 
 
-def test_extract_roc_shared_resources(
+def test_customize_thresholds_shared_resources(
     run_cli,
     tmp_path,
     resource_path,
@@ -13,7 +13,7 @@ def test_extract_roc_shared_resources(
 
     command_args = [
         "lionheart",
-        "extract_roc",
+        "customize_thresholds",
         "--resources_dir",
         resource_path,
         "--model_name",
@@ -40,7 +40,7 @@ def test_extract_roc_shared_resources(
     npt.assert_almost_equal(roc.auc, 0.8837, decimal=4)
 
 
-def test_extract_roc_single_dataset_custom_model(
+def test_customize_thresholds_single_dataset_custom_model(
     run_cli,
     tmp_path,
     resource_path,
@@ -49,7 +49,7 @@ def test_extract_roc_single_dataset_custom_model(
 
     command_args = [
         "lionheart",
-        "extract_roc",
+        "customize_thresholds",
         "--dataset_paths",
         resource_path / "shared_features" / "GECOCA" / "feature_dataset.npy",
         "--meta_data_paths",
