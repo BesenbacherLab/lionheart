@@ -207,6 +207,8 @@ def main(args):
     }
 
     custom_threshold_dirs = {}
+    custom_roc_paths = {}
+    custom_prob_density_paths = {}
     if args.custom_threshold_dirs is not None and args.custom_threshold_dirs:
         custom_threshold_dirs = {
             f"custom_threshold_dir_{idx}": pathlib.Path(path)
@@ -217,7 +219,7 @@ def main(args):
             for idx, path in enumerate(args.custom_threshold_dirs)
         }
         custom_prob_density_paths = {
-            f"custom_roc_curve_{idx}": pathlib.Path(path) / "probability_densities.csv"
+            f"custom_prob_densities_{idx}": pathlib.Path(path) / "probability_densities.csv"
             for idx, path in enumerate(args.custom_threshold_dirs)
         }
     paths = IOPaths(
