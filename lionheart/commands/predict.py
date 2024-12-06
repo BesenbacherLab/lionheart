@@ -26,6 +26,7 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
 from lionheart import __version__ as lionheart_version
+from lionheart.utils.utils import load_json
 
 if not ENABLE_SUBTYPING:
     INCLUDED_MODELS = [m for m in INCLUDED_MODELS if "subtype" not in m]
@@ -240,7 +241,7 @@ def main(args):
 
     messenger("Start: Loading training info", indent=4)
     model_name_to_training_info = {
-        model_name: _load_json(paths[f"training_info_{model_name}"])
+        model_name: load_json(paths[f"training_info_{model_name}"])
         for model_name in model_name_to_dir.keys()
     }
 
@@ -298,6 +299,7 @@ def main(args):
 
         prediction_dfs += run_predict_single_model(
             features=features,
+            sample_identifiers=None,
             model_name=model_name,
             model_name_to_training_info=model_name_to_training_info,
             custom_roc_paths=custom_roc_paths,
@@ -341,11 +343,6 @@ def main(args):
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
-
-
-def _load_json(filename):
-    with open(filename, "r") as f:
-        return json.load(f)
 
 
 def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:

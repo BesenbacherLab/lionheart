@@ -13,6 +13,7 @@ from generalize.evaluate.probability_densities import ProbabilityDensities
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
 from lionheart import __version__ as lionheart_version
+from lionheart.utils.utils import load_json
 
 
 def run_customize_thresholds(
@@ -207,11 +208,6 @@ def run_customize_thresholds(
     prob_densities.save(path=paths["prob_densities_path"])
 
 
-def _load_json(filename):
-    with open(filename, "r") as f:
-        return json.load(f)
-
-
 def _check_train_info(
     paths,
     messenger,
@@ -220,7 +216,7 @@ def _check_train_info(
     messenger("Start: Extracting training info", indent=4)
     with timer.time_step(indent=8, name_prefix="model_training_info"):
         with messenger.indentation(add_indent=8):
-            training_info = _load_json(paths["training_info"])
+            training_info = load_json(paths["training_info"])
 
             # Check package versioning
             for pkg, present_pkg_version, pkg_verb in [
