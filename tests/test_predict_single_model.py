@@ -9,11 +9,9 @@ from lionheart.utils.utils import load_json
 
 def test_predict_single_model(resource_path, lionheart_features):
     scores = np.expand_dims(np.array(lionheart_features), 0)
-    scores = np.concatenate([scores for _ in range(10)], axis=0)
-    scores = np.expand_dims(np.array(scores), 0)
-    assert scores.shape == (1, 10, 489)
+    assert scores.shape == (1, 489)
     three_scores = np.concatenate([scores for _ in range(3)], axis=0)
-    assert three_scores.shape == (3, 10, 489)
+    assert three_scores.shape == (10, 489)
 
     model_name = INCLUDED_MODELS[0]
     model_dir = resource_path / "models" / INCLUDED_MODELS[0]
@@ -55,7 +53,7 @@ def test_predict_single_model(resource_path, lionheart_features):
     # Three samples
 
     predictions_three_samples = run_predict_single_model(
-        features=scores,
+        features=three_scores,
         model_name=INCLUDED_MODELS[0],
         model_name_to_training_info=model_name_to_training_info,
         custom_roc_paths={},
