@@ -10,6 +10,9 @@ Preprint: https://www.medrxiv.org/content/10.1101/2024.11.26.24317971v1
 
 The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
+If you experience an issue with the package, please open an [issue](https://github.com/BesenbacherLab/lionheart/issues).
+
+
 ## Installation
 
 This section describes the installation of `lionheart` and the custom version of `mosdepth` (exp. time: <10m). The code has only been tested on linux but should also work on Mac and Windows.
