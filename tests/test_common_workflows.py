@@ -74,6 +74,7 @@ def test_train_customize_validate(run_cli, tmp_path, resource_path, lionheart_fe
         "--thresholds",
         "max_j",
         "spec_0.99",
+        "--use_included_validation",
     ]
     generated_files, output_dir = run_cli(
         command_args=command_args,
