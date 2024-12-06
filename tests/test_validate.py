@@ -40,7 +40,7 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
         }
     )
     print(meta)
-    meta.to_csv(tmp_path / "dataset" / "meta_data.csv")
+    meta.to_csv(tmp_path / "dataset" / "meta_data.csv", index=False)
 
     command_args = [
         "lionheart",
@@ -130,9 +130,20 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
     eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
     print(eval_scores)
 
-    # assert eval_scores["Prediction"].tolist() == ["Cancer"] * 6
-    # assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
-    assert False
+    assert eval_scores.loc[:, "Threshold Name"].tolist() == [
+        "Max. Youden's J",
+        "Sensitivity ~0.95",
+        "Sensitivity ~0.99",
+        "Specificity ~0.95",
+        "Specificity ~0.99",
+        "Threshold ~0.5",
+    ]
+    npt.assert_almost_equal(
+        eval_scores.loc[:, "Threshold"],
+        [0.476824, 0.273344, 0.179274, 0.602376, 0.712597, 0.500000],
+        decimal=4,
+    )
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.858754] * 6
 
 
 # def test_predict_with_custom_model_and_roc(
