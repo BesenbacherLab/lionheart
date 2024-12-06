@@ -224,10 +224,13 @@ def main(args):
         paths.set_path("resources_dir", resources_dir, "in_dirs")
 
     # Add dataset paths to lists for code reuse
+    args.dataset_paths = []
+    args.meta_data_paths = []
+    args.dataset_names = None
     if args.dataset_path is not None:
-        args.dataset_paths = [args.dataset_path]
+        args.dataset_paths += [args.dataset_path]
     if args.meta_data_path is not None:
-        args.meta_data_paths = [args.meta_data_path]
+        args.meta_data_paths += [args.meta_data_path]
     if args.dataset_name is not None:
         args.dataset_names = [args.dataset_name]
 
