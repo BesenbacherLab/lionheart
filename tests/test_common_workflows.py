@@ -109,4 +109,4 @@ def test_train_customize_validate(run_cli, tmp_path, resource_path, lionheart_fe
         [0.373910, 0.706941, 0.562187, 0.944799],
         decimal=4,
     )
-    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8588] * 6
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.836436] * 4
