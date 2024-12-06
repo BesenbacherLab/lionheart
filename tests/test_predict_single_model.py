@@ -35,7 +35,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     # Single sample
 
-    predictions_single_sample = run_predict_single_model(
+    predictions_list_single_sample = run_predict_single_model(
         features=scores,
         model_name=INCLUDED_MODELS[0],
         model_name_to_training_info=model_name_to_training_info,
@@ -47,6 +47,7 @@ def test_predict_single_model(resource_path, lionheart_features):
         timer=StepTimer(verbose=False),
         model_idx=0,
     )
+    predictions_single_sample = pd.concat(predictions_list_single_sample, axis=0)
 
     pd.set_option("display.max_columns", None)
     print(predictions_single_sample)
@@ -64,7 +65,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     # Three samples
 
-    predictions_three_samples = run_predict_single_model(
+    predictions_list_three_samples = run_predict_single_model(
         features=three_scores,
         model_name=INCLUDED_MODELS[0],
         model_name_to_training_info=model_name_to_training_info,
@@ -76,9 +77,10 @@ def test_predict_single_model(resource_path, lionheart_features):
         timer=StepTimer(verbose=False),
         model_idx=0,
     )
+    predictions_three_samples = pd.concat(predictions_list_three_samples, axis=0)
 
     print(predictions_three_samples)
-    
+
     # npt.assert_almost_equal(
     #     predictions_single_sample.loc[0, ].tolist(),
     #     [0.990602, 0.999808],
