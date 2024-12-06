@@ -370,6 +370,7 @@ def main(args):
                     positive=1,
                     thresh=thresh_rows["Threshold"].to_numpy()[0],
                     labels=label_idx_to_label,
+                    task="binary_classification",
                 ),
             )
         )
