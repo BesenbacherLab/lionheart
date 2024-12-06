@@ -54,7 +54,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
-        [0.993221, 0.993221],
+        [0.993221] * len(thresholds_to_calculate),  # 2 x num thresholds
         decimal=4,
     )
     # npt.assert_almost_equal(
@@ -81,10 +81,18 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     print(predictions_three_samples)
 
-    # npt.assert_almost_equal(
-    #     predictions_single_sample.loc[0, ].tolist(),
-    #     [0.990602, 0.999808],
-    #     decimal=4,
-    # )
-    predictions_single_sample
-    assert False
+    npt.assert_almost_equal(
+        predictions_three_samples.loc[:, "P(Cancer)"].tolist(),
+        [0.993221] * 3 * len(thresholds_to_calculate),
+        decimal=4,
+    )
+
+    npt.assert_equal(
+        predictions_single_sample.columns,
+        predictions_three_samples.columns,
+    )
+
+    npt.assert_equal(
+        predictions_single_sample.loc[0],
+        predictions_three_samples.loc[0],
+    )
