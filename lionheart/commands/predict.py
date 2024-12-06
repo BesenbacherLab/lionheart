@@ -3,21 +3,12 @@ Script that applies the model to the features of a singe sample and returns the 
 
 """
 
-from typing import Dict
 import logging
 import pathlib
-import warnings
-import json
-import joblib
-from joblib import load as joblib_load
 import numpy as np
 import pandas as pd
-from sklearn import __version__ as sklearn_version
-from packaging import version
 from utipy import Messenger, StepTimer, IOPaths
 from generalize.dataset import assert_shape
-from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
-from generalize.evaluate.probability_densities import ProbabilityDensities
 from lionheart.modeling.run_predict_single_model import (
     extract_custom_threshold_paths,
     run_predict_single_model,
@@ -25,7 +16,6 @@ from lionheart.modeling.run_predict_single_model import (
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
-from lionheart import __version__ as lionheart_version
 from lionheart.utils.utils import load_json
 
 if not ENABLE_SUBTYPING:

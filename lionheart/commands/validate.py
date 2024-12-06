@@ -3,7 +3,6 @@ Script that validates a model on one or more specified validation datasets.
 
 """
 
-import json
 import logging
 import pathlib
 import pandas as pd
@@ -13,7 +12,6 @@ from lionheart.modeling.run_predict_single_model import (
     extract_custom_threshold_paths,
     run_predict_single_model,
 )
-from lionheart.modeling.run_validate import run_validate
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples, parse_thresholds
 from lionheart.utils.global_vars import INCLUDED_MODELS, LABELS_TO_USE
