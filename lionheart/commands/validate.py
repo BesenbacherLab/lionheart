@@ -36,8 +36,6 @@ def setup_parser(parser):
     parser.add_argument(
         "--meta_data_path",
         type=str,
-        nargs="*",
-        default=[],
         help="Path(s) to csv file(s) where:"
         "\n  1) the first column contains the <b>sample IDs</b>"
         "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
@@ -84,7 +82,6 @@ def setup_parser(parser):
     parser.add_argument(
         "--dataset_name",
         type=str,
-        nargs="*",
         help="Name of dataset (when specified). <i>Optional</i> but helps interpretability of outputs."
         "\nUse quotes (e.g., 'name of dataset') in case of whitespace.",
     )
