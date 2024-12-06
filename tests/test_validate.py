@@ -39,6 +39,7 @@ def test_validate_custom_dataset(run_cli, tmp_path, resource_path, lionheart_fea
             "Subject ID": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
         }
     )
+    print(meta)
     meta.to_csv(tmp_path / "dataset" / "meta_data.csv")
 
     command_args = [
