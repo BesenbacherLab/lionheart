@@ -32,7 +32,7 @@ def test_predict_single_model(resource_path, lionheart_features):
         model_name: load_json(paths[f"training_info_{model_name}"])
     }
 
-    thresholds_to_calculate = parse_thresholds(["max_j", "spec_95"])
+    thresholds_to_calculate = parse_thresholds(["max_j", "spec_0.99"])
 
     # Single sample
 
