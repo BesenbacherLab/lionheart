@@ -107,33 +107,7 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     # Delegate the argument setup to the respective command module
     customize_thresholds.setup_parser(parser_er)
 
-    # Command 5
-    parser_tm = subparsers.add_parser(
-        "train_model",
-        help="Train a model on your own data and/or the included features",
-        description=wrap_command_description(
-            "TRAIN A MODEL on your extracted features and/or the included features."
-        ),
-        formatter_class=parser.formatter_class,
-        epilog=train_model.EPILOG,
-    )
-    # Delegate the argument setup to the respective command module
-    train_model.setup_parser(parser_tm)
-
     # # Command 5
-    # parser_va = subparsers.add_parser(
-    #     "validate",
-    #     help="Validate a trained model on one or more validation datasets",
-    #     description=wrap_command_description(
-    #         "VALIDATE your trained model one or more validation datasets, such as the included validation dataset."
-    #     ),
-    #     formatter_class=parser.formatter_class,
-    #     epilog=validate.EPILOG,
-    # )
-    # # Delegate the argument setup to the respective command module
-    # validate.setup_parser(parser_va)
-
-    # # Command 7
     parser_cv = subparsers.add_parser(
         "cross_validate",
         help="Cross-validate the cancer detection model on your own data and/or the included features",
@@ -149,6 +123,32 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
     )
     # Delegate the argument setup to the respective command module
     cross_validate.setup_parser(parser_cv)
+
+    # Command 6
+    parser_tm = subparsers.add_parser(
+        "train_model",
+        help="Train a model on your own data and/or the included features",
+        description=wrap_command_description(
+            "TRAIN A MODEL on your extracted features and/or the included features."
+        ),
+        formatter_class=parser.formatter_class,
+        epilog=train_model.EPILOG,
+    )
+    # Delegate the argument setup to the respective command module
+    train_model.setup_parser(parser_tm)
+
+    # # Command 7
+    parser_va = subparsers.add_parser(
+        "validate",
+        help="Validate a model on a validation dataset",
+        description=wrap_command_description(
+            "VALIDATE your trained model on a validation dataset, such as the included validation dataset."
+        ),
+        formatter_class=parser.formatter_class,
+        epilog=validate.EPILOG,
+    )
+    # Delegate the argument setup to the respective command module
+    validate.setup_parser(parser_va)
 
     # # Command 8
     parser_eu = subparsers.add_parser(

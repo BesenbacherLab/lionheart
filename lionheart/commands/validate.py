@@ -119,16 +119,6 @@ def setup_parser(parser):
         "based on each of the available ROC curves and probability densities "
         "from the training data and these directories.",
     )
-    parser.add_argument(
-        "--custom_threshold_dirs",
-        type=str,
-        nargs="*",
-        help="Path(s) to a `.json` file with a custom ROC curve made with `lionheart extract_roc`"
-        "\nfor extracting the probability thresholds."
-        "\nThe output will have predictions for thresholds "
-        "based on each of the available ROC curves "
-        "from the training data and these custom ROC curves.",
-    )
     threshold_defaults = [
         "max_j",
         "spec_0.95",
