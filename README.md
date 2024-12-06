@@ -76,7 +76,7 @@ This section describes the commands in `lionheart` and lists their *main* output
 | `lionheart customize_thresholds` | Extract ROC curve and more for using custom probability thresholds. | `ROC_curves.json` and `probability_densities.csv`                                   |
 | `lionheart cross_validate`       | Cross-validate the model on new data and/or the included features.  | `evaluation_summary.csv`,  `splits_summary.csv`                                     |
 | `lionheart train_model`          | Train a model on your own data and/or the included features.        | `model.joblib` and training data results                                            |
-| `lionheart validate`             | Validate a model on a validation dataset.                           | TODO                                                                                |
+| `lionheart validate`             | Validate a model on a validation dataset.                           | `evaluation_scores.csv` and `predictions.csv`                                       |
 | `lionheart evaluate_univariates` | Evaluate the cancer detection potential of each feature separately. | `univariate_evaluations.csv`                                                        |
 
 
