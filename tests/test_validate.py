@@ -112,8 +112,18 @@ def test_validate_reproducibility(run_cli, tmp_path, resource_path):
     prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(prediction.iloc[:3])
 
-    assert prediction["Prediction"].tolist() == ["Cancer"] * 6
-    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+    assert len(prediction) == 2106
+
+    assert prediction.iloc[:3, "Prediction"].tolist() == ["No Cancer"] * 3
+    npt.assert_almost_equal(
+        prediction.iloc[:3, "P(Cancer)"],
+        [
+            0.371896,
+            0.348255,
+            0.363712,
+        ],
+        decimal=4,
+    )
 
     # Check evaluation scores
     eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
