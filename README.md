@@ -10,7 +10,7 @@ Preprint: https://www.medrxiv.org/content/10.1101/2024.11.26.24317971v1
 
 The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
-If you experience an issue with the package, please open an [issue](https://github.com/BesenbacherLab/lionheart/issues).
+If you experience an issue, please [report it](https://github.com/BesenbacherLab/lionheart/issues).
 
 
 ## Installation
@@ -191,5 +191,5 @@ The model training creates the `model.joblib` file along with predictions and ev
 The validation creates `evaluation_scores.csv` and `predictions.csv` from applying the model on the validation dataset. You will find the reported AUC score in `evaluation_scores.csv`:
 
 ```
-cat {val_out_dir}/evaluation_scores.csv
+$ cat {val_out_dir}/evaluation_scores.csv
 ```

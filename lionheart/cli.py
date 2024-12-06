@@ -14,6 +14,7 @@ from lionheart.utils.cli_utils import (
     LION_ASCII,
     LIONHEART_ASCII,
     LIONHEART_STRING,
+    README_STRING,
     CustomRichHelpFormatter,
     wrap_command_description,
 )
@@ -36,6 +37,8 @@ Detect Cancer from whole genome sequenced plasma cell-free DNA.
 Start by <b>extracting</b> the features from a BAM file (hg38 only). Then <b>predict</b> whether a sample is from a cancer patient or not.
 
 Easily <b>train</b> a new model on your own data or perform <b>cross-validation</b> to compare against the paper.
+
+{README_STRING}
         """,
         formatter_class=CustomRichHelpFormatter,
     )
