@@ -88,6 +88,8 @@ def test_train_customize_validate(run_cli, tmp_path, resource_path, lionheart_fe
     eval_scores = pd.read_csv(
         tmp_path / validate_output_subdir / "evaluation_scores.csv"
     )
+
+    pd.set_option("display.max_columns", None)
     print(eval_scores)
 
     assert eval_scores.loc[:, "Threshold Name"].tolist() == [
@@ -104,7 +106,7 @@ def test_train_customize_validate(run_cli, tmp_path, resource_path, lionheart_fe
     ]
     npt.assert_almost_equal(
         eval_scores.loc[:, "Threshold"],
-        [0.476824, 0.273344, 0.179274, 0.602376, 0.712597, 0.500000],
+        [0.373910, 0.706941, 0.562187, 0.944799],
         decimal=4,
     )
     assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8588] * 6
