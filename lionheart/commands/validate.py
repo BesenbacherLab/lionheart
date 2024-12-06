@@ -299,6 +299,7 @@ def main(args):
             "Target": prepared_modeling_dict["labels"].flatten(),
         }
     )
+    print(sample_identifiers)
 
     # Ensure we have a row of sample identifiers per dataset
     assert len(sample_identifiers) == len(prepared_modeling_dict["dataset"])
@@ -346,6 +347,7 @@ def main(args):
 
     messenger("Start: Saving predicted probability to disk")
     all_predictions_df.to_csv(paths["prediction_path"], index=False)
+
     messenger("First few predictions:\n", all_predictions_df.head(3), indent=2)
 
     messenger("Start: Evaluating predictions")
