@@ -19,8 +19,8 @@ def prepare_modeling(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
-    feature_name_to_feature_group_path: Union[str, pathlib.Path],
     task: str,
+    feature_name_to_feature_group_path: Optional[Union[str, pathlib.Path]] = None,
     # Containing partial model function, grid (hparams), etc.
     model_dict: Optional[dict] = None,
     labels_to_use: Optional[List[str]] = None,
@@ -172,12 +172,17 @@ def prepare_modeling(
         in_files={
             **dataset_paths,
             **meta_data_paths,
-            "feature_name_to_feature_group_path": feature_name_to_feature_group_path,
         },
         out_dirs={
             "out_path": out_path,
         },
     )
+    if feature_name_to_feature_group_path is not None:
+        paths.set_path(
+            "feature_name_to_feature_group_path",
+            feature_name_to_feature_group_path,
+            "in_files",
+        )
 
     if mk_plots_dir:
         paths.set_path(
@@ -396,7 +401,10 @@ def prepare_modeling(
         if task == "binary_classification" and num_labels != 2:
             ltu_string = ""
             if labels_to_use is not None and num_labels < 2:
-                ltu_string = " Perhaps you misspelled the labels in `labels_to_use`?"
+                ltu_string = (
+                    " Perhaps you misspelled the labels in `labels_to_use`? "
+                    "Or added an index in the meta data file?"
+                )
             raise ValueError(
                 f"Binary classification requires exactly 2 target labels, "
                 f"found {num_labels}.{ltu_string}"
@@ -469,11 +477,24 @@ def prepare_modeling(
 
     # Feature names and groups
     # for plotting cell type contributions
-    feature_name_to_feature_group = pd.read_csv(
-        paths["feature_name_to_feature_group_path"]
-    )
-    feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
-    feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+    try:
+        feature_name_to_feature_group = pd.read_csv(
+            paths["feature_name_to_feature_group_path"]
+        )
+        feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+        # ATAC or DNase
+        feature_seq = feature_name_to_feature_group.iloc[:, 2].astype("string")
+        feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+    except ValueError as e:
+        if (
+            "feature_name_to_feature_group_path was not a known key in any of the path collections"
+            in str(e)
+        ):
+            feature_names = None
+            feature_seq = None
+            feature_group_names = None
+        else:
+            raise
 
     # Record end timestamp
     timer.stamp(name="prepare_modeling() end")
@@ -485,6 +506,7 @@ def prepare_modeling(
         "labels": labels,
         "sample_ids": sample_ids,
         "feature_names": feature_names,
+        "feature_seq": feature_seq,
         "feature_group_names": feature_group_names,
         "model": model,
         "model_dict": model_dict,

@@ -103,7 +103,7 @@ def run_mosdepth(
     messenger("Checking that the splits have the expected number of bins")
     # NOTE: Theoretically this would not catch weird cases where
     # the overall number of bins is correct but the splitting
-    # was e.g. random (non-zero) (Unlikely!)
+    # was e.g., random (non-zero) (Unlikely!)
 
     chrom_split_files = {
         f"chr{chrom}": df_splits_path / f"chr{chrom}.bed" for chrom in range(1, 23)

@@ -18,6 +18,10 @@ def run_cli():
         if output_dir_arg not in command_args:
             command_args.extend([output_dir_arg, str(output_dir)])
 
+        command_args = [str(cmd) for cmd in command_args]
+
+        print(" ".join(command_args))
+
         # Run the command
         result = subprocess.run(
             command_args,

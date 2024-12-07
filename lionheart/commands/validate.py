@@ -3,48 +3,65 @@ Script that validates a model on one or more specified validation datasets.
 
 """
 
-from typing import Dict
 import logging
 import pathlib
-import numpy as np
 import pandas as pd
-import joblib
-import warnings
-from joblib import load as joblib_load
-from utipy import Messenger, StepTimer, IOPaths, move_column_inplace
-from generalize.dataset import assert_shape
-from generalize.evaluate.roc_curves import ROCCurves, ROCCurve
+from utipy import Messenger, StepTimer, IOPaths
+from generalize.evaluate.evaluate import Evaluator
+from lionheart.modeling.run_predict_single_model import (
+    extract_custom_threshold_paths,
+    run_predict_single_model,
+)
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.global_vars import JOBLIB_VERSION
-from lionheart.utils.cli_utils import parse_thresholds, Examples
-from lionheart.utils.global_vars import INCLUDED_MODELS
+from lionheart.utils.cli_utils import Examples, parse_thresholds
+from lionheart.utils.global_vars import INCLUDED_MODELS, LABELS_TO_USE
+from lionheart.modeling.prepare_modeling_command import prepare_validation_command
+from lionheart.modeling.prepare_modeling import prepare_modeling
+from lionheart.utils.utils import load_json
 
 # TODO Not implemented
+# - Add the figure of sens/spec thresholds in train and test ROCs
 
 
 def setup_parser(parser):
     parser.add_argument(
-        "--dataset_paths",
+        "--dataset_path",
         type=str,
-        nargs="*",
-        default=[],
-        help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
+        help="Path to `feature_dataset.npy` file containing the collected features. "
         "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
-        "\nOnly the first feature set is used.",
+        "\nOnly the first feature set is used. "
+        "\nNOTE: To validate on the included validation dataset, set --use_included_validation instead. "
+        "Only one dataset can be validated on at a time.",
     )
     parser.add_argument(
-        "--meta_data_paths",
+        "--meta_data_path",
         type=str,
-        nargs="*",
-        default=[],
-        help="Path(s) to csv file(s) where the:"
+        help="Path(s) to csv file(s) where:"
         "\n  1) the first column contains the <b>sample IDs</b>"
-        "\n  2) the second column contains the <b>label</b> (one of {<i>'control', 'cancer', 'exclude'</i>})"
-        "\n  3) the (optional) third column contains <b>subject ID</b> "
+        "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
+        "\n  3) the third column contains the <b>cancer type</b> "
+        + (
+            (
+                "for subtyping (see --subtype)"
+                "\n     Either one of:"
+                "\n       {<i>'control', 'colorectal cancer', 'bladder cancer', 'prostate cancer',"
+                "\n       'lung cancer', 'breast cancer', 'pancreatic cancer', 'ovarian cancer',"
+                "\n       'gastric cancer', 'bile duct cancer', 'hepatocellular carcinoma',"
+                "\n       'head and neck squamous cell carcinoma', 'nasopharyngeal carcinoma',"
+                "\n       'exclude'</i>} (Must match exactly (case-insensitive) when using included features!) "
+                "\n     or a custom cancer type."
+                "\n     <b>NOTE</b>: When not running subtyping, any character value is fine."
+            )
+            if False  # ENABLE_SUBTYPING
+            else "[NOTE: Not currently used so can be any string value!]."
+        )
+        + "\n  4) the (optional) fourth column contains the <b>subject ID</b> "
         "(for when subjects have more than one sample)"
         "\nWhen --dataset_paths has multiple paths, there must be "
         "one meta data path per dataset, in the same order."
-        "\nSamples with the <i>'exclude'</i> label are excluded from the training.",
+        "\nSamples with the <i>'exclude'</i> label are excluded from the training."
+        "\nNOTE: To validate on the included validation dataset, set --use_included_validation instead. "
+        "Only one dataset can be validated on at a time.",
     )
     parser.add_argument(
         "--out_dir",
@@ -63,24 +80,41 @@ def setup_parser(parser):
         "\nWhen NOT specified, only the manually specified datasets are used.",
     )
     parser.add_argument(
-        "--resources_dir",
-        required=True,
+        "--dataset_name",
         type=str,
-        help="Path to directory with framework resources such as the validation dataset.",
+        help="Name of dataset (when specified). <i>Optional</i> but helps interpretability of outputs."
+        "\nUse quotes (e.g., 'name of dataset') in case of whitespace.",
+    )
+    parser.add_argument(
+        "--resources_dir",
+        type=str,
+        help="Path to directory with framework resources.",
     )
     parser.add_argument(
         "--model_name",
         choices=INCLUDED_MODELS,
         type=str,
-        help="Name of an included model(s) to validate."
-        "\nNOTE: only one of `--model_name` and `--model_dir` can be specified.",
+        help="Name of the included model to validate."
+        "\nNOTE: Only one of `--model_name` and `--custom_model_dir` can be specified.",
     )
     parser.add_argument(
-        "--model_dir",
+        "--custom_model_dir",
         type=str,
-        help="Path( to a directory with a custom model to use. "
-        "\nThe directory must include the files `model.joblib` and `ROC_curves.json`."
-        "\nThe directory name will be used to identify the predictions in the `model` column of the output.",
+        help="Path to a directory with a custom model to use. "
+        "\nThe directory must include the files `model.joblib`, `ROC_curves.json`, and `training_info.json`. "
+        "\nThe directory name will be used to identify the model in the output."
+        "\nNOTE: Only one of `--model_name` and `--custom_model_dir` can be specified.",
+    )
+    parser.add_argument(
+        "--custom_threshold_dirs",
+        type=str,
+        nargs="*",
+        help="Path(s) to a directory with `ROC_curves.json` and `probability_densities.csv` "
+        "files made with `lionheart customize_thresholds` "
+        "for extracting the probability thresholds."
+        "\nThe output will have predictions for thresholds "
+        "based on each of the available ROC curves and probability densities "
+        "from the training data and these directories.",
     )
     threshold_defaults = [
         "max_j",
@@ -95,9 +129,9 @@ def setup_parser(parser):
         type=str,
         nargs="*",
         default=threshold_defaults,
-        help="The probability thresholds to use."
+        help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at max. of Youden's J (`sensitivity + specificity + 1`)."
+        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity + 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "
@@ -108,15 +142,15 @@ def setup_parser(parser):
         "\nwhich was fitted to the <b>training</b> data during model training.",
     )
     parser.add_argument(
-        "--identifier",
-        type=str,
-        help="A string to add to the output data frame in an ID column. "
-        "E.g. the subject ID. Optional.",
+        "--aggregate_by_subjects",
+        action="store_true",
+        help="Whether to aggregate <i>predictions</i> per subject before evaluations. "
+        "\nThe predicted probabilities are averaged per subject."
+        "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
     parser.set_defaults(func=main)
 
 
-# TODO: Add more examples
 examples = Examples()
 examples.add_example(
     description="Validate your model on included validation dataset:",
@@ -128,8 +162,9 @@ examples.add_example(
 )
 examples.add_example(
     description="Validate included model on your dataset:",
-    example=f"""--dataset_paths path/to/dataset_1/feature_dataset.npy 
---meta_data_paths path/to/dataset_1/meta_data.csv 
+    example=f"""--dataset_path path/to/dataset/feature_dataset.npy 
+--meta_data_path path/to/dataset/meta_data.csv
+--dataset_name 'the_dataset'
 --out_dir path/to/output/directory
 --resources_dir path/to/resource/directory
 --model_name {INCLUDED_MODELS[0]}
@@ -139,20 +174,40 @@ EPILOG = examples.construct()
 
 
 def main(args):
-    sample_dir = pathlib.Path(args.sample_dir)
-    out_path = pathlib.Path(args.out_dir) if args.out_dir is not None else sample_dir
-    resources_dir = pathlib.Path(args.resources_dir)
+    out_path = pathlib.Path(args.out_dir)
 
-    if sum([args.model_name is not None, args.model_dir is not None]) != 1:
+    if sum([args.model_name is not None, args.custom_model_dir is not None]) != 1:
         raise ValueError(
-            "Exactly one of {`--model_name`, `--model_dir`} "
+            "Exactly one of {`--model_name`, `--custom_model_dir`} "
+            "should be specified at a time."
+        )
+    if args.model_name is not None:
+        if args.resources_dir is None:
+            raise ValueError(
+                "When `--model_name` is specified, "
+                "`--resources_dir` must also be specified."
+            )
+
+        resources_dir = pathlib.Path(args.resources_dir)
+        model_dir = resources_dir / "models" / args.model_name
+        model_name = args.model_name
+
+    else:
+        if args.resources_dir is not None:
+            resources_dir = pathlib.Path(args.resources_dir)
+        model_dir = pathlib.Path(args.custom_model_dir)
+        model_name = model_dir.stem
+
+    if sum([args.dataset_path is not None, args.use_included_validation]) != 1:
+        raise ValueError(
+            "Exactly one of {`--dataset_path`, `--use_included_validation`} "
             "should be specified at a time."
         )
 
     # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="predict-")
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="validate-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running model prediction on a single sample")
+    messenger("Running validation")
     messenger.now()
 
     # Init timestamp handler
@@ -162,65 +217,71 @@ def main(args):
     # Start timer for total runtime
     timer.stamp()
 
-    model_name_to_dir = {
-        model_name: resources_dir / "models" / model_name
-        for model_name in args.model_names
-        if model_name != "none"
-    }
-    if args.custom_model_dirs is not None and args.custom_model_dirs:
-        for custom_model_path in args.custom_model_dirs:
-            custom_model_path = pathlib.Path(custom_model_path)
-            if not custom_model_path.is_dir():
-                raise ValueError(
-                    "A path in --custom_model_dirs was not a directory: "
-                    f"{custom_model_path}"
-                )
-            model_name = custom_model_path.stem
-            if model_name in model_name_to_dir.keys():
-                raise ValueError(f"Got a duplicate model name: {model_name}")
-            model_name_to_dir[model_name] = custom_model_path
-
-    if not model_name_to_dir:
-        raise ValueError(
-            "No models where selected. Select one or more models to predict the sample."
-        )
-
-    model_paths = {
-        f"model_{model_name}": model_dir / "model.joblib"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
-    training_roc_paths = {
-        f"roc_curve_{model_name}": model_dir / "ROC_curves.json"
-        for model_name, model_dir in model_name_to_dir.items()
-    }
-    custom_roc_paths = {}
-    if args.custom_roc_paths is not None and args.custom_roc_paths:
-        custom_roc_paths = {
-            f"custom_roc_curve_{roc_idx}": roc_path
-            for roc_idx, roc_path in enumerate(args.custom_roc_paths)
-        }
-
     paths = IOPaths(
-        in_files={
-            "features": sample_dir / "dataset" / "feature_dataset.npy",
-            **model_paths,
-            **training_roc_paths,
-            **custom_roc_paths,
-        },
-        in_dirs={
-            "resources_dir": resources_dir,
-            "dataset_dir": sample_dir / "dataset",
-            "sample_dir": sample_dir,
-            **model_name_to_dir,
-        },
-        out_dirs={
-            "out_path": out_path,
-        },
-        out_files={"prediction_path": out_path / "prediction.csv"},
+        out_dirs={"out_path": out_path},
+    )
+    if resources_dir is not None:
+        paths.set_path("resources_dir", resources_dir, "in_dirs")
+
+    # Add dataset paths to lists for code reuse
+    args.dataset_paths = []
+    args.meta_data_paths = []
+    args.dataset_names = None
+    if args.dataset_path is not None:
+        args.dataset_paths += [args.dataset_path]
+    if args.meta_data_path is not None:
+        args.meta_data_paths += [args.meta_data_path]
+    if args.dataset_name is not None:
+        args.dataset_names = [args.dataset_name]
+
+    dataset_paths, meta_data_paths = prepare_validation_command(
+        args=args,
+        paths=paths,
+        messenger=messenger,
+    )
+
+    custom_threshold_dirs, custom_roc_paths, custom_prob_density_paths = (
+        extract_custom_threshold_paths(args)
     )
 
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
+
+    prepared_modeling_dict = prepare_modeling(
+        dataset_paths=dataset_paths,
+        out_path=out_path,
+        meta_data_paths=meta_data_paths,
+        feature_name_to_feature_group_path=None,
+        task="binary_classification",
+        labels_to_use=LABELS_TO_USE,
+        feature_sets=[0],
+        aggregate_by_groups=args.aggregate_by_subjects,
+        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        mk_plots_dir=False,
+        timer=timer,
+        messenger=messenger,
+    )
+
+    # Paths is a new object from prepare_modeling
+    paths = prepared_modeling_dict["paths"]
+    paths.set_path("prediction_path", out_path / "predictions.csv", "out_files")
+    paths.set_path("evaluation_path", out_path / "evaluation_scores.csv", "out_files")
+    paths.set_path("resources_dir", resources_dir, "in_dirs")
+
+    # NOTE: These names must match what's used in
+    # predict_sample (since they both use run_predict_single_model())
+    paths.set_paths(
+        {
+            f"model_{model_name}": model_dir / "model.joblib",
+            f"roc_curve_{model_name}": model_dir / "ROC_curves.json",
+            f"prob_densities_{model_name}": model_dir / "probability_densities.csv",
+            f"training_info_{model_name}": model_dir / "training_info.json",
+            **custom_roc_paths,
+            **custom_prob_density_paths,
+        },
+        "in_files",
+    )
+    paths.set_paths(custom_threshold_dirs, "in_dirs")
 
     # Show overview of the paths
     messenger(paths)
@@ -228,183 +289,134 @@ def main(args):
     messenger("Start: Interpreting `--thresholds`")
     thresholds_to_calculate = parse_thresholds(args.thresholds)
 
-    messenger("Start: Loading features")
-    try:
-        features = np.load(paths["features"])
-    except:
-        messenger("Failed to load features.")
-        raise
+    messenger("Start: Loading training information")
+    model_name_to_training_info = {
+        model_name: load_json(paths[f"training_info_{model_name}"])
+    }
 
-    # Check shape of sample dataset
-    # 10 feature sets, 489 cell types
-    assert_shape(
-        features,
-        expected_n_dims=2,
-        expected_dim_sizes={0: 10, 1: 489},
-        x_name="Loaded features",
+    # Construct data frame with sample identifiers for the predictions data frame
+    sample_identifiers = pd.DataFrame(
+        {
+            "Sample ID": prepared_modeling_dict["sample_ids"].flatten(),
+            "Target": prepared_modeling_dict["labels"].flatten(),
+        }
     )
 
-    features = np.expand_dims(features, axis=0)
-    # Get first feature set (correlations)
-    features = features[:, 0, :]
+    # Ensure we have a row of sample identifiers per dataset
+    assert len(sample_identifiers) == len(prepared_modeling_dict["dataset"])
 
-    if joblib.__version__ != JOBLIB_VERSION:
-        # joblib sometimes can't load objects
-        # pickled with a different joblib version
-        messenger(
-            f"Model was pickled with joblib=={JOBLIB_VERSION}. "
-            f"The installed version is {joblib.__version__}. "
-            "Model loading *may* fail.",
-            add_msg_fn=warnings.warn,
-        )
+    # Add optional columns
+    if prepared_modeling_dict["groups"] is not None:
+        sample_identifiers["Subject ID"] = prepared_modeling_dict["groups"]
+    if prepared_modeling_dict["split"] is not None:
+        sample_identifiers["Dataset"] = prepared_modeling_dict["split"]
 
-    prediction_dfs = []
-
-    for model_name in model_name_to_dir.keys():
-        messenger(f"Model: {model_name}")
-
-        messenger("Start: Loading ROC Curve(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="load_roc_curves"):
-            with messenger.indentation(add_indent=8):
-                roc_curves: Dict[str, ROCCurve] = {}
-                # Load training-data-based ROC curve collection
-                try:
-                    rocs = ROCCurves.load(paths[f"roc_curve_{model_name}"])
-                except:
-                    messenger(
-                        "Failed to load ROC curve collection at: "
-                        f"{paths[f'roc_curve_{model_name}']}"
-                    )
-                    raise
-
-                try:
-                    roc = rocs.get("Average")  # TODO: Fix path
-                except:
-                    messenger(
-                        "`ROCCurves` collection did not have the expected `Average` ROC curve. "
-                        f"File: {paths[f'roc_curve_{model_name}']}"
-                    )
-                    raise
-
-                roc_curves["Average (training data)"] = roc
-
-                # Load custom ROC curves
-                if custom_roc_paths:
-                    for roc_key in custom_roc_paths.keys():
-                        # Load training-data-based ROC curve collection
-                        try:
-                            rocs = ROCCurves.load(paths[roc_key])
-                        except:
-                            messenger(
-                                "Failed to load ROC curve collection at: "
-                                f"{paths[roc_key]}"
-                            )
-                            raise
-
-                        try:
-                            roc = rocs.get("Validation")  # TODO: Fix path
-                        except:
-                            messenger(
-                                "`ROCCurves` collection did not have the expected "
-                                f"`Validation` ROC curve. File: {paths[roc_key]}"
-                            )
-                            raise
-                        roc_curves[f"Validation {roc_key.split('_')[-1]}"] = roc
-
-        messenger("Start: Calculating probability threshold(s)", indent=4)
-        with timer.time_step(indent=8, name_prefix="threshold_calculation"):
-            with messenger.indentation(add_indent=8):
-                roc_to_thresholds = {}
-
-                for roc_name, roc_curve in roc_curves.items():
-                    roc_to_thresholds[roc_name] = []
-
-                    if thresholds_to_calculate["max_j"]:
-                        max_j = roc_curve.get_threshold_at_max_j()
-                        max_j["Name"] = "Max. Youden's J"
-                        roc_to_thresholds[roc_name].append(max_j)
-
-                    for s in thresholds_to_calculate["sensitivity"]:
-                        thresh = roc_curve.get_threshold_at_sensitivity(
-                            above_sensitivity=s
-                        )
-                        thresh["Name"] = f"Sensitivity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    for s in thresholds_to_calculate["specificity"]:
-                        thresh = roc_curve.get_threshold_at_specificity(
-                            above_specificity=s
-                        )
-                        thresh["Name"] = f"Specificity ~{s}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    for t in thresholds_to_calculate["numerics"]:
-                        thresh = roc_curve.get_nearest_threshold(threshold=t)
-                        thresh["Name"] = f"Threshold ~{t}"
-                        roc_to_thresholds[roc_name].append(thresh)
-
-                    messenger(f"ROC curve: {roc_name}")
-                    messenger(
-                        "Calculated the following thresholds: \n",
-                        pd.DataFrame(roc_to_thresholds[roc_name]),
-                        add_indent=4,
-                    )
-
-        messenger("Start: Loading and applying model pipeline", indent=4)
-        with timer.time_step(indent=8, name_prefix="model_inference"):
-            with messenger.indentation(add_indent=8):
-                try:
-                    pipeline = joblib_load(paths[f"model_{model_name}"])
-                    messenger("Pipeline:\n", pipeline)
-                except:
-                    messenger("Model failed to be loaded.")
-                    raise
-
-                predicted_probability = pipeline.predict_proba(features).flatten()
-                if len(predicted_probability) == 1:
-                    predicted_probability = float(predicted_probability[0])
-                elif len(predicted_probability) == 2:
-                    predicted_probability = float(predicted_probability[1])
-                else:
-                    raise NotImplementedError(
-                        f"The predicted probability had the wrong shape: {predicted_probability}. "
-                        "Multiclass is not currently supported."
-                    )
-                messenger(f"Predicted probability: {predicted_probability}")
-
-                for roc_name, thresholds in roc_to_thresholds.items():
-                    # Calculate predicted classes based on cutoffs
-                    for thresh_info in thresholds:
-                        thresh_info["Prediction"] = (
-                            "Cancer"
-                            if predicted_probability > thresh_info["Threshold"]
-                            else "No Cancer"
-                        )
-                    prediction_df = pd.DataFrame(thresholds)
-
-                    prediction_df["Probability"] = predicted_probability
-                    prediction_df.columns = [
-                        "Threshold",
-                        "Exp. Specificity",
-                        "Exp. Sensitivity",
-                        "Threshold Name",
-                        "Prediction",
-                        "Probability",
-                    ]
-                    prediction_df["ROC Curve"] = roc_name
-                    prediction_df["Model"] = model_name
-                prediction_dfs.append(prediction_df)
+    prediction_dfs = run_predict_single_model(
+        features=prepared_modeling_dict["dataset"],
+        sample_identifiers=sample_identifiers,
+        model_name=model_name,
+        model_name_to_training_info=model_name_to_training_info,
+        custom_roc_paths=custom_roc_paths,
+        custom_prob_density_paths=custom_prob_density_paths,
+        thresholds_to_calculate=thresholds_to_calculate,
+        paths=paths,
+        messenger=messenger,
+        timer=timer,
+        model_idx=0,
+    )
 
     # Combine data frames and clean it up a bit
     all_predictions_df = pd.concat(prediction_dfs, axis=0, ignore_index=True)
-    move_column_inplace(all_predictions_df, "Threshold Name", 0)
-    move_column_inplace(all_predictions_df, "ROC Curve", 1)
-    move_column_inplace(all_predictions_df, "Model", 0)
-    if args.identifier is not None:
-        all_predictions_df["ID"] = args.identifier
 
-    messenger("Saving predicted probability to disk")
+    # Reorder columns
+    prob_columns = [col_ for col_ in all_predictions_df.columns if col_[:2] == "P("]
+    first_columns = (
+        [
+            "Model",
+            "Task",
+            "Threshold Name",
+            "ROC Curve",
+            "Prediction",
+        ]
+        + prob_columns
+        + list(sample_identifiers.columns)
+    )
+    remaining_columns = [
+        col_ for col_ in all_predictions_df.columns if col_ not in first_columns
+    ]
+    all_predictions_df = all_predictions_df.loc[:, first_columns + remaining_columns]
+
+    messenger("Start: Saving predicted probability to disk")
     all_predictions_df.to_csv(paths["prediction_path"], index=False)
+
+    # NOTE: The dataset is ordered by target class
+    messenger("First few predictions:\n", all_predictions_df.head(3), indent=2)
+
+    messenger("Start: Evaluating predictions")
+
+    # Load and prepare `New Label Index to New Label` mapping
+    label_idx_to_label = model_name_to_training_info[model_name]["Labels"][
+        "New Label Index to New Label"
+    ]
+    # Ensure keys are integers
+    label_idx_to_label = {int(key): val for key, val in label_idx_to_label.items()}
+
+    evals = []
+
+    if len(prob_columns) != 1:
+        # TODO The evaluation will currently fail so work around it later
+        raise NotImplementedError(
+            "Multiple probability columns are not currently supported."
+        )
+
+    # Model loop is just future proofing
+    for model_nm in all_predictions_df["Model"].unique():
+        for roc_name in all_predictions_df["ROC Curve"].unique():
+            for thresh_name in all_predictions_df["Threshold Name"].unique():
+                thresh_rows = all_predictions_df.loc[
+                    (all_predictions_df["Model"] == model_nm)
+                    & (all_predictions_df["Threshold Name"] == thresh_name)
+                    & (all_predictions_df["ROC Curve"] == roc_name)
+                ]
+
+                eval_ = Evaluator.evaluate(
+                    targets=thresh_rows["Target"].to_numpy(),
+                    predictions=thresh_rows[prob_columns[0]].to_numpy(),
+                    groups=thresh_rows["Subject ID"].to_numpy()
+                    if args.aggregate_by_subjects
+                    and prepared_modeling_dict["groups"] is not None
+                    else None,
+                    positive=1,
+                    thresh=thresh_rows["Threshold"].to_numpy()[0],
+                    labels=label_idx_to_label,
+                    task="binary_classification",
+                )["Scores"]
+
+                eval_["Model"] = model_nm
+                eval_["Threshold Name"] = thresh_name
+                eval_["ROC Curve"] = roc_name
+                eval_["Task"] = thresh_rows["Task"].to_numpy()[0]
+
+                evals.append(eval_)
+
+    all_evaluations = pd.concat(evals).reset_index(drop=True)
+
+    first_columns = [
+        "Model",
+        "Task",
+        "ROC Curve",
+        "Threshold Name",
+        "Threshold",
+    ]
+    remaining_columns = [
+        col_ for col_ in all_evaluations.columns if col_ not in first_columns
+    ]
+    all_evaluations = all_evaluations.loc[:, first_columns + remaining_columns]
+
+    messenger("Start: Saving evaluations to disk")
+    all_evaluations.to_csv(paths["evaluation_path"], index=False)
+
+    messenger("Evaluations:\n", all_evaluations, indent=2)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")

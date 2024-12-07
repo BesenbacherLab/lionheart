@@ -105,7 +105,7 @@ which contains each of these steps as well:
     )
 
     guide.add_header("4) Validate included model on your features")
-    guide.add_description("<insert description> - e.g. create meta_data.csv")
+    guide.add_description("<insert description> - e.g., create meta_data.csv")
     guide.add_example(
         code=f"""--dataset_paths path/to/collected/dataset/feature_dataset.npy 
 --meta_data_paths path/to/collected/dataset/meta_data.csv 

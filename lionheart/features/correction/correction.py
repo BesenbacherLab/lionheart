@@ -48,7 +48,7 @@ def calculate_correction_factors(
     Returns
     -------
     `numpy.ndarray`
-        Bin midpoints. The midpoint indices of the bins, e.g. for plotting.
+        Bin midpoints. The midpoint indices of the bins, e.g., for plotting.
     `numpy.ndarray`
         Bin correction factors. The calculated correction factors (bin averages).
         The extreme left and right bins are NaNs, as well as any
@@ -87,7 +87,7 @@ def correct_bias(
     Examples of bias scores are GC contents or mappability scores.
 
     "Bias score bins" refers to the binned observed values of bias scores
-    e.g. [0, 0.1, 0.2..., 1.0] of which `correct_factors` contains the
+    e.g., [0, 0.1, 0.2..., 1.0] of which `correct_factors` contains the
     (normalized, smoothed) average coverage and `bin_edges` specifies
     the edges of.
 
@@ -95,7 +95,7 @@ def correct_bias(
     ----------
     coverages
         Array with the values to correct.
-        E.g. an array with fragment coverages.
+        E.g., an array with fragment coverages.
     correct_factors
         Array with a value for each bin (see `bin_indices`)
         to divide `coverages` with.
@@ -226,7 +226,7 @@ def average_bins(
     Returns
     -------
     `numpy.ndarray`
-        Bin midpoints. The midpoint indices of the bins, e.g. for plotting.
+        Bin midpoints. The midpoint indices of the bins, e.g., for plotting.
     `numpy.ndarray`
         Bin averages. The calculated bin averages.
     """
