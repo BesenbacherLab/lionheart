@@ -1,7 +1,7 @@
 import pathlib
 from typing import Callable, List, Optional, Union, Dict
 
-from utipy import StepTimer, Messenger, check_messenger
+from utipy import StepTimer, Messenger, check_messenger, move_column_inplace
 from generalize.model import evaluate_univariate_models
 
 from lionheart.modeling.prepare_modeling import prepare_modeling
@@ -217,6 +217,17 @@ def run_univariate_analyses(
             seed=seed,
             messenger=messenger,
         )
+
+    # Add ATAC / DNase indicator
+    evaluation["Seq"] = prepared_modeling_dict["feature_seq"][
+        evaluation["array_index"].tolist()
+    ]
+    move_column_inplace(evaluation, col="Seq", pos=2)
+
+    # Remove feature set column
+    # It's always the LIONHEART scores we evaluate
+    if "Feature Set" in evaluation.columns:
+        del evaluation["Feature Set"]
 
     messenger("Start: Saving results")
     with timer.time_step(indent=2):

@@ -482,6 +482,8 @@ def prepare_modeling(
             paths["feature_name_to_feature_group_path"]
         )
         feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+        # ATAC or DNase
+        feature_seq = feature_name_to_feature_group.iloc[:, 2].astype("string")
         feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
     except ValueError as e:
         if (
@@ -503,6 +505,7 @@ def prepare_modeling(
         "labels": labels,
         "sample_ids": sample_ids,
         "feature_names": feature_names,
+        "feature_seq": feature_seq,
         "feature_group_names": feature_group_names,
         "model": model,
         "model_dict": model_dict,

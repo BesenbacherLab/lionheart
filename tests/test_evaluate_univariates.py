@@ -1,9 +1,6 @@
-import json
+import numpy as np
 import pandas as pd
 import numpy.testing as npt
-from utipy import mk_dir
-
-from lionheart.utils.global_vars import LABELS_TO_USE
 
 
 def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
@@ -41,13 +38,20 @@ def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
 
     print(evals)
 
-    assert False
-    
+    assert len(evals) == 489
+
     npt.assert_almost_equal(
-        evals.loc[:, "Threshold"],
-        [0.373910, 0.706941, 0.562187, 0.944799],
-        decimal=4,
+        evals.loc[:, "AUC"].max(),
+        0.67,
+        decimal=2,
     )
 
+    npt.assert_almost_equal(
+        evals.loc[:, "num_tests"].first(),
+        489,
+        decimal=2,
+    )
 
-    
+    npt.assert_equal(
+        np.unique(evals.loc[:, "Seq"], return_counts=True)[1], [114, 2, 373]
+    )
