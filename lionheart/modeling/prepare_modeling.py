@@ -491,6 +491,7 @@ def prepare_modeling(
             in str(e)
         ):
             feature_names = None
+            feature_seq = None
             feature_group_names = None
         else:
             raise
