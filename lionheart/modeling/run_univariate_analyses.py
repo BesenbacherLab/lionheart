@@ -50,7 +50,7 @@ def run_univariate_analyses(
     ----------
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path]
         Paths to one or more datasets. When multiple datasets are specfied,
-        cross-dataset-validation (aka. leave-one-dataset-out) is performed.
+        leave-one-dataset-out cross-dataset-validation is performed.
         When multiple datasets, pass as a dict mapping dataset name -> dataset path.
         TODO: Add requirements for dataset shape.
     out_path: Union[str, pathlib.Path]
