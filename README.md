@@ -193,3 +193,15 @@ The validation creates `evaluation_scores.csv` and `predictions.csv` from applyi
 ```
 $ cat {val_out_dir}/evaluation_scores.csv
 ```
+
+#### Univariate analyses
+
+Finally, we reproduce the univariate modeling evaluations in Figure 2D and 2E:
+
+```
+# Evaluate the classification potential of each cell type separately
+# {univariates_dir} should specify where you want the evaluation files
+$ lionheart evaluate_univariates --out_dir {univariates_dir} --resources_dir {resources_dir} --use_included_features --num_jobs 10
+```
+
+This creates the `univariate_evaluations.csv` file with evaluation metrics per cell-type. There are coefficients and p-values (bonferroni-corrected) from univariate logistic regression models and evaluation metrics from per-cell-type leave-one-dataset-out cross-validation.
