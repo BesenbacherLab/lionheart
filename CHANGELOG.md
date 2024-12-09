@@ -1,8 +1,8 @@
 # Change log
 
-## 1.1.x
+## 1.1.1
 
- - Improves CLI documentation (in `--help` pages).
+ - Improves CLI documentation for some commands (in `--help` pages).
 
 ## 1.1.0
 
