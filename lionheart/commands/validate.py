@@ -13,7 +13,7 @@ from lionheart.modeling.run_predict_single_model import (
     run_predict_single_model,
 )
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.cli_utils import Examples, parse_thresholds
+from lionheart.utils.cli_utils import Examples, Guide, parse_thresholds
 from lionheart.utils.global_vars import INCLUDED_MODELS, LABELS_TO_USE
 from lionheart.modeling.prepare_modeling_command import prepare_validation_command
 from lionheart.modeling.prepare_modeling import prepare_modeling
@@ -151,6 +151,44 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
+epilog_guide = Guide()
+epilog_guide.add_title("OUTPUT:")
+epilog_guide.add_description(
+    """evaluation_scores.csv: data frame
+    This data frame contains the evaluation scores from the validation:
+
+    Columns:
+        Model: Name of the applied model used for predictions.
+        Task: The task performed by the model.
+        ROC Curve: Name of the Receiver Operating Characteristic curve used to calculate the probability threshold.
+        Threshold Name: The name of the threshold (i.e. probability cutoff) used for decision making.
+        Threshold: The actual probability cutoff used to determine the predicted class.
+        ...
+        Positive Class: The name of the positive class used to calculate the metrics.
+        Num Classes: The number of classes.
+    
+predictions.csv : data frame
+    This data frame contains the predicted probabilities and their respective threshold-wise predicted cancer statuses.
+    
+    Columns:
+        Model, Task, Threshold Name, ROC Curve, Threshold: Same as above.
+        Prediction: The predicted cancer status.
+        P(Cancer): The probability of the sample being from a cancer patient.
+        Sample ID: The unique sample identifier.
+        Target: The actual cancer status of the sample.
+        Subject ID: The unique subject identifier (when specified in the meta data).
+        Exp. Specificity: The expected specificity at the probability threshold.
+        Exp. Sensitivity: The expected sensitivity at the probability threshold.
+        Exp. Accuracy for Class at Probability: The expected accuracy of predicting the specific class at the specific probability.
+            I.e., for all samples with this specific probability (interpolated), what percentage were from the predicted class?
+            Given a new prediction of the class with this probability, we would expect it to be correct that percentage of the time.
+            Calculated based on probability density estimates from the same data as the ROC curve was calculated from.
+            Informs about the reliability of the class prediction (in addition to the probability).
+    
+"""
+)
+epilog_guide.add_vertical_space(1)
+
 examples = Examples()
 examples.add_example(
     description="Validate your model on included validation dataset:",
@@ -170,7 +208,8 @@ examples.add_example(
 --model_name {INCLUDED_MODELS[0]}
 """,
 )
-EPILOG = examples.construct()
+
+EPILOG = epilog_guide.construct_guide() + examples.construct()
 
 
 def main(args):

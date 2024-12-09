@@ -32,7 +32,7 @@ def _column_explanations(tab_indents=1) -> dict:
             "Name of the Receiver Operating Characteristic curve used to calculate the probability threshold."
             f"{split_token}The related probability densities are used to calculate `Exp. Accuracy for Class at Probability`."
         ),
-        "Prediction": "The prediction.",
+        "Prediction": "The predicted cancer status.",
         "P(Cancer)": "The predicted probability of cancer. From an uncalibrated logistic regression model.",
         "Threshold": "The actual probability cutoff used to determine the predicted class.",
         "Exp. Specificity": "The expected specificity at the probability threshold.",
