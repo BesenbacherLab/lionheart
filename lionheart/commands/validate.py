@@ -154,7 +154,7 @@ def setup_parser(parser):
 epilog_guide = Guide()
 epilog_guide.add_title("OUTPUT:")
 epilog_guide.add_description(
-    """evaluation_scores.csv: data frame
+    """evaluation_scores.csv : data frame
     This data frame contains the evaluation scores from the validation:
 
     Columns:
