@@ -222,7 +222,6 @@ evaluation_scores.csv : data frame
 predictions.csv : data frame
     This data frame contains the predicted probabilities per sample.
     
-    Prediction,Target,Group,Sample ID,Split,Repetition,Model,Task,Experiment,Seed
     Columns:
         Prediction: The probability of the sample being from a cancer patient.
         Target: The actual cancer status of the sample.
