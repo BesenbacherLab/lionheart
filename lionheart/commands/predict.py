@@ -51,7 +51,10 @@ def _column_explanations(tab_indents=1) -> dict:
 def create_column_explanation_string(tab_indents=1):
     split_token = "\n" + "".join(tab_indents * ["    "])
     return split_token + split_token.join(
-        [col + ": " + desc for col, desc in _column_explanations(tab_indents=3).items()]
+        [
+            col + ": " + desc
+            for col, desc in _column_explanations(tab_indents=tab_indents + 1).items()
+        ]
     )
 
 
@@ -386,7 +389,7 @@ def main(args):
 def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:
     # Define the explanations for each column in your output
 
-    column_explanations = create_column_explanation_string(tab_indents=1)
+    column_explanations = create_column_explanation_string(tab_indents=0)
 
     # Write the explanations to the readme file
     with open(path, "w") as file:
