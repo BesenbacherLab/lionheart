@@ -10,7 +10,7 @@ from utipy import Messenger, StepTimer, IOPaths
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_cross_validate import run_nested_cross_validation
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.cli_utils import Examples
+from lionheart.utils.cli_utils import Examples, Guide
 from lionheart.utils.global_vars import (
     LABELS_TO_USE,
     LASSO_C_OPTIONS,
@@ -181,6 +181,79 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
+# TODO: Allow specifying the thresholds as in other commands?
+# TODO: Also, rename Threshold Version to Threshold Name as in the other commands
+
+epilog_guide = Guide()
+epilog_guide.add_title("OUTPUT:")
+epilog_guide.add_description(
+    """evaluation_summary.csv : data frame
+    Overall summarized evaluation metrics per threshold.
+    To get just the average AUC for the Max. Youden's J threshold, as reported in the paper, use:
+        `$ awk 'NR==1 || /Average/ && /J Threshold/' {out_dir}/evaluation_summary.csv`
+
+    Columns:
+        Measure: The summary statistic that the row represents.
+        ...
+        Threshold: The actual probability cutoff used to determine the predicted class.
+        Threshold Version: The name of the threshold (i.e. probability cutoff) used for decision making.
+        Model: Name of the applied model <i>architecture</i>.
+        Seed: The random state used. For reproducibility.
+    
+splits_summary.csv : data frame
+    Summarized evaluation metrics per <i>dataset</i> from the leave-one-<i>dataset</i>-out cross-validation.
+    That is, how well training on all the other dataset and predicting on the listed dataset works.
+    To get just the average AUC for the Max. Youden's J threshold, as reported in the paper, use:
+        `$ awk 'NR==1 || /Average/ && /J Threshold/' {out_dir}/splits_summary.csv`
+
+evaluation_scores.csv : data frame
+    This data frame contains the evaluation scores from each train/test split in the outer cross-validation.
+    
+    Columns:
+        ...
+        Threshold: The actual probability cutoff used to determine the predicted class.
+        Positive Class: The name of the positive class used to calculate the metrics.
+        Num Classes: The number of classes.
+        Fold: The name of the outer <i>test</i> fold (i.e., <i>dataset</i> tested on when using leave-one-dataset-out cross-validation).
+        Model: Name of the applied model <i>architecture</i>.
+        Threshold Version: The name of the threshold (i.e. probability cutoff) used for decision making.
+        Num Warnings: Number of warnings caught during the cross-validation. If any, see them in `warnings.csv`.
+        
+predictions.csv : data frame
+    This data frame contains the predicted probabilities per sample.
+    
+    Columns:
+        Prediction: The probability of the sample being from a cancer patient.
+        Target: The actual cancer status of the sample.
+        Group: The unique subject identifier (when specified in the meta data).
+        Sample ID: The unique sample identifier.
+        Split: The name of the outer <i>test</i> fold (i.e., <i>dataset</i> tested on when using leave-one-dataset-out cross-validation).
+        Model: Name of the applied model <i>architecture</i>.
+        Seed: The random state used. For reproducibility.
+
+best_coefficients.csv : data frame
+    The coefficient values for the best hyperparameter combinations. 
+    Zero-padded column-wise, since different numbers of features can be present after PCA and LASSO. Remove all zeroes from the "right" to remove padding.
+    The final column ("outer_split") identifies the outer loop fold, although it cannot be mapped back to the datasets.
+
+inner_results.csv : data frame
+    Evaluation scores from the inner cross-validation for each hyperparameter combination.
+    The final column ("outer_split") identifies the outer loop fold, although it cannot be mapped back to the datasets.
+    Used to plot the `inner_cv_*.png` files.
+
+ROC_curves.json : dict
+    The ROC curves from each train/test split in the outer cross-validation.
+    Can be loaded with `ROCCurves.load()` from `generalize` or just as a json file.
+
+confusion_matrices.json : dict
+    The confusion matrices from each train/test split in the outer cross-validation.
+    Can be loaded with `ConfusionMatrices.load()` from `generalize` or just as a json file.
+    To get the total (sum) confusion matrix, see `total_confusion_matrices.json`.
+
+"""
+)
+epilog_guide.add_vertical_space(1)
+
 examples = Examples(
     introduction="While the examples don't use parallelization, it is recommended to use `--num_jobs 10` for a big speedup."
 )
@@ -207,7 +280,8 @@ examples.add_example(
 --out_dir path/to/output/directory
 --resources_dir path/to/resource/directory""",
 )
-EPILOG = examples.construct()
+
+EPILOG = epilog_guide.construct_guide() + examples.construct()
 
 
 def main(args):

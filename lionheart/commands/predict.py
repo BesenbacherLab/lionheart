@@ -14,12 +14,48 @@ from lionheart.modeling.run_predict_single_model import (
     run_predict_single_model,
 )
 from lionheart.utils.dual_log import setup_logging
-from lionheart.utils.cli_utils import parse_thresholds, Examples
+from lionheart.utils.cli_utils import Guide, parse_thresholds, Examples
 from lionheart.utils.global_vars import INCLUDED_MODELS, ENABLE_SUBTYPING
 from lionheart.utils.utils import load_json
 
 if not ENABLE_SUBTYPING:
     INCLUDED_MODELS = [m for m in INCLUDED_MODELS if "subtype" not in m]
+
+
+def _column_explanations(tab_indents=1) -> dict:
+    split_token = "\n" + "".join(tab_indents * ["    "])
+    return {
+        "Model": "Name of the applied model used for predictions.",
+        "Task": "The task performed by the model.",
+        "Threshold Name": "The name of the threshold (i.e. probability cutoff) used for decision making.",
+        "ROC Curve": (
+            "Name of the Receiver Operating Characteristic curve used to calculate the probability threshold."
+            f"{split_token}The related probability densities are used to calculate `Exp. Accuracy for Class at Probability`."
+        ),
+        "Prediction": "The predicted cancer status.",
+        "P(Cancer)": "The predicted probability of cancer. From an uncalibrated logistic regression model.",
+        "Threshold": "The actual probability cutoff used to determine the predicted class.",
+        "Exp. Specificity": "The expected specificity at the probability threshold.",
+        "Exp. Sensitivity": "The expected sensitivity at the probability threshold.",
+        "Exp. Accuracy for Class at Probability": (
+            "The expected accuracy of predicting the specific class at the specific probability."
+            f"{split_token}I.e., for all samples with this specific probability (interpolated), what percentage were from the predicted class?"
+            f"{split_token}Given a new prediction of the class with this probability, we would expect it to be correct that percentage of the time."
+            f"{split_token}Calculated based on probability density estimates from the same data as the ROC curve was calculated from."
+            f"{split_token}Informs about the reliability of the class prediction (in addition to the probability)."
+        ),
+        "ID": "A unique sample identifier.",
+    }
+
+
+def create_column_explanation_string(tab_indents=1):
+    split_token = "\n" + "".join(tab_indents * ["    "])
+    return split_token + split_token.join(
+        [
+            col + ": " + desc
+            for col, desc in _column_explanations(tab_indents=tab_indents + 1).items()
+        ]
+    )
 
 
 def setup_parser(parser):
@@ -117,6 +153,20 @@ def setup_parser(parser):
     parser.set_defaults(func=main)
 
 
+epilog_guide = Guide()
+epilog_guide.add_title("OUTPUT:")
+epilog_guide.add_description(
+    """prediction.csv : data frame
+    This data frame contains the predicted probability and the threshold-wise predicted cancer status.
+    
+    Columns:
+    
+"""
+    + create_column_explanation_string(tab_indents=2)
+)
+epilog_guide.add_vertical_space(1)
+
+
 examples = Examples()
 examples.add_example(
     description="Simplest example:",
@@ -147,7 +197,8 @@ examples.add_example(
 --out_dir path/to/subject_1/predictions
 --thresholds spec_0.975 sens_0.8""",
 )
-EPILOG = examples.construct()
+
+EPILOG = epilog_guide.construct_guide() + examples.construct()
 
 
 def main(args):
@@ -338,25 +389,7 @@ def main(args):
 def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:
     # Define the explanations for each column in your output
 
-    column_explanations = {
-        "Model": "Name of the applied model used for predictions.",
-        "Task": "The task performed by the model.",
-        "Threshold Name": "The name of the threshold (i.e. probability cutoff) used for decision making.",
-        "ROC Curve": "Name of the Receiver Operating Characteristic curve used to calculate the probability threshold.",
-        "Prediction": "The prediction.",
-        "P(Cancer)": "The predicted probability of cancer. From an uncalibrated logistic regression model.",
-        "Threshold": "The actual probability cutoff used to determine the predicted class.",
-        "Exp. Specificity": "The expected specificity at the probability threshold.",
-        "Exp. Sensitivity": "The expected sensitivity at the probability threshold.",
-        "Exp. Accuracy for Class at Probability": (
-            "The expected accuracy of predicting the specific class at the specific probability."
-            "\n    I.e., for all samples with this specific probability (interpolated), what percentage were from the predicted class?"
-            "\n    Given a new prediction of the class with this probability, we would expect it to be correct that percentage of the time."
-            "\n    Calculated based on probability density estimates from the training data."
-            "\n    Informs about the reliability of the class prediction (in addition to the probability)."
-        ),
-        "ID": "A unique sample identifier.",
-    }
+    column_explanations = create_column_explanation_string(tab_indents=0)
 
     # Write the explanations to the readme file
     with open(path, "w") as file:
