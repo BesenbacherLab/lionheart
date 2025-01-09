@@ -10,6 +10,8 @@ from typing import Optional, Union, List
 
 from gwf import Workflow
 
+from lionheart.utils.global_vars import INCLUDED_MODELS
+
 
 # TODO: If we update the ROC curve, change the note in docstring for `thresholds`
 
@@ -136,7 +138,7 @@ def predict_sample(
         "sens_0.99",
         "0.5",
     ],
-    model_name="full_model",
+    model_name=INCLUDED_MODELS[0],
     walltime: str = "00:59:00",
     memory: str = "3g",
 ):
@@ -192,7 +194,7 @@ def predict_sample(
     memory
         The memory (RAM) available to the target.
     """
-    if model_name != "full_model":
+    if model_name != INCLUDED_MODELS[0]:
         # TODO: Allow giving a path to a trained model.
         raise NotImplementedError(
             "Specifying custom model names is not currently supported."
