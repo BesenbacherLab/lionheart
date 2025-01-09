@@ -194,7 +194,7 @@ def predict_sample(
     memory
         The memory (RAM) available to the target.
     """
-    if model_name != INCLUDED_MODELS[0]:
+    if model_name not in INCLUDED_MODELS:
         # TODO: Allow giving a path to a trained model.
         raise NotImplementedError(
             "Specifying custom model names is not currently supported."
