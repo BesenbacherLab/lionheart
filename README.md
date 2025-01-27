@@ -64,7 +64,7 @@ $ NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOl
 
 # Get path to mosdepth binary to use in the software
 $ find mosdepth_installation/pkgs/ -name "mosdepth*"
->> mosdepth_installation/pkgs/mosdepth-0.3.8/mosdepth
+>> mosdepth_installation/pkgs/mosdepth-0.x.x/mosdepth
 
 ```
 
