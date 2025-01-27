@@ -21,6 +21,7 @@ Install the main package:
 
 ```
 # Create and activate conda environment
+$ conda config --set channel_priority true
 $ conda env create -f https://raw.githubusercontent.com/BesenbacherLab/lionheart/refs/heads/main/environment.yml
 $ conda activate lionheart
 
