@@ -53,11 +53,19 @@ $ export PATH=/home/<username>/.nimble/bin:$PATH
 $ choosenim 1.6.14
 ```
 
-Now that nim is installed, we can install the custom mosdepth with:
+Now that nim is installed, we can install the custom mosdepth. To not override an existing mosdepth installation, we install it into a separate directory:
 
 ```
+# Make a directory for installing the nim packages into
+$ mkdir mosdepth_installation
+
 # Install modified mosdepth
-$ nimble install -y https://github.com/LudvigOlsen/mosdepth
+$ NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOlsen/mosdepth
+
+# Get path to mosdepth binary to use in the software
+$ find mosdepth_installation/pkgs/ -name "mosdepth*"
+>> mosdepth_installation/pkgs/mosdepth-0.3.8/mosdepth
+
 ```
 
 ## Get Resources
