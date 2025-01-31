@@ -48,7 +48,7 @@ def _column_explanations(tab_indents=1) -> dict:
     }
 
 
-def create_column_explanation_string(tab_indents=1):
+def create_column_explanation_string(tab_indents=1) -> str:
     split_token = "\n" + "".join(tab_indents * ["    "])
     return split_token + split_token.join(
         [
@@ -380,21 +380,19 @@ def main(args):
     all_predictions_df.to_csv(paths["prediction_path"], index=False)
 
     messenger("Writing README to explain output")
-    _write_output_explanation(all_predictions_df, paths["readme_path"])
+    _write_output_explanation(paths["readme_path"])
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
 
 
-def _write_output_explanation(df: pd.DataFrame, path: pathlib.Path) -> None:
+def _write_output_explanation(path: pathlib.Path) -> None:
     # Define the explanations for each column in your output
 
-    column_explanations = create_column_explanation_string(tab_indents=0)
+    column_explanations: str = create_column_explanation_string(tab_indents=0)
 
     # Write the explanations to the readme file
     with open(path, "w") as file:
         file.write("Explanations of columns in `prediction.csv`\n")
         file.write("===========================================\n\n")
-        for column, explanation in column_explanations.items():
-            if column in df.columns:
-                file.write(f"{column}: {explanation}\n\n")
+        file.write(column_explanations + "\n\n")
