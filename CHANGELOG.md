@@ -1,5 +1,9 @@
 # Change log
 
+## 1.1.*
+
+ - Fixes writing of README in `lionheart predict_sample`. Thanks to @LauraAndersen for detecting the problem.
+
 ## 1.1.1
 
  - Improves CLI documentation for some commands (in `--help` pages).
