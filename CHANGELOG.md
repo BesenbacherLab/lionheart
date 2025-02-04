@@ -1,8 +1,12 @@
 # Change log
 
-## 1.1.*
+## 1.1.2
 
  - Fixes writing of README in `lionheart predict_sample`. Thanks to @LauraAndersen for detecting the problem.
+ - Improvements to installation guide in repository README.
+ - Workflow example improvements.
+
+**Future note**: An *upcoming* version will contain completely recomputed resource files with changed bin-coordinates to reduce RAM usage of the `mosdepth` coverage extraction. At the same time, we will be updating the exclusion bin index files to fix a small discrepency between the shared features and the features extracted with the current `lionheart` version. Stay tuned for updates in the coming month(s).
 
 ## 1.1.1
 
