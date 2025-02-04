@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.*
+
+ - Adds `lionheart --version` command to CLI.
+
 ## 1.1.5
 
  - Fixes package specification in pyproject.toml

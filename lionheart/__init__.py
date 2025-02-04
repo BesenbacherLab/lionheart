@@ -2,9 +2,12 @@ from .utils.global_vars import INCLUDED_MODELS, REPO_URL
 
 
 def get_version():
-    import importlib.metadata
+    try:
+        from importlib import metadata
+    except ImportError:
+        import importlib_metadata as metadata
 
-    return importlib.metadata.version("lionheart")
+    return metadata.version("lionheart")
 
 
 __version__ = get_version()

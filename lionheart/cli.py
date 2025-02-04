@@ -19,6 +19,11 @@ from lionheart.utils.cli_utils import (
     wrap_command_description,
 )
 
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -42,6 +47,14 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
         """,
         formatter_class=CustomRichHelpFormatter,
     )
+
+    # Add --version flag
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"lionheart {metadata.version('lionheart')}",
+    )
+
     subparsers = parser.add_subparsers(
         title="commands",
         # description="",
