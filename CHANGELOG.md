@@ -1,6 +1,6 @@
 # Change log
 
-## 1.1.3
+## 1.1.4
 
  - Adds project URLs to package to list them on the `pypi` site.
 
