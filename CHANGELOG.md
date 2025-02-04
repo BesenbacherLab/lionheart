@@ -1,10 +1,14 @@
-# Change log
+# Changelog
+
+## 1.1.5
+
+ - Fixes package specification in pyproject.toml
+
+**Future note**: An *upcoming* version will contain completely recomputed resource files with changed bin-coordinates to reduce RAM usage of the `mosdepth` coverage extraction. At the same time, we will be updating the exclusion bin index files to fix a small discrepency between the shared features and the features extracted with the current `lionheart` version. Stay tuned for updates in the coming month(s).
 
 ## 1.1.4
 
  - Adds project URLs to package to list them on the `pypi` site.
-
-**Future note**: An *upcoming* version will contain completely recomputed resource files with changed bin-coordinates to reduce RAM usage of the `mosdepth` coverage extraction. At the same time, we will be updating the exclusion bin index files to fix a small discrepency between the shared features and the features extracted with the current `lionheart` version. Stay tuned for updates in the coming month(s).
 
 ## 1.1.2
 

@@ -1,10 +1,9 @@
 [project]
 name = "lionheart"
-version = "1.1.4"
+version = "1.1.5"
 description = "LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA. Check the README for additional installation steps."
 authors = [{name = "Ludvig", email = "<mail@ludvigolsen.dk>"}]
 readme = "README.md"
-packages = [{include = "lionheart"}]
 keywords = [ "cancer detection", "cancer", "cell-free DNA", "cfDNA", "fragmentomics", "nucleosomics", "bioinformatics" ]
 
 [project.urls]
@@ -12,6 +11,9 @@ Repository = "https://github.com/BesenbacherLab/lionheart"
 Issues = "https://github.com/BesenbacherLab/lionheart/issues"
 Changelog = "https://github.com/BesenbacherLab/lionheart/blob/main/CHANGELOG.md"
 Resources = "https://zenodo.org/records/14215762"
+
+[tool.poetry]
+packages = [{include = "lionheart"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
