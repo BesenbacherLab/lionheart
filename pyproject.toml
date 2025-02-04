@@ -1,10 +1,17 @@
-[tool.poetry]
+[project]
 name = "lionheart"
 version = "1.1.4"
 description = "LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA. Check the README for additional installation steps."
-authors = ["Ludvig <mail@ludvigolsen.dk>"]
+authors = [{name = "Ludvig", email = "<mail@ludvigolsen.dk>"}]
 readme = "README.md"
 packages = [{include = "lionheart"}]
+keywords = [ "cancer detection", "cancer", "cell-free DNA", "cfDNA", "fragmentomics", "nucleosomics", "bioinformatics" ]
+
+[project.urls]
+Repository = "https://github.com/BesenbacherLab/lionheart"
+Issues = "https://github.com/BesenbacherLab/lionheart/issues"
+Changelog = "https://github.com/BesenbacherLab/lionheart/blob/main/CHANGELOG.md"
+Resources = "https://zenodo.org/records/14215762"
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -23,18 +30,12 @@ rich-argparse = "^1.5.2"
 nattrs = "^0.2.2"
 packaging = "^24.1"
 
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.poetry.scripts]
 lionheart = "lionheart.cli:main"
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401"]
 
-[project.urls]
-Repository = "https://github.com/BesenbacherLab/lionheart"
-Issues = "https://github.com/BesenbacherLab/lionheart/issues"
-Changelog = "https://github.com/BesenbacherLab/lionheart/blob/main/CHANGELOG.md"
-Resources = "https://zenodo.org/records/14215762"
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
