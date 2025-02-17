@@ -284,7 +284,7 @@ def main(args):
     )
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     prepared_modeling_dict = prepare_modeling(
         dataset_paths=dataset_paths,

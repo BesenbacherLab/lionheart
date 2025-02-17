@@ -282,6 +282,12 @@ def main(args):
     out_path = pathlib.Path(args.out_dir)
     resources_dir = pathlib.Path(args.resources_dir)
 
+    # Prepare logging messenger
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="train_model-")
+    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
+    messenger("Running training of model")
+    messenger.now()
+
     # Create output directory
     paths = IOPaths(
         in_dirs={
@@ -291,13 +297,7 @@ def main(args):
             "out_path": out_path,
         },
     )
-    paths.mk_output_dirs(collection="out_dirs")
-
-    # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="train_model-")
-    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running training of model")
-    messenger.now()
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Init timestamp handler
     # Note: Does not handle nested timing!

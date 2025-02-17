@@ -78,7 +78,7 @@ def run_mosdepth(
             "--min-frag-len 100",
             "--max-frag-len 220" + (" --insert-size-mode" if insert_size_mode else ""),
             "--no-per-base",
-            f"{out_dir/coverage_type}",  # Output prefix
+            f"{out_dir / coverage_type}",  # Output prefix
             str(in_file),
         ]
     )
@@ -196,9 +196,7 @@ def setup_parser(parser):
         "--resources_dir",
         required=True,
         type=str,
-        help=(
-            "Path to directory with framework resources." "\nMust be downloaded first."
-        ),
+        help=("Path to directory with framework resources.\nMust be downloaded first."),
     )
     parser.add_argument(
         "--out_dir",
@@ -395,7 +393,7 @@ def main(args):
         )
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Show overview of the paths
     messenger(paths)
