@@ -142,7 +142,7 @@ def main():
         fname_prefix="bin_genome-",
     )
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running creation of filtered whole genome BED file")
+    messenger(f"Running extraction of mappable whole genome {args.bin_size}bp bins")
     messenger.now()
 
     # Init timestamp handler
@@ -196,8 +196,8 @@ def main():
     )
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
     paths.mk_output_dirs(collection="tmp_dirs")
+    paths.mk_output_dirs(collection="out_dirs")
 
     # Show overview of the paths
     messenger(paths)
