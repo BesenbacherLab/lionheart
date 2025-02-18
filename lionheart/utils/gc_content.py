@@ -51,7 +51,7 @@ def get_gc_content_all_intervals(
     ).to_numpy()
 
     # Convert to numpy array
-    return np.concatenate(gc_contents.to_list(), axis=0)
+    return np.concatenate(gc_contents.tolist(), axis=0)
 
 
 def _get_interval_gc_content(
