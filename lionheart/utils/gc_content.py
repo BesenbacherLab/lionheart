@@ -157,3 +157,92 @@ def find_greedy_bin_edges(
         assert isinstance(add_edges, list) and isinstance(add_edges[0], Number)
         edges = np.unique(list(edges) + add_edges)
     return edges
+
+
+# TODO: Go through and see if it does the same
+def get_gc_content_all_intervals_efficient(
+    bed_df: pd.DataFrame,
+    tb,
+    ignore_non_acgt: bool = True,
+    handle_zero_division: float = np.nan,
+) -> np.ndarray:
+    """
+    Get GC content for each interval in a BED DataFrame in a vectorized way.
+
+    This version groups by chromosome and pre-loads the chromosome sequence,
+    then uses cumulative sums to calculate GC counts for all intervals on
+    that chromosome at once.
+
+    Parameters
+    ----------
+    bed_df
+        `pandas.DataFrame` with intervals from a BED file.
+        As read with `read_bed_as_df()`.
+    tb
+        2bit file with reference genome.
+    ignore_non_acgt
+        Whether to ignore Ns when calculating GC content fractions.
+        `False`: Divide G+C counts by the length of the interval.
+        `True`: Divide G+C counts by the sum of counts for all bases (G,C,A,T).
+    handle_zero_division : float, default np.nan
+        Value to use if an interval has zero valid length.
+
+    Returns
+    -------
+    numpy.ndarray
+        GC content (fraction, 0-1) per interval.
+    """
+
+    # For assignment via index, we need to ensure the index is as reset
+    bed_df = bed_df.reset_index(drop=True)
+
+    # Prepare an array to hold the results. We use the DataFrame index to place the results
+    results = np.empty(len(bed_df), dtype=float)
+
+    # Group by chromosome.
+    for chrom, group_df in bed_df.groupby("chromosome"):
+        # Get the full sequence for this chromosome (assumes tb.sequence exists)
+        seq = tb.sequence(chrom).upper()
+        seq_bytes = np.frombuffer(seq.encode("ascii"), dtype=np.uint8)
+
+        # Build cumulative sums for GC
+        # Create a boolean array: True for G or C
+        is_gc = (seq_bytes == ord("G")) | (seq_bytes == ord("C"))
+        cumsum_gc = np.concatenate(([0], np.cumsum(is_gc)))
+
+        # If ignoring non-ACGT, build a cumulative sum for valid bases (A, C, G, T)
+        if ignore_non_acgt:
+            is_valid = (
+                (seq_bytes == ord("A"))
+                | (seq_bytes == ord("C"))
+                | (seq_bytes == ord("G"))
+                | (seq_bytes == ord("T"))
+            )
+            cumsum_valid = np.concatenate(([0], np.cumsum(is_valid)))
+
+        # Extract start and end positions for this chromosome
+        starts = group_df["start"].values.astype(np.int64)
+        ends = group_df["end"].values.astype(np.int64)
+
+        # Compute denominators.
+        if ignore_non_acgt:
+            denominators = cumsum_valid[ends] - cumsum_valid[starts]
+        else:
+            denominators = ends - starts
+
+        # Compute GC counts for each interval via cumulative sum differences
+        gc_counts = cumsum_gc[ends] - cumsum_gc[starts]
+
+        # Calculate GC content (vectorized division)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            gc_content = gc_counts / denominators.astype(float)
+
+        # Handle any intervals with denominator zero
+        zero_denom = denominators == 0
+        if np.any(zero_denom):
+            gc_content[zero_denom] = handle_zero_division
+
+        # Save the computed GC content back to the results array
+        results[group_df.index] = gc_content
+
+    return results

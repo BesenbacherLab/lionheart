@@ -34,7 +34,7 @@ from lionheart.utils.bed_ops import (
     merge_multifile_intervals,
 )
 from lionheart.utils.gc_content import (
-    get_gc_content_all_intervals,
+    get_gc_content_all_intervals_efficient,
     find_greedy_bin_edges,
 )
 
@@ -433,7 +433,7 @@ def _extract_gc_contents(
 
     messenger("Extracting GC content for each bin", indent=2)
     with timer.time_step(indent=4):
-        bins_df["GC"] = get_gc_content_all_intervals(
+        bins_df["GC"] = get_gc_content_all_intervals_efficient(
             bed_df=gc_bins_df,
             tb=tb,
             ignore_non_acgt=gc_ignore_non_acgt,
