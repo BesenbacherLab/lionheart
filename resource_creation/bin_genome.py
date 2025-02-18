@@ -195,12 +195,12 @@ def main():
         },
     )
 
+    # Show overview of the paths
+    messenger(paths)
+
     # Create output directory
     paths.mk_output_dirs(collection="tmp_dirs")
     paths.mk_output_dirs(collection="out_dirs")
-
-    # Show overview of the paths
-    messenger(paths)
 
     messenger("Start: Loading chromosome sizes file")
     with timer.time_step(indent=2):
