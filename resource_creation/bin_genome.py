@@ -231,8 +231,8 @@ def main():
             ],  # NOTE: only parent dir is specified via this arg
             bin_size=args.bin_size,
             mosdepth_paths=MosdepthPaths(
-                ld_lib_path=args.ld_library_path,
-                mosdepth_path=args.mosdepth_path,
+                ld_lib_path=pathlib.Path(args.ld_library_path),
+                mosdepth_path=pathlib.Path(args.mosdepth_path),
             ),
         )
 

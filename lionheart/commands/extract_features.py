@@ -34,6 +34,8 @@ class MosdepthPaths:
     ld_lib_path: Optional[pathlib.Path]
 
     def __str__(self) -> str:
+        assert isinstance(self.mosdepth_path, pathlib.Path)
+        assert isinstance(self.ld_lib_path, pathlib.Path)
         string = ""
         if self.ld_lib_path is not None:
             string += f"LD_LIBRARY_PATH={self.ld_lib_path.resolve()}/ "
