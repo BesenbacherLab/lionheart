@@ -155,6 +155,7 @@ def main():
     # Create paths container with checks
     out_path = pathlib.Path(args.out_path)
     tmp_dir = out_path / "tmp"
+    mosdepth_tmp_dir = tmp_dir / "tmp_mosdepth"
 
     chroms = [f"chr{i}" for i in range(1, 23)]
 
@@ -169,12 +170,11 @@ def main():
     paths = IOPaths(
         in_files={
             "bam_file": args.bam_file,
-            "genome_file": args.genome_file,
             "chrom_sizes_file": args.chrom_sizes_file,
             "reference_file": args.reference_file,
             **exclusion_paths,
         },
-        out_dirs={"out_path": args.out_path},
+        out_dirs={"out_path": out_path},
         out_files={
             **chrom_out_files,
             "gc_bin_edges_path": out_path / "gc_contents_bin_edges.npy",
@@ -183,7 +183,7 @@ def main():
         tmp_files={
             # NOTE: "binned_file" must match output of mosdepth -
             # this defines the mosdepth output directory though
-            "binned_file": tmp_dir / "tmp_mosdepth" / "binning.regions.bed.gz",
+            "binned_file": mosdepth_tmp_dir / "binning.regions.bed.gz",
             "merged_exclusion_file": tmp_dir
             / f"tmp_merged_exclusion_file.{random_alphanumeric(size=15)}.bed",
             "filtered_intervals_file": tmp_dir
@@ -191,7 +191,7 @@ def main():
         },
         tmp_dirs={
             "tmp_dir": tmp_dir,
-            "mosdepth_dir": tmp_dir / "tmp_mosdepth",
+            "mosdepth_dir": mosdepth_tmp_dir,
         },
     )
 
