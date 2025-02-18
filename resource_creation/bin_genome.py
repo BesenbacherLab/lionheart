@@ -427,12 +427,9 @@ def _extract_gc_contents(
             messenger("Truncating coordinates to [0, chromosome size]", indent=4)
             with timer.time_step(indent=6, message="Zero-truncation took:"):
                 gc_bins_df.loc[gc_bins_df["start"] < 0, "start"] = 0
-                for chrom, chrom_size in chrom_sizes_map.items():
-                    gc_bins_df.loc[
-                        (gc_bins_df["chromosome"] == chrom)
-                        & (gc_bins_df["end"] > chrom_size),
-                        "end",
-                    ] = chrom_size
+                gc_bins_df["end"] = np.minimum(
+                    gc_bins_df["end"], gc_bins_df["chromosome"].map(chrom_sizes_map)
+                )
 
     messenger("Extracting GC content for each bin", indent=2)
     with timer.time_step(indent=4):
