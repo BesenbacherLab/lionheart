@@ -454,7 +454,7 @@ def _extract_gc_contents(
         len_before = len(bins_df)
         bins_df.dropna(axis=0, subset=["GC"], inplace=True)
         len_after = len(bins_df)
-        messenger(f"Removed {len_before - len_after} bins", indent=2)
+        messenger(f"Removed {len_before - len_after} bins", indent=4)
 
     # Find bin edges for GC correction
     messenger("Extracting bin edges for GC correction factors", indent=2)
