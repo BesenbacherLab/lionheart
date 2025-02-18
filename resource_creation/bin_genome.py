@@ -43,13 +43,13 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser(""" """)
     parser.add_argument(
-        "bam_file",
+        "--bam_file",
         type=str,
         help="Path to a **minimal** hg38 BAM file. "
         "We don't need the actual coverage just the bins, "
         "so take a very low-coverage (>= 1 fragment per autosome) file.",
     )
-    parser.add_argument("out_path", type=str, help="Directory to store output file.")
+    parser.add_argument("--out_path", type=str, help="Directory to store output file.")
     parser.add_argument(
         "--chrom_sizes_file",
         type=str,

@@ -19,7 +19,7 @@ include = ["CHANGELOG.md"]
 [tool.poetry.dependencies]
 python = "^3.9"
 generalize = "^0.2.1"
-utipy = "^1.0.4"
+utipy = "^1.0.5"
 scikit-learn = "1.0.2"
 pandas = "1.5.3"
 numpy = "1.26.4"
