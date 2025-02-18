@@ -154,7 +154,7 @@ def main():
 
     # Create paths container with checks
     out_path = pathlib.Path(args.out_path)
-    tmp_dir = out_path / "tmp"
+    tmp_dir = out_path / f"tmp_{random_alphanumeric(size=15)}"
     mosdepth_tmp_dir = tmp_dir / "tmp_mosdepth"
 
     chroms = [f"chr{i}" for i in range(1, 23)]
