@@ -49,7 +49,7 @@ def main():
         "We don't need the actual coverage just the bins, "
         "so take a very low-coverage (>= 1 fragment per autosome) file.",
     )
-    parser.add_argument("--out_path", type=str, help="Directory to store output file.")
+    parser.add_argument("--out_dir", type=str, help="Directory to store output file.")
     parser.add_argument(
         "--chrom_sizes_file",
         type=str,
@@ -138,7 +138,7 @@ def main():
 
     # Prepare logging messenger
     setup_logging(
-        dir=str(pathlib.Path(args.out_path) / "logs"),
+        dir=str(pathlib.Path(args.out_dir) / "logs"),
         fname_prefix="bin_genome-",
     )
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
@@ -153,14 +153,14 @@ def main():
     timer.stamp()
 
     # Create paths container with checks
-    out_path = pathlib.Path(args.out_path)
-    tmp_dir = out_path / f"tmp_{random_alphanumeric(size=15)}"
+    out_dir = pathlib.Path(args.out_dir)
+    tmp_dir = out_dir / f"tmp_{random_alphanumeric(size=15)}"
     mosdepth_tmp_dir = tmp_dir / "tmp_mosdepth"
 
     chroms = [f"chr{i}" for i in range(1, 23)]
 
     chrom_out_files = {
-        f"{chrom}_out_file": out_path / f"{chrom}.tsv.gz" for chrom in chroms
+        f"{chrom}_out_file": out_dir / f"{chrom}.tsv.gz" for chrom in chroms
     }
 
     exclusion_paths = {
@@ -174,11 +174,11 @@ def main():
             "reference_file": args.reference_file,
             **exclusion_paths,
         },
-        out_dirs={"out_path": out_path},
+        out_dirs={"out_dir": out_dir},
         out_files={
             **chrom_out_files,
-            "gc_bin_edges_path": out_path / "gc_contents_bin_edges.npy",
-            "iss_bin_edges_path": out_path / "insert_size_bin_edges.npy",
+            "gc_bin_edges_path": out_dir / "gc_contents_bin_edges.npy",
+            "iss_bin_edges_path": out_dir / "insert_size_bin_edges.npy",
         },
         tmp_files={
             # NOTE: "binned_file" must match output of mosdepth -
