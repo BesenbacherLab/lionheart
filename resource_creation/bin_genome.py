@@ -187,7 +187,7 @@ def main():
             "merged_exclusion_file": tmp_dir
             / f"tmp_merged_exclusion_file.{random_alphanumeric(size=15)}.bed",
             "filtered_intervals_file": tmp_dir
-            / f"tmp_filtered_intervals_file.{random_alphanumeric(size=15)}.bed",
+            / f"tmp_filtered_intervals_file.{random_alphanumeric(size=15)}.bed.gz",
         },
         tmp_dirs={
             "tmp_dir": tmp_dir,
