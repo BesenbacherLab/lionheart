@@ -218,7 +218,6 @@ def main():
         merge_multifile_intervals(
             in_files=[paths[key] for key in exclusion_paths.keys()],
             out_file=paths["merged_exclusion_file"],
-            sort_numerically=False,
         )
 
     # Run mosdepth for 10bp bins

@@ -1,10 +1,9 @@
-import os
 import pathlib
 import warnings
 from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
-from utipy import Messenger, random_alphanumeric
+from utipy import Messenger
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 
 
@@ -252,16 +251,17 @@ def merge_multifile_intervals(
     genome_file: Optional[Union[str, pathlib.Path]] = None,
     min_coverage: float = 0.0,
     max_distance: int = 0,
-    sort_numerically: bool = False,
+    rm_non_autosomes: bool = False,
+    pre_sort: bool = False,
     add_index: bool = False,
 ):
     """
-    Merge the intervals of a multiple BED files.
+    Merge the intervals of one or more BED files.
     Files are combined to a single file and sorted.
     Overlapping intervals are merged with `bedtools::merge`.
 
     Note: When given a single file, the overlapping intervals are still merged
-    but there is no sorting step.
+    but there is no sorting step unless `pre_sort=True`.
 
     Parameters
     ----------
@@ -278,8 +278,13 @@ def merge_multifile_intervals(
     genome_file
         Optional path to the genome file with chromosome sizes.
         Required to find limits of the genome when counting coverage.
+    rm_non_autosomes
+        Whether to remove non-autosomes.
+    pre_sort
+        Whether to sort before the merging.
+        NOTE: Always happens when `in_files` has > 1 elements.
     min_coverage
-        The number/percentage ( [0.0-1.0[ ) of `in_files` that must
+        The number [>=1.0] / percentage ( [0.0-1.0[ ) of `in_files` that must
         overlap a position for it to be kept.
         Percentages are multiplied by the number of `in_files` and floored (rounded down).
         Ignored when `count_coverage` is `False`.
@@ -287,10 +292,6 @@ def merge_multifile_intervals(
         Maximum distance between intervals allowed for intervals
         to be merged. Default is 0. That is, overlapping and/or book-ended
         intervals are merged.
-    sort_numerically
-        Whether to sort by chromosome number (or alphabetically).
-        `True`: chr1, chr2, chr3, etc.
-        `False`: chr1, chr10, chr11, etc.
     add_index
         Whether to add an interval index column.
     """
@@ -303,110 +304,36 @@ def merge_multifile_intervals(
         min_coverage = np.floor(len(in_files) * min_coverage)
     min_coverage = int(min_coverage)
 
-    # If only given a single file, just
-    # merge the overlapping intervals
-    if len(in_files) == 1:
-        # Merge the overlapping intervals
-        if count_coverage:
-            merge_overlapping_intervals_with_coverage(
-                in_file=in_files[0],
-                out_file=out_file,
-                keep_zero_coverages=keep_zero_coverage,
-                genome_file=genome_file,
-                min_coverage=min_coverage,
-                max_distance=max_distance,
-                add_index=add_index,
-            )
-        else:
-            merge_overlapping_intervals(
-                in_file=in_files[0],
-                out_file=out_file,
-                max_distance=max_distance,
-                add_index=add_index,
-            )
-        return
-
-    # Combine files into one and sort intervals
-
-    # Create path for temporary combined file
-    # TODO This tmp handling is not a pretty solution
-    tmp_combine_file = (
-        str(out_file)[:-4] + f".combined.tmp_{random_alphanumeric(15)}.bed"
-    )
-    combine_files(
-        in_files,
-        tmp_combine_file,
-        keep_cols=range(3),
-        sort_numerically=sort_numerically,
-    )
-
     # Merge the overlapping intervals
     if count_coverage:
         merge_overlapping_intervals_with_coverage(
-            in_file=tmp_combine_file,
+            in_file=in_files,
             out_file=out_file,
             keep_zero_coverages=keep_zero_coverage,
             genome_file=genome_file,
+            rm_non_autosomes=rm_non_autosomes,
+            pre_sort=pre_sort,
             min_coverage=min_coverage,
             max_distance=max_distance,
             add_index=add_index,
         )
     else:
         merge_overlapping_intervals(
-            in_file=tmp_combine_file,
+            in_file=in_files,
             out_file=out_file,
+            rm_non_autosomes=rm_non_autosomes,
+            pre_sort=pre_sort,
             max_distance=max_distance,
             add_index=add_index,
         )
 
-    # Remove the tmp combine file
-    os.remove(str(tmp_combine_file))
-
-
-# TODO Allow setting options for ensure_col_types
-# TODO Allow not removing non-standard chromosomes
-def combine_files(
-    in_files: List[Union[str, pathlib.Path]],
-    out_file: Union[str, pathlib.Path],
-    keep_cols: Optional[List[int]] = None,
-    sort_numerically: bool = False,
-) -> None:
-    """
-    Concatenates BED files and sorts the intervals.
-
-    Parameters
-    ----------
-    in_files
-        Paths to the BED files to concatenate and sort.
-        Must be tab-separated.
-    out_file
-        Path to the output file.
-        Cannot be the same as any in-files.
-    keep_cols
-        Indices of the columns to keep.
-        Set to `None` for no column filtering.
-    sort_numerically
-        Whether to sort by chromosome number (or alphabetically).
-        `True`: chr1, chr2, chr3, etc.
-        `False`: chr1, chr10, chr11, etc.
-    """
-    check_paths_for_subprocess(in_files, out_file)
-    dfs = []
-    for in_file in in_files:
-        dfs.append(read_bed_as_df(in_file))
-    df = pd.concat(dfs, axis=0)
-    if keep_cols is not None:
-        df = df.iloc[:, keep_cols]
-    df = remove_non_standard_chromosomes(df)
-    df = ensure_col_types(df)
-    df = sort_intervals(df, sort_numerically=sort_numerically)
-    write_bed(df, out_file)
-
 
 def merge_overlapping_intervals_with_coverage(
-    in_file: Union[str, pathlib.Path],
+    in_files: List[Union[str, pathlib.Path]],
     out_file: Union[str, pathlib.Path],
     genome_file: Union[str, pathlib.Path],
+    rm_non_autosomes: bool = False,
+    pre_sort: bool = False,
     keep_zero_coverages: bool = False,
     min_coverage: int = 0,
     max_distance: int = 0,
@@ -418,15 +345,20 @@ def merge_overlapping_intervals_with_coverage(
 
     Parameters
     ----------
-    in_file
-        Path to the BED file to merge overlapping intervals
-        of with counts of coverage.
+    in_files
+        Path(s) to the BED file(s) to merge overlapping intervals of with counts of coverage.
+        When multiple files are specified they are concatenated and sorted before merging.
         Must be tab-separated.
     out_file
         Path to the output file. Cannot be the same as `in_file`.
     genome_file
         Path to the genome file with chromosome sizes.
         Used to find limits of the chromosomes.
+    rm_non_autosomes
+        Whether to remove non-autosomes.
+    pre_sort
+        Whether to sort before the merging.
+        NOTE: Always happens when `in_files` has > 1 elements.
     keep_zero_coverages
         Whether to keep regions with zero coverage.
     min_coverage
@@ -438,7 +370,12 @@ def merge_overlapping_intervals_with_coverage(
     add_index
         Whether to add an interval index column.
     """
-    check_paths_for_subprocess([in_file, genome_file], out_file)
+    check_paths_for_subprocess(in_files + [genome_file], out_file)
+    concat_str = _cat_files(
+        in_files=in_files,
+        rm_non_autosomes=rm_non_autosomes,
+        always_sort=pre_sort,
+    )
 
     # Coverage filtering
     coverage_filter_str = ""
@@ -454,11 +391,15 @@ def merge_overlapping_intervals_with_coverage(
         )
 
     merge_call_parts = [
+        # Cat file(s)
+        concat_str,
+        # Count coverage
         "bedtools genomecov",
         "-i",
-        str(in_file),
+        "-",
         "-bga" if keep_zero_coverages else "-bg",
         f"-g {str(genome_file)}",
+        # Remove if too little coverage
         coverage_filter_str,
         # Merge 'bookended' intervals (sequential with different coverage counts)
         "|",
@@ -479,8 +420,10 @@ def merge_overlapping_intervals_with_coverage(
 
 
 def merge_overlapping_intervals(
-    in_file: Union[str, pathlib.Path],
+    in_files: List[Union[str, pathlib.Path]],
     out_file: Union[str, pathlib.Path],
+    rm_non_autosomes: bool = False,
+    pre_sort: bool = False,
     max_distance: int = 0,
     add_index: bool = False,
 ) -> None:
@@ -494,6 +437,11 @@ def merge_overlapping_intervals(
         Must be tab-separated.
     out_file
         Path to the output file. Cannot be the same as `in_file`.
+    rm_non_autosomes
+        Whether to remove non-autosomes.
+    pre_sort
+        Whether to sort before the merging.
+        NOTE: Always happens when `in_files` has > 1 elements.
     max_distance
         Maximum distance between intervals allowed for intervals
         to be merged. Default is 0. That is, overlapping and/or book-ended
@@ -501,7 +449,13 @@ def merge_overlapping_intervals(
     add_index
         Whether to add an interval index column.
     """
-    check_paths_for_subprocess(in_file, out_file)
+    check_paths_for_subprocess(in_files, out_file)
+
+    concat_str = _cat_files(
+        in_files=in_files,
+        rm_non_autosomes=rm_non_autosomes,
+        always_sort=pre_sort,
+    )
 
     add_index_str = ""
     if add_index:
@@ -511,9 +465,12 @@ def merge_overlapping_intervals(
 
     merge_call = " ".join(
         [
+            # Cat file(s)
+            concat_str,
+            # Flatten intervals
             "bedtools merge",
             "-i",
-            str(in_file),
+            "-",
             "-d",
             str(max_distance),
             add_index_str,
@@ -524,66 +481,22 @@ def merge_overlapping_intervals(
     call_subprocess(merge_call, "`bedtools::merge` failed")
 
 
-def remove_non_standard_chromosomes(
-    bed_df: pd.DataFrame, copy: bool = False
-) -> pd.DataFrame:
+def _cat_files(
+    in_files: List[Union[str, pathlib.Path]],
+    rm_non_autosomes: bool = False,
+    always_sort: bool = False,
+):
     """
-    Remove chromosomes where the name is not "chr" + some digit(s).
+    Create string for 'cat'ing the files, removing non-autosomes, and sorting if necessary (or specified).
 
-    Parameters
-    ----------
-    bed_df
-        `pandas.DataFrame` with intervals. As created with `read_bed_as_df`.
-    copy
-        Whether to copy the data frame before making changes to it.
-        Otherwise (default), the original data frame may be altered.
-
-    Returns
-    -------
-    `bed_df` with filtered chromosomes.
+    always_sort
+        Whether to sort even when `in_files` only contains 1 file.
+        Otherwise, only sorts when multiple files are specified
     """
-    if copy:
-        bed_df = bed_df.copy()
-    bed_df = bed_df[bed_df.chromosome.str.match(r"^chr\d+$", na=False)]
-    return bed_df
-
-
-def sort_intervals(
-    bed_df: pd.DataFrame, copy: bool = False, sort_numerically: bool = False
-) -> pd.DataFrame:
-    """
-    Sort BED data frame by chromosome and start position.
-
-    NOTE: Some operations are made inplace and will affect the input data frame.
-    Enable `copy` to avoid this.
-
-    Parameters
-    ----------
-    bed_df
-        `pandas.DataFrame` with intervals. As created with `read_bed_as_df`.
-        NOTE: Can only have chromosome names consisting of 'chr' + some digit(s)
-        e.g. chr1, chr2, etc. Use `remove_non_standard_chromosomes()` to
-        remove non-standard chromosomes.
-    copy
-        Whether to copy the data frame before making changes to it.
-        Otherwise (default), the original data frame may be altered.
-    sort_numerically
-        Whether to sort by chromosome number (or alphabetically).
-        `True`: chr1, chr2, chr3, etc.
-        `False`: chr1, chr10, chr11, etc.
-
-    Returns
-    -------
-    `bed_df` sorted by chromosome and start position.
-    """
-    if copy:
-        bed_df = bed_df.copy()
-    if sort_numerically:
-        bed_df["chr_sort"] = bed_df["chromosome"].map(lambda x: int(x[3:]))
-    else:
-        bed_df["chr_sort"] = bed_df["chromosome"]
-    # Note: Without end and without using stable sort,
-    # an end could come before other "lower-valued" ends
-    bed_df.sort_values(by=["chr_sort", "start", "end"], inplace=True)
-    bed_df.drop(columns=["chr_sort"], inplace=True)
-    return bed_df
+    assert isinstance(in_files, list)
+    concat_str = " ".join(["cat"] + in_files + ["|"])
+    if rm_non_autosomes:
+        concat_str += " awk -F'\t' -v OFS='\t' '$1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/' | "
+    if len(in_files) > 1 or always_sort:
+        concat_str += " sort -k1,1 -k2,2n -k3,3n | "
+    return concat_str
