@@ -9,6 +9,7 @@ Steps:
  - Create GC bin edges for correction
  - Create average overlapping insert size bin edges for correction
  - Split intervals into chromosome-wise files with indices and GC contents
+
 """
 
 import gc
@@ -177,8 +178,9 @@ def main():
         out_dirs={"out_dir": out_dir},
         out_files={
             **chrom_out_files,
-            "gc_bin_edges_path": out_dir / "gc_contents_bin_edges.npy",
-            "iss_bin_edges_path": out_dir / "insert_size_bin_edges.npy",
+            "coordinates_file": out_dir / "bin_coordinates.tsv.gz",
+            "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
+            "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
         },
         tmp_files={
             # NOTE: "binned_file" must match output of mosdepth -
@@ -270,7 +272,7 @@ def main():
 
     # Save bin edges
     messenger("Saving GC bin edges", indent=2)
-    np.save(paths["gc_bin_edges_path"], gc_bin_edges)
+    np.save(paths["gc_bin_edges_file"], gc_bin_edges)
 
     messenger("Start: Creating insert size bin edges")
     iss_bin_edges = _create_insert_size_bin_edges(
@@ -279,12 +281,26 @@ def main():
         num_bins=40,
     )
     messenger("Saving insert size bin edges", indent=2)
-    np.save(paths["iss_bin_edges_path"], iss_bin_edges)
+    np.save(paths["iss_bin_edges_file"], iss_bin_edges)
 
     # For each unique chromosome, write a file with only 'index' and 'gc'
-    messenger("Start: Saving bin indices and GC contents per chromosome")
+    messenger("Start: Saving bin indices and GC contents")
     with timer.time_step(indent=2):
         bins_df = ensure_col_types(bins_df, dtypes={"idx": "int32", "GC": "float32"})
+        # Save coordinates (used to create cell-type masks)
+        bins_df.loc[:, ["chromosome", "start", "end", "idx"]].to_csv(
+            paths["coordinates_file"],
+            sep="\t",
+            index=False,
+            header=True,
+            compression="gzip",
+        )
+        messenger(
+            f"Saved coordinates file to {paths['coordinates_file']}",
+            indent=2,
+        )
+
+        # Save bin indices and GC contents per chromosome
         for chrom_name, group_df in bins_df.groupby("chromosome"):
             out_filename = paths[f"{chrom_name}_out_file"]
 
