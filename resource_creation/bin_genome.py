@@ -1,5 +1,5 @@
 """
-Creates a BED file of the mappable areas of the whole genome with information about the GC context.
+Bins the whole genome and filters out unmappable areas. Extracts the GC content per bin.
 
 Steps:
 
@@ -161,7 +161,7 @@ def main():
     chroms = [f"chr{i}" for i in range(1, 23)]
 
     chrom_out_files = {
-        f"{chrom}_out_file": out_dir / f"{chrom}.tsv.gz" for chrom in chroms
+        f"{chrom}_out_file": out_dir / f"{chrom}.parquet" for chrom in chroms
     }
 
     exclusion_paths = {
@@ -178,7 +178,7 @@ def main():
         out_dirs={"out_dir": out_dir},
         out_files={
             **chrom_out_files,
-            "coordinates_file": out_dir / "bin_coordinates.tsv.gz",
+            "coordinates_file": out_dir / "bin_coordinates.parquet",
             "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
             "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
         },
@@ -288,13 +288,10 @@ def main():
     with timer.time_step(indent=2):
         bins_df = ensure_col_types(bins_df, dtypes={"idx": "int32", "GC": "float32"})
         # Save coordinates (used to create cell-type masks)
-        bins_df.loc[:, ["chromosome", "start", "end", "idx"]].to_csv(
-            paths["coordinates_file"],
-            sep="\t",
-            index=False,
-            header=True,
-            compression="gzip",
+        bins_df.loc[:, ["chromosome", "start", "end", "idx"]].to_parquet(
+            paths["coordinates_file"], engine="pyarrow", compression="zstd"
         )
+
         messenger(
             f"Saved coordinates file to {paths['coordinates_file']}",
             indent=2,
@@ -308,13 +305,7 @@ def main():
             subset = group_df.loc[:, ["idx", "GC"]]
 
             # Write chromosome bin indices and GC contents to tsv
-            subset.to_csv(
-                out_filename,
-                sep="\t",
-                index=False,
-                header=True,
-                compression="gzip",
-            )
+            subset.to_parquet(out_filename, engine="pyarrow", compression="zstd")
             messenger(
                 f"Saved file to {out_filename}",
                 indent=2,
