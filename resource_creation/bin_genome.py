@@ -292,7 +292,7 @@ def main():
             paths["coordinates_file"],
             engine="pyarrow",
             compression="zstd",
-            compression_level=5,  # Not shared so IO speed is more important
+            compression_level=15,  # Not shared so IO speed is more important
         )
 
         messenger(
@@ -312,7 +312,7 @@ def main():
                 out_filename,
                 engine="pyarrow",
                 compression="zstd",
-                compression_level=10,  # We need to share these files so reduced size is important!
+                compression_level=15,  # We need to share these files so reduced size is important!
             )
             messenger(
                 f"Saved file to {out_filename}",
