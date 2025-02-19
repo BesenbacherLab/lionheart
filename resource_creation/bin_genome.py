@@ -289,7 +289,10 @@ def main():
         bins_df = ensure_col_types(bins_df, dtypes={"idx": "int32", "GC": "float32"})
         # Save coordinates (used to create cell-type masks)
         bins_df.loc[:, ["chromosome", "start", "end", "idx"]].to_parquet(
-            paths["coordinates_file"], engine="pyarrow", compression="zstd"
+            paths["coordinates_file"],
+            engine="pyarrow",
+            compression="zstd",
+            compression_level=5,  # Not shared so IO speed is more important
         )
 
         messenger(
@@ -305,7 +308,12 @@ def main():
             subset = group_df.loc[:, ["idx", "GC"]]
 
             # Write chromosome bin indices and GC contents to tsv
-            subset.to_parquet(out_filename, engine="pyarrow", compression="zstd")
+            subset.to_parquet(
+                out_filename,
+                engine="pyarrow",
+                compression="zstd",
+                compression_level=10,  # We need to share these files so reduced size is important!
+            )
             messenger(
                 f"Saved file to {out_filename}",
                 indent=2,
@@ -360,7 +368,7 @@ $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {{
 
     call_subprocess(
         index_and_subtract_cmd,
-        "`awk` indexing or `bedtool subtract` failed",
+        "`awk` indexing or `bedtools subtract` failed",
     )
 
     return out_file
