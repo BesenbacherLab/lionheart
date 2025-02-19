@@ -178,7 +178,7 @@ def main():
         out_dirs={"out_dir": out_dir},
         out_files={
             **chrom_out_files,
-            "coordinates_file": out_dir / "bin_coordinates.parquet",
+            "coordinates_file": out_dir / "bin_coordinates.tsv",
             "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
             "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
         },
@@ -288,17 +288,21 @@ def main():
     with timer.time_step(indent=2):
         bins_df = ensure_col_types(bins_df, dtypes={"idx": "int32", "GC": "float32"})
         # Save coordinates (used to create cell-type masks)
-        bins_df.loc[:, ["chromosome", "start", "end", "idx"]].to_parquet(
-            paths["coordinates_file"],
-            engine="pyarrow",
-            compression="zstd",
-            compression_level=15,  # Not shared so IO speed is more important
-        )
+        coordinates_df = bins_df.loc[:, ["chromosome", "start", "end", "idx"]]
 
-        messenger(
-            f"Saved coordinates file to {paths['coordinates_file']}",
-            indent=2,
-        )
+        # No compression (was too slow and this is overall a tmp file anyway)
+        with timer.time_step(indent=4):
+            coordinates_df.to_csv(
+                paths["coordinates_file"],
+                sep="\t",
+                index=False,
+                header=True,
+            )
+
+            messenger(
+                f"Saved coordinates file to {paths['coordinates_file']}",
+                indent=2,
+            )
 
         # Save bin indices and GC contents per chromosome
         for chrom_name, group_df in bins_df.groupby("chromosome"):
