@@ -155,3 +155,7 @@ def call_flatten_dict(d, id_):
     d_flat = flatten_dict(d)
     d_flat["donor_id"] = id_
     return d_flat
+
+
+if __name__ == "__main__":
+    main()
