@@ -19,10 +19,12 @@ def main():
     parser.add_argument(
         "--meta_data_file",
         type=str,
+        required=True,
         help="Path the meta data file with human donor info.",
     )
     parser.add_argument(
         "--out_file",
+        required=True,
         type=str,
         help="Path to output `.tsv` file with scraped information.",
     )
@@ -62,8 +64,10 @@ def main():
     paths.mk_output_dirs(collection="out_dirs")
 
     # Load meta data
+    messenger("Start: Loading meta data for extraction of donor IDs")
     meta = pd.read_csv(paths["meta_data_file"], sep="\t")
-    donor_ids = meta["Donor(s)"]
+    donor_ids = set(meta["Donor(s)"].apply(lambda s: s.split("/")[-2]))
+    messenger(f"Got {len(donor_ids)} unique donor IDs")
 
     messenger("Start: Downloading meta data from ENCODE")
     with timer.time_step(indent=2):
