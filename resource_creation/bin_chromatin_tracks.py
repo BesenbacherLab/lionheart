@@ -11,7 +11,7 @@ import os
 import argparse
 import logging
 import pathlib
-from typing import Dict, List, Tuple
+from typing import Dict, List
 import concurrent
 import pandas as pd
 import numpy as np
@@ -36,23 +36,25 @@ def main():
     parser = argparse.ArgumentParser(""" """)
     parser.add_argument(
         "--coordinates_file",
+        required=True,
         type=str,
         help="Path the coordinates file.",
     )
     parser.add_argument(
         "--tracks_dir",
+        required=True,
         type=str,
         help="Directory where chromatin tracks are stored.",
     )
     parser.add_argument(
         "--out_dir",
+        required=True,
         type=str,
         help="Directory to store output file. "
         "Separate sparse arrays are stored per cell-type and chromosome.",
     )
     parser.add_argument(
         "--meta_data_file",
-        nargs="+",
         required=True,
         type=str,
         help="Path to `.tsv` file with meta data for the chromatin tracks. "
@@ -62,6 +64,7 @@ def main():
     )
     parser.add_argument(
         "--chrom_sizes_file",
+        required=True,
         type=str,
         help=(
             "Path to file with chromosome sizes. "
@@ -280,9 +283,7 @@ def main():
         messenger=messenger,
     )
 
-    # "out_files": {"chrXX": "chrXX_overlaps_cell_type1.npz"},
-
-    # Requires loading into RAM so run serially
+    # NOTE: Requires loading into RAM so run serially
 
     for cell_type in cell_types + ["consensus"]:
         chrom_out_files = {
