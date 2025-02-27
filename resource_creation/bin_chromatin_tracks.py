@@ -6,6 +6,7 @@ Steps:
  - ...
 """
 
+import gc
 import os
 import argparse
 import logging
@@ -26,6 +27,7 @@ from lionheart.utils.bed_ops import (
     get_file_num_lines,
     read_bed_as_df,
     merge_multifile_intervals,
+    subtract_intervals,
 )
 
 
@@ -33,86 +35,45 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser(""" """)
     parser.add_argument(
-        "--bam_file",
+        "--coordinates_file",
         type=str,
-        help="Path to a **minimal** hg38 BAM file. "
-        "We don't need the actual coverage just the bins, "
-        "so take a very low-coverage (>= 1 fragment per autosome) file.",
+        help="Path the coordinates file.",
     )
-    parser.add_argument("--out_dir", type=str, help="Directory to store output file.")
+    parser.add_argument(
+        "--tracks_dir",
+        type=str,
+        help="Directory where chromatin tracks are stored.",
+    )
+    parser.add_argument(
+        "--out_dir",
+        type=str,
+        help="Directory to store output file. "
+        "Separate sparse arrays are stored per cell-type and chromosome.",
+    )
+    parser.add_argument(
+        "--meta_data_file",
+        nargs="+",
+        required=True,
+        type=str,
+        help="Path to `.tsv` file with meta data for the chromatin tracks. "
+        "Must have the column: {'sample_id', 'annotated_biosample_name'}, "
+        "where the 'sample_id' matches the file name (`<sample_id>.bed.gz`) "
+        "in the `--tracks_dir` directory.",
+    )
     parser.add_argument(
         "--chrom_sizes_file",
         type=str,
         help=(
             "Path to file with chromosome sizes. "
-            "Only used when `--bin_size != --gc_bin_size`. "
             "Should contain two columns with 1) the name of the chromosome, and "
             "2) the size of the chromosome. Must be tab-separated and have no header."
         ),
     )
     parser.add_argument(
-        "--exclusion_bed_files",
-        nargs="+",
-        required=True,
-        type=str,
-        help=(
-            "Paths to BED files with exclusion intervals, e.g. due to low mappability. "
-            "A new exclusion BED file is created with intervals that overlap the prepared BED file. "
-        ),
-    )
-    parser.add_argument(
-        "--reference_file",
-        type=str,
-        help=("Path to 2bit file with reference genome for looking up GC content. "),
-    )
-    parser.add_argument(
-        "--mosdepth_path",
-        required=True,
-        type=str,
-        help=(
-            "Path to `mosdepth` application. "
-            "Supply something like `'/home/<username>/mosdepth/mosdepth'`."
-        ),
-    )
-    parser.add_argument(
-        "--ld_library_path",
-        type=str,
-        help=(
-            "You may need to specify the `LD_LIBRARY_PATH`."
-            "\nThis is the path to the `lib` directory in the directory of your "
-            "`conda` environment."
-            "\nSupply something like `'/home/<username>/anaconda3/envs/<env_name>/lib/'`."
-        ),
-    )
-    parser.add_argument("--bin_size", type=int, default=10, help=("The size of bins."))
-    parser.add_argument(
-        "--gc_bin_size",
+        "--bin_size",
         type=int,
-        default=100,
-        help=(
-            "The size of bins for extracting GC contents around the center of each bin. "
-            "This allows adding context when `--bin_size` is low. "
-        ),
-    )
-    parser.add_argument(
-        "--num_gc_bins",
-        type=int,
-        default=100,
-        help=(
-            "The number of GC content bins. "
-            "When not specified the `--bin_size` or `--gc_bins_edges` is used."
-            "Only one of `--num_gc_bins` and `--gc_bins_edges` should be specified."
-        ),
-    )
-    parser.add_argument(
-        "--excess_method",
-        type=str,
-        default="remove_end",
-        choices=["remove_end", "remove_start", "extend_end", "extend_start"],
-        help=(
-            "How to handle excess elements when interval sizes aren't divisible by bin size. "
-            "Can either remove the excess elements or extend the interval."
-        ),
+        default=10,
+        help="The size of bins.",
     )
     parser.add_argument(
         "--num_jobs",
@@ -142,41 +103,71 @@ def main():
 
     # Create paths container with checks
     out_dir = pathlib.Path(args.out_dir)
+    track_dir = pathlib.Path(args.tracks_dir)
     tmp_dir = out_dir / f"tmp_{random_alphanumeric(size=15)}"
-
-    chroms = [f"chr{i}" for i in range(1, 23)]
-
-    chrom_out_files = {
-        f"{chrom}_out_file": out_dir / f"{chrom}.tsv.gz" for chrom in chroms
-    }
-
-    exclusion_paths = {
-        f"exclude_{i}": p for i, p in enumerate(args.exclusion_bed_files)
-    }
 
     paths = IOPaths(
         in_files={
-            "bam_file": args.bam_file,
+            "coordinates_file": args.coordinates_file,
             "chrom_sizes_file": args.chrom_sizes_file,
-            "reference_file": args.reference_file,
-            **exclusion_paths,
+            "meta_data_file": args.meta_data_file,
+        },
+        in_dirs={
+            "track_dir": track_dir,
         },
         out_dirs={"out_dir": out_dir},
-        out_files={
-            **chrom_out_files,
-            "coordinates_file": out_dir / "bin_coordinates.tsv.gz",
-            "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
-            "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
-        },
-        tmp_files={
-            # NOTE: "binned_file" must match output of mosdepth -
-            # this defines the mosdepth output directory though
-            "binned_file": tmp_dir / "binning.regions.bed.gz",
-        },
+        out_files={"consensus_intervals_file": out_dir / "consensus_intervals.bed"},
+        # tmp_files={
+        # },
         tmp_dirs={
             "tmp_dir": tmp_dir,
+            "tmp_flattened_dir": tmp_dir / "flattened",
+            "tmp_merged_dir": tmp_dir / "merged",
+            "tmp_subtracted_dir": tmp_dir / "consensus_subracted",
+            "tmp_overlaps_dir": tmp_dir / "overlaps",
         },
     )
+
+    # Load meta data
+    messenger("Start: Reading meta data")
+    meta_data = pd.read_csv(paths["meta_data_file"], sep="\t")
+    sample_ids = meta_data["sample_id"].tolist()
+    cell_types = meta_data["annotated_biosample_names"].tolist()
+    cell_type_to_sample_ids = (
+        meta_data.groupby("annotated_biosample_names")["sample_id"]
+        .apply(list)
+        .to_dict()
+    )
+    del meta_data
+    gc.collect()
+    messenger(
+        f"Got {len(sample_ids)} sample IDs for {len(set(cell_types))} cell types",
+        indent=2,
+    )
+    messenger("Cell type -> Sample IDs:", indent=2)
+    messenger(cell_type_to_sample_ids, indent=4)
+
+    messenger("Start: Extracting track file paths")
+    track_paths = track_dir.glob("*.bed.gz")
+    track_paths = [
+        ("track_" + path.name[: -len(".bed.gz")], path)
+        for path in track_paths
+        if path.name[: -len(".bed.gz")] in sample_ids
+    ]
+    if len(track_paths) == 0:
+        raise RuntimeError(
+            "Found no tracks in --tracks_dir that matches sample IDs in --meta_data_file"
+        )
+
+    chroms = [f"chr{i}" for i in range(1, 23)]
+    cell_chrom_out_files = {
+        f"{cell_type}_{chrom}_out_file": out_dir / cell_type / f"{chrom}.npz"
+        for cell_type in set(cell_types + ["consensus"])
+        for chrom in chroms
+    }
+
+    paths.set_paths(paths=dict(track_paths), collection="in_files")
+    paths.set_paths(paths=cell_chrom_out_files, collection="out_files")
 
     # Show overview of the paths
     messenger(paths)
@@ -187,37 +178,43 @@ def main():
 
     # Load meta data
 
+    def make_flattened_path(paths, sample_id):
+        return paths["tmp_flattened_dir"] / (sample_id + ".bed")
+
     # Sort and merge overlapping intervals per file to flatten intervals
     # Using ThreadPoolExecutor to process files concurrently.
-    flatten_in_out_args = [
-        {"in_file": "track_1.bed", "out_file": "flatteded_track_1.bed"},
+    flatten_in_out_kwargs = [
+        {
+            "in_file": paths["track_" + sample_id],
+            "out_file": make_flattened_path(paths, sample_id),
+        }
+        for sample_id in sample_ids
     ]
     run_parallel_tasks(
-        task_list=flatten_in_out_args,
+        task_list=flatten_in_out_kwargs,
         worker=sort_and_flatten_track,  # in_file, out_file
         max_workers=args.num_jobs,
         messenger=messenger,
     )
 
+    def make_merged_path(paths, cell_type):
+        return paths["tmp_merged_dir"] / (cell_type + ".bed")
+
     # Merge files per cell-type
-    # NOTE: Remember arg order must be as expected by function!
-    cell_type__constant_args = {
-        "genome_file": paths["chrom_sizes_file"],
-        "min_coverage": 0.3,
-    }
-    merge_cell_types_args = [
+    merge_cell_types_kwargs = [
         {
             "in_files": [
-                "flatteded_track_1.bed",
-                "flatteded_track_2.bed",
-                "flatteded_track_3.bed",
+                make_flattened_path(paths, sample_id)
+                for sample_id in cell_type_sample_ids
             ],
-            "out_file": "merged_cell_type_track_1.bed",
-            **cell_type__constant_args,
-        },
+            "out_file": make_merged_path(paths, cell_type),
+            "genome_file": paths["chrom_sizes_file"],
+            "min_coverage": 0.3,
+        }
+        for cell_type, cell_type_sample_ids in cell_type_to_sample_ids.items()
     ]
     run_parallel_tasks(
-        task_list=merge_cell_types_args,
+        task_list=merge_cell_types_kwargs,
         worker=merge_by_cell_type,  # in_files, out_file, genome_file, min_coverage
         max_workers=args.num_jobs,
         messenger=messenger,
@@ -227,36 +224,78 @@ def main():
     # Basically merge all merged cell type files and get those
     # intervals that are present in > 0.9 %
     extract_consensus_sites(
-        in_files=[
-            "merged_cell_type_track_1.bed",
-            "merged_cell_type_track_2.bed",
-            "merged_cell_type_track_3.bed",
-        ],
-        out_file="consensus_sites.bed",
+        in_files=[make_merged_path(paths, cell_type) for cell_type in cell_types],
+        out_file=paths["consensus_intervals_file"],
         genome_file=paths["chrom_sizes_file"],
         min_coverage=0.9,
     )
 
-    # Count overlaps between masks and bins
+    def make_subtracted_path(paths, cell_type):
+        return paths["tmp_subtracted_dir"] / (cell_type + ".bed")
 
-    cell_type__constant_args = {
-        "coordinates_file": paths["coordinates_file"],
-        "bin_size": 10,
-    }
-    count_overlaps_args = [
+    # Subtract consensus sites from all cell types (reduces size of final output files)
+    subtract_consensus_kwargs = [
         {
-            "overlapping_file": "merged_cell_type_track_1.bed",
-            "tmp_counts_file": "tmp_counts_file.bed??",
-            "out_files": {"chrXX": "chrXX_overlaps_cell_type1.npz"},
-            **cell_type__constant_args,
-        },
+            "in_file": make_merged_path(paths, cell_type),
+            "out_file": make_subtracted_path(paths, cell_type),
+            "consensus_file": paths["consensus_intervals_file"],
+        }
+        for cell_type in cell_types
     ]
     run_parallel_tasks(
-        task_list=count_overlaps_args,
-        worker=count_overlaps,  # in_files, out_file, genome_file, min_coverage
+        task_list=subtract_consensus_kwargs,
+        worker=subtract_consensus_from_cell_type,  # in_file, out_file, consensus_file
         max_workers=args.num_jobs,
         messenger=messenger,
     )
+
+    # Count overlaps between masks and bins
+
+    # Check number of intervals in original coordinates file
+    num_orig_lines = get_file_num_lines(
+        in_file=paths["coordinates_file"],
+    )
+
+    def make_overlap_counts_path(paths, cell_type):
+        return paths["tmp_overlaps_dir"] / (cell_type + ".bed")
+
+    find_overlaps_kwargs = [
+        {
+            "coordinates_file": paths["coordinates_file"],
+            "overlapping_file": make_subtracted_path(paths, cell_type),
+            "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
+        }
+        for cell_type in cell_types
+    ] + [
+        {
+            "coordinates_file": paths["coordinates_file"],
+            "overlapping_file": paths["consensus_intervals_file"],
+            "overlap_counts_file": make_overlap_counts_path(paths, "consensus"),
+        }
+    ]
+    run_parallel_tasks(
+        task_list=find_overlaps_kwargs,
+        worker=find_overlaps,
+        max_workers=args.num_jobs,
+        messenger=messenger,
+    )
+
+    # "out_files": {"chrXX": "chrXX_overlaps_cell_type1.npz"},
+
+    # Requires loading into RAM so run serially
+
+    for cell_type in cell_types + ["consensus"]:
+        chrom_out_files = {
+            chrom: paths[f"{cell_type}_{chrom}_out_file"] for chrom in chroms
+        }
+
+        sparsify_overlap_percentages(
+            coordinates_file=paths["coordinates_file"],
+            overlap_counts_file=make_overlap_counts_path(paths, cell_type),
+            out_files=chrom_out_files,
+            num_orig_lines=num_orig_lines,
+            bin_size=args.bin_size,
+        )
 
     # Remove temporary files
     paths.rm_tmp_dirs(messenger=messenger)
@@ -313,29 +352,38 @@ def extract_consensus_sites(
     )
 
 
-def count_overlaps(
+def subtract_consensus_from_cell_type(
+    in_file: pathlib.Path,
+    out_file: pathlib.Path,
+    consensus_file: pathlib.Path,
+):
+    subtract_intervals(
+        in_file=in_file,
+        out_file=out_file,
+        exclude_file=consensus_file,
+        rm_full_if_any=False,
+    )
+
+
+def find_overlaps(
     coordinates_file: pathlib.Path,
     overlapping_file: pathlib.Path,
-    tmp_counts_file: pathlib.Path,
-    out_files: Dict[str, pathlib.Path],
-    bin_size: int = 10,
+    overlap_counts_file: pathlib.Path,
 ):
     """
     coordinates_file: tsv file with chrom, start, end, idx
-    """
-    # Assume we can simplify the below?
-    # {general_paths["env_path"]}python {general_paths["scripts_path"]}/count_interval_overlaps.py --bed_file_1 {binned_bedfile} --bed_file_2 {path} --out_file {all_bin_overlap_files[version][origin]} --identifier {origin} --as_percentage
-    # {general_paths["env_path"]}python {general_paths["scripts_path"]}/split_intervals_by_chromosome.py --bed_file {all_bin_overlap_files[version][origin]} --out_path {bin_overlaps_by_chrom_origin_dir}
-    # {general_paths["env_path"]}python {general_paths["scripts_path"]}/check_split_sizes.py --bed_file {all_bin_overlap_files[version][origin]} --split_files {" ".join(to_strings(all_bin_overlap_by_chrom_files[version][origin]))} --out_path {bin_overlaps_by_chrom_origin_dir} --do remove
-    # {general_paths["env_path"]}python {general_paths["scripts_path"]}/convert_masks_to_sparse_arrays.py --cell_paths {" ".join(to_strings(input_dirs))} --out_path {out_path} --num_jobs {num_cores}
 
+    Output
+    ------
+    File where each original interval idx will be present once *per overlap*.
+    """
     # Count overlapping positions
     # For each interval in `in_file`, find the number of overlapping
     # positions in `overlapping_file`.
 
-    check_paths_for_subprocess([coordinates_file, overlapping_file], tmp_counts_file)
-
-    orig_lines = get_file_num_lines(in_file=coordinates_file)
+    check_paths_for_subprocess(
+        [coordinates_file, overlapping_file], overlap_counts_file
+    )
 
     overlaps_call = " ".join(
         [
@@ -359,14 +407,23 @@ def count_overlaps(
             "OFS='\t'",
             "'{print $1,$4,$8}'",
             ">",
-            str(tmp_counts_file),
+            str(overlap_counts_file),
         ]
     )
     call_subprocess(overlaps_call, "`awk` or `bedtools::intersect` failed")
 
+
+def sparsify_overlap_percentages(
+    overlap_counts_file: pathlib.Path,
+    chrom_out_files: Dict[str, pathlib.Path],
+    num_orig_lines: int,
+    bin_size: int = 10,
+):
     # Read as data frame and calculate number of overlaps per interval index
     overlaps_df = (
-        read_bed_as_df(path=tmp_counts_file, col_names=["chromosome", "idx", "overlap"])
+        read_bed_as_df(
+            path=overlap_counts_file, col_names=["chromosome", "idx", "overlap"]
+        )
         .groupby(["chromosome", "idx"])
         .overlap.sum()
         .reset_index()
@@ -377,20 +434,20 @@ def count_overlaps(
     # Convert to percentage
     overlaps_df["overlap"] /= bin_size
 
-    if not orig_lines == len(overlaps_df):
+    if not num_orig_lines == len(overlaps_df):
         raise ValueError(
-            f"Original coordinate file had {orig_lines} rows "
+            f"Original coordinate file had {num_orig_lines} rows "
             f"but overlap counts file had {len(overlaps_df)} rows."
         )
 
     # Remove the tmp counts file
-    os.remove(str(tmp_counts_file))
+    os.remove(str(overlap_counts_file))
 
     # For each unique chromosome, write a sparse array with the overlap count
 
     # Save bin indices and GC contents per chromosome
     for chrom_name, group_df in overlaps_df.groupby("chromosome"):
-        out_filename = out_files[chrom_name]
+        out_filename = chrom_out_files[chrom_name]
 
         # Select only index and gc columns
         chrom_overlaps = scipy.sparse.csc_matrix(
@@ -427,74 +484,6 @@ def run_parallel_tasks(task_list, worker, max_workers, messenger):
                 messenger(f"Task with arguments {task} completed successfully.")
             except Exception as exc:
                 messenger(f"Task with arguments {task} failed with exception: {exc}")
-
-
-def load_metadata(local_paths: Dict[str, str]) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    meta_data = pd.read_csv(
-        local_paths["meta_data"],
-        sep="\t",
-        usecols=[
-            "Sample ID",
-            "Reference Version",
-            "Experiment ID",
-            "Origin",
-            "Biosample Type",
-            "Data Source",
-        ],
-    )
-
-    if local_paths["origin_groups"].exists():
-        origin_groups_data = pd.read_csv(
-            local_paths["origin_groups"],
-            usecols=["Biosample.type", "Biosample.term.name", "blood"],
-        ).rename(
-            columns={
-                "Biosample.type": "Biosample type",
-                "Origin": "Biosample term name",
-            }
-        )
-    else:
-        print(
-            f"Did not find origin grouping at {local_paths['origin_groups']}. Skipping."
-        )
-        origin_groups_data = None
-
-    # Filter meta data
-    meta_data = meta_data[meta_data["Reference Version"] != "hg19"]
-
-    return meta_data, origin_groups_data
-
-
-def get_data_path(id: str, general_paths: Dict[str, str], mask_type: str) -> str:
-    return general_paths["mask_paths"][mask_type]["raw_data"] / f"{id}.bed"
-
-
-def get_sorted_data_path(id: str, general_paths: Dict[str, str], mask_type: str) -> str:
-    return general_paths["mask_paths"][mask_type]["sorted_bed_files"][id]
-
-
-def get_unique_origins(meta_data: pd.DataFrame) -> List[str]:
-    return list(meta_data["Origin"].unique())
-
-
-def standardize_origin(origin):
-    return (
-        origin.replace(" ", "_")
-        .replace("-", "_")
-        .replace(",", "_")
-        .replace("'", "")
-        .replace("/", "")
-        .lower()
-    )
-
-
-def set_raw_bedfile_paths(
-    general_paths: Dict[str, str], mask_type: str, meta_data: pd.DataFrame
-) -> None:
-    general_paths["mask_paths"][mask_type]["raw_bed_files"] = [
-        get_data_path(id=id, general_paths=general_paths, mask_type=mask_type)
-        for id in meta_data["Sample ID"]
-    ]
 
 
 if __name__ == "__main__":

@@ -481,6 +481,43 @@ def merge_overlapping_intervals(
     call_subprocess(merge_call, "`bedtools::merge` failed")
 
 
+def subtract_intervals(
+    in_file: Union[str, pathlib.Path],
+    out_file: Union[str, pathlib.Path],
+    exclude_file: Union[str, pathlib.Path],
+    rm_full_if_any: bool = False,
+) -> None:
+    """
+    Subtract the intervals of one file from another with `bedtools::subtract`.
+
+    Parameters
+    ----------
+    in_file
+        Path to the BED file to remove intervals from.
+        Must be tab-separated.
+    out_file
+        Path to the output file. Cannot be the same as `in_file`.
+    exclude_file
+        Path to the BED file with intervals to remove intervals from `in_file`.
+        Must be tab-separated.
+    rm_full_if_any
+        Remove entire feature if any overlap. Uses "-A" flag.
+    """
+    check_paths_for_subprocess([in_file, exclude_file], out_file)
+
+    subtract_call = " ".join(
+        [
+            "bedtools subtract",
+            f"-a {in_file}",
+            f"-b {exclude_file}",
+            "-A" if rm_full_if_any else "",
+            ">",
+            str(out_file),
+        ]
+    )
+    call_subprocess(subtract_call, "`bedtools::subtract` failed")
+
+
 def _cat_files(
     in_files: List[Union[str, pathlib.Path]],
     rm_non_autosomes: bool = False,
@@ -489,12 +526,16 @@ def _cat_files(
     """
     Create string for 'cat'ing the files, removing non-autosomes, and sorting if necessary (or specified).
 
+    Detects ".gz" extension from the first file only. All `in_files` should thus be consistently
+    without or without gzip compression!
+
     always_sort
         Whether to sort even when `in_files` only contains 1 file.
         Otherwise, only sorts when multiple files are specified
     """
     assert isinstance(in_files, list)
-    concat_str = " ".join(["cat"] + in_files + ["|"])
+    cat_fn = "zcat" if str(in_files[0])[-3:] == ".gz" else "cat"
+    concat_str = " ".join([cat_fn] + in_files + ["|"])
     if rm_non_autosomes:
         concat_str += " awk -F'\t' -v OFS='\t' '$1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/' | "
     if len(in_files) > 1 or always_sort:
