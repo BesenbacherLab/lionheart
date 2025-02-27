@@ -322,7 +322,6 @@ def main():
             }
 
             sparsify_overlap_percentages(
-                coordinates_file=paths["coordinates_file"],
                 overlap_counts_file=make_overlap_counts_path(paths, cell_type),
                 out_files=chrom_out_files,
                 num_orig_lines=num_orig_lines,
