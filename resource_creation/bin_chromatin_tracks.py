@@ -136,14 +136,14 @@ def main():
     messenger("Start: Reading meta data")
     meta_data = pd.read_csv(paths["meta_data_file"], sep="\t")
     sample_ids = meta_data["sample_id"].tolist()
-    cell_types = meta_data["annotated_biosample_name"].tolist()
+    unique_cell_types = list(set(meta_data["annotated_biosample_name"].tolist()))
     cell_type_to_sample_ids = (
         meta_data.groupby("annotated_biosample_name")["sample_id"].apply(list).to_dict()
     )
     del meta_data
     gc.collect()
     messenger(
-        f"Got {len(sample_ids)} sample IDs for {len(set(cell_types))} cell types",
+        f"Got {len(sample_ids)} sample IDs for {len(unique_cell_types)} cell types",
         indent=2,
     )
     messenger("Cell type -> Sample IDs:", indent=2)
@@ -164,7 +164,7 @@ def main():
     chroms = [f"chr{i}" for i in range(1, 23)]
     cell_chrom_out_files = {
         f"{cell_type}_{chrom}_out_file": out_dir / cell_type / f"{chrom}.npz"
-        for cell_type in set(cell_types + ["consensus"])
+        for cell_type in set(unique_cell_types + ["consensus"])
         for chrom in chroms
     }
 
@@ -226,7 +226,9 @@ def main():
     # Basically merge all merged cell type files and get those
     # intervals that are present in > 0.9 %
     extract_consensus_sites(
-        in_files=[make_merged_path(paths, cell_type) for cell_type in cell_types],
+        in_files=[
+            make_merged_path(paths, cell_type) for cell_type in unique_cell_types
+        ],
         out_file=paths["consensus_intervals_file"],
         genome_file=paths["chrom_sizes_file"],
         min_coverage=0.9,
@@ -242,7 +244,7 @@ def main():
             "out_file": make_subtracted_path(paths, cell_type),
             "consensus_file": paths["consensus_intervals_file"],
         }
-        for cell_type in cell_types
+        for cell_type in unique_cell_types
     ]
     run_parallel_tasks(
         task_list=subtract_consensus_kwargs,
@@ -267,7 +269,7 @@ def main():
             "overlapping_file": make_subtracted_path(paths, cell_type),
             "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
         }
-        for cell_type in cell_types
+        for cell_type in unique_cell_types
     ] + [
         {
             "coordinates_file": paths["coordinates_file"],
@@ -284,7 +286,7 @@ def main():
 
     # NOTE: Requires loading into RAM so run serially
 
-    for cell_type in cell_types + ["consensus"]:
+    for cell_type in unique_cell_types + ["consensus"]:
         chrom_out_files = {
             chrom: paths[f"{cell_type}_{chrom}_out_file"] for chrom in chroms
         }
