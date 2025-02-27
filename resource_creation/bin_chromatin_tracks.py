@@ -126,7 +126,7 @@ def main():
             "tmp_dir": tmp_dir,
             "tmp_flattened_dir": tmp_dir / "flattened",
             "tmp_merged_dir": tmp_dir / "merged",
-            "tmp_subtracted_dir": tmp_dir / "consensus_subracted",
+            "tmp_subtracted_dir": tmp_dir / "consensus_subtracted",
             "tmp_overlaps_dir": tmp_dir / "overlaps",
         },
     )
@@ -135,11 +135,9 @@ def main():
     messenger("Start: Reading meta data")
     meta_data = pd.read_csv(paths["meta_data_file"], sep="\t")
     sample_ids = meta_data["sample_id"].tolist()
-    cell_types = meta_data["annotated_biosample_names"].tolist()
+    cell_types = meta_data["annotated_biosample_name"].tolist()
     cell_type_to_sample_ids = (
-        meta_data.groupby("annotated_biosample_names")["sample_id"]
-        .apply(list)
-        .to_dict()
+        meta_data.groupby("annotated_biosample_name")["sample_id"].apply(list).to_dict()
     )
     del meta_data
     gc.collect()
