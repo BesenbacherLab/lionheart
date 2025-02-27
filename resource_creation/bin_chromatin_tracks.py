@@ -11,6 +11,7 @@ import os
 import argparse
 import logging
 import pathlib
+import subprocess
 from typing import Dict, List
 import concurrent
 import concurrent.futures
@@ -277,6 +278,13 @@ def main():
         num_orig_lines = get_file_num_lines(
             in_file=paths["coordinates_file"],
         )
+        coordinates_file_has_header = check_coordinates_file_has_header(
+            paths["coordinates_file"]
+        )
+        if coordinates_file_has_header:
+            messenger("`--coordinates_file` has header - adjusting to it", indent=2)
+            # Don't count the header
+            num_orig_lines -= 1
 
         def make_overlap_counts_path(paths, cell_type):
             return paths["tmp_overlaps_dir"] / (cell_type + ".bed")
@@ -286,6 +294,7 @@ def main():
                 "coordinates_file": paths["coordinates_file"],
                 "overlapping_file": make_subtracted_path(paths, cell_type),
                 "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
+                "coordinates_file_has_header": coordinates_file_has_header,
             }
             for cell_type in unique_cell_types
         ] + [
@@ -293,6 +302,7 @@ def main():
                 "coordinates_file": paths["coordinates_file"],
                 "overlapping_file": paths["consensus_intervals_file"],
                 "overlap_counts_file": make_overlap_counts_path(paths, "consensus"),
+                "coordinates_file_has_header": coordinates_file_has_header,
             }
         ]
         run_parallel_tasks(
@@ -391,6 +401,7 @@ def find_overlaps(
     coordinates_file: pathlib.Path,
     overlapping_file: pathlib.Path,
     overlap_counts_file: pathlib.Path,
+    coordinates_file_has_header: bool,
 ):
     """
     coordinates_file: tsv file with chrom, start, end, idx
@@ -407,11 +418,13 @@ def find_overlaps(
         [coordinates_file, overlapping_file], overlap_counts_file
     )
 
+    # Skip first line when file has header
+    cat_fn = "tail -n +2" if coordinates_file_has_header else "cat"
+
     overlaps_call = " ".join(
         [
-            "cat",
+            cat_fn,
             str(coordinates_file),
-            "|",
             # Find number of intersecting bps per interval
             # NOTE: Can have multiple lines per interval in a_file (hence the index)
             "|",
@@ -508,6 +521,22 @@ def run_parallel_tasks(task_list, worker, max_workers, messenger, extra_verbose)
             except Exception as exc:
                 messenger(f"Task with arguments {task} failed with exception: {exc}")
                 raise
+
+
+def check_coordinates_file_has_header(filename):
+    # Use subprocess to get the first line of the file
+    first_line = subprocess.check_output(
+        ["head", "-n", "1", filename], universal_newlines=True
+    ).strip()
+    fields = first_line.split("\t")
+
+    # Try converting the second field to an integer.
+    # In a valid bed-like file, the second column (start coordinate) should be numeric.
+    try:
+        int(fields[1])
+        return False  # No header detected
+    except (IndexError, ValueError):
+        return True  # Likely a header
 
 
 if __name__ == "__main__":
