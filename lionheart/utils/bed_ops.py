@@ -535,9 +535,17 @@ def _cat_files(
     """
     assert isinstance(in_files, list)
     cat_fn = "zcat" if str(in_files[0])[-3:] == ".gz" else "cat"
-    concat_str = " ".join([cat_fn] + in_files + ["|"])
+    concat_str = " ".join([cat_fn] + _to_strings(in_files) + ["|"])
     if rm_non_autosomes:
         concat_str += " awk -F'\t' -v OFS='\t' '$1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/' | "
     if len(in_files) > 1 or always_sort:
         concat_str += " sort -k1,1 -k2,2n -k3,3n | "
     return concat_str
+
+
+def _to_strings(ls):
+    """
+    Convert a list of elements to strings
+    by applying `str()` to each element.
+    """
+    return [str(s) for s in ls]
