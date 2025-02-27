@@ -307,7 +307,7 @@ def merge_multifile_intervals(
     # Merge the overlapping intervals
     if count_coverage:
         merge_overlapping_intervals_with_coverage(
-            in_file=in_files,
+            in_files=in_files,
             out_file=out_file,
             keep_zero_coverages=keep_zero_coverage,
             genome_file=genome_file,
@@ -319,7 +319,7 @@ def merge_multifile_intervals(
         )
     else:
         merge_overlapping_intervals(
-            in_file=in_files,
+            in_files=in_files,
             out_file=out_file,
             rm_non_autosomes=rm_non_autosomes,
             pre_sort=pre_sort,

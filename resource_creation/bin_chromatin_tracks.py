@@ -486,6 +486,7 @@ def run_parallel_tasks(task_list, worker, max_workers, messenger):
                 messenger(f"Task with arguments {task} completed successfully.")
             except Exception as exc:
                 messenger(f"Task with arguments {task} failed with exception: {exc}")
+                raise
 
 
 if __name__ == "__main__":
