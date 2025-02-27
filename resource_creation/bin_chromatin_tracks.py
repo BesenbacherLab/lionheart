@@ -87,6 +87,11 @@ def main():
             "The number of available CPU cores. Used to parallelize calling of subprocesses."
         ),
     )
+    parser.add_argument(
+        "--extra_verbose",
+        action="store_true",
+        help="Whether to log each subprocess task (e.g., `bedtools` calls).",
+    )
     args = parser.parse_args()
 
     # Prepare logging messenger
@@ -199,6 +204,7 @@ def main():
             worker=sort_and_flatten_track,  # in_file, out_file
             max_workers=args.num_jobs,
             messenger=messenger,
+            extra_verbose=args.extra_verbose,
         )
 
     def make_merged_path(paths, cell_type):
@@ -224,6 +230,7 @@ def main():
             worker=merge_by_cell_type,  # in_files, out_file, genome_file, min_coverage
             max_workers=args.num_jobs,
             messenger=messenger,
+            extra_verbose=args.extra_verbose,
         )
 
     messenger("Start: Extracting consensus intervals")
@@ -259,6 +266,7 @@ def main():
             worker=subtract_consensus_from_cell_type,  # in_file, out_file, consensus_file
             max_workers=args.num_jobs,
             messenger=messenger,
+            extra_verbose=args.extra_verbose,
         )
 
     # Count overlaps between masks and bins
@@ -292,6 +300,7 @@ def main():
             worker=find_overlaps,
             max_workers=args.num_jobs,
             messenger=messenger,
+            extra_verbose=args.extra_verbose,
         )
 
     # NOTE: Requires loading into RAM so run serially
@@ -474,7 +483,7 @@ def save_sparse_array(arr, path: pathlib.Path) -> None:
     scipy.sparse.save_npz(path, arr)
 
 
-def run_parallel_tasks(task_list, worker, max_workers, messenger):
+def run_parallel_tasks(task_list, worker, max_workers, messenger, extra_verbose):
     """
     Run tasks in parallel using the provided worker function with keyword arguments.
 
@@ -494,7 +503,8 @@ def run_parallel_tasks(task_list, worker, max_workers, messenger):
             task = futures[future]
             try:
                 future.result()
-                messenger(f"Task with arguments {task} completed successfully.")
+                if extra_verbose:
+                    messenger(f"Task with arguments {task} completed successfully.")
             except Exception as exc:
                 messenger(f"Task with arguments {task} failed with exception: {exc}")
                 raise
