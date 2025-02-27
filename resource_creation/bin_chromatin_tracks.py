@@ -183,121 +183,132 @@ def main():
     def make_flattened_path(paths, sample_id):
         return paths["tmp_flattened_dir"] / (sample_id + ".bed")
 
-    # Sort and merge overlapping intervals per file to flatten intervals
-    # Using ThreadPoolExecutor to process files concurrently.
-    flatten_in_out_kwargs = [
-        {
-            "in_file": paths["track_" + sample_id],
-            "out_file": make_flattened_path(paths, sample_id),
-        }
-        for sample_id in sample_ids
-    ]
-    run_parallel_tasks(
-        task_list=flatten_in_out_kwargs,
-        worker=sort_and_flatten_track,  # in_file, out_file
-        max_workers=args.num_jobs,
-        messenger=messenger,
-    )
+    messenger("Start: Flattening individual files")
+    with timer.time_step(indent=2):
+        # Sort and merge overlapping intervals per file to flatten intervals
+        # Using ThreadPoolExecutor to process files concurrently.
+        flatten_in_out_kwargs = [
+            {
+                "in_file": paths["track_" + sample_id],
+                "out_file": make_flattened_path(paths, sample_id),
+            }
+            for sample_id in sample_ids
+        ]
+        run_parallel_tasks(
+            task_list=flatten_in_out_kwargs,
+            worker=sort_and_flatten_track,  # in_file, out_file
+            max_workers=args.num_jobs,
+            messenger=messenger,
+        )
 
     def make_merged_path(paths, cell_type):
         return paths["tmp_merged_dir"] / (cell_type + ".bed")
 
-    # Merge files per cell-type
-    merge_cell_types_kwargs = [
-        {
-            "in_files": [
-                make_flattened_path(paths, sample_id)
-                for sample_id in cell_type_sample_ids
-            ],
-            "out_file": make_merged_path(paths, cell_type),
-            "genome_file": paths["chrom_sizes_file"],
-            "min_coverage": 0.3,
-        }
-        for cell_type, cell_type_sample_ids in cell_type_to_sample_ids.items()
-    ]
-    run_parallel_tasks(
-        task_list=merge_cell_types_kwargs,
-        worker=merge_by_cell_type,  # in_files, out_file, genome_file, min_coverage
-        max_workers=args.num_jobs,
-        messenger=messenger,
-    )
+    messenger("Start: Merging files per cell type")
+    with timer.time_step(indent=2):
+        # Merge files per cell-type
+        merge_cell_types_kwargs = [
+            {
+                "in_files": [
+                    make_flattened_path(paths, sample_id)
+                    for sample_id in cell_type_sample_ids
+                ],
+                "out_file": make_merged_path(paths, cell_type),
+                "genome_file": paths["chrom_sizes_file"],
+                "min_coverage": 0.3,
+            }
+            for cell_type, cell_type_sample_ids in cell_type_to_sample_ids.items()
+        ]
+        run_parallel_tasks(
+            task_list=merge_cell_types_kwargs,
+            worker=merge_by_cell_type,  # in_files, out_file, genome_file, min_coverage
+            max_workers=args.num_jobs,
+            messenger=messenger,
+        )
 
-    # Get consensus sites
-    # Basically merge all merged cell type files and get those
-    # intervals that are present in > 0.9 %
-    extract_consensus_sites(
-        in_files=[
-            make_merged_path(paths, cell_type) for cell_type in unique_cell_types
-        ],
-        out_file=paths["consensus_intervals_file"],
-        genome_file=paths["chrom_sizes_file"],
-        min_coverage=0.9,
-    )
+    messenger("Start: Extracting consensus intervals")
+    with timer.time_step(indent=2):
+        # Get consensus sites
+        # Basically merge all merged cell type files and get those
+        # intervals that are present in > 0.9 %
+        extract_consensus_sites(
+            in_files=[
+                make_merged_path(paths, cell_type) for cell_type in unique_cell_types
+            ],
+            out_file=paths["consensus_intervals_file"],
+            genome_file=paths["chrom_sizes_file"],
+            min_coverage=0.9,
+        )
 
     def make_subtracted_path(paths, cell_type):
         return paths["tmp_subtracted_dir"] / (cell_type + ".bed")
 
-    # Subtract consensus sites from all cell types (reduces size of final output files)
-    subtract_consensus_kwargs = [
-        {
-            "in_file": make_merged_path(paths, cell_type),
-            "out_file": make_subtracted_path(paths, cell_type),
-            "consensus_file": paths["consensus_intervals_file"],
-        }
-        for cell_type in unique_cell_types
-    ]
-    run_parallel_tasks(
-        task_list=subtract_consensus_kwargs,
-        worker=subtract_consensus_from_cell_type,  # in_file, out_file, consensus_file
-        max_workers=args.num_jobs,
-        messenger=messenger,
-    )
+    messenger("Start: Subtracting consensus intervals from cell type files")
+    with timer.time_step(indent=2):
+        # Subtract consensus sites from all cell types (reduces size of final output files)
+        subtract_consensus_kwargs = [
+            {
+                "in_file": make_merged_path(paths, cell_type),
+                "out_file": make_subtracted_path(paths, cell_type),
+                "consensus_file": paths["consensus_intervals_file"],
+            }
+            for cell_type in unique_cell_types
+        ]
+        run_parallel_tasks(
+            task_list=subtract_consensus_kwargs,
+            worker=subtract_consensus_from_cell_type,  # in_file, out_file, consensus_file
+            max_workers=args.num_jobs,
+            messenger=messenger,
+        )
 
     # Count overlaps between masks and bins
 
-    # Check number of intervals in original coordinates file
-    num_orig_lines = get_file_num_lines(
-        in_file=paths["coordinates_file"],
-    )
+    messenger(f"Start: Counting cell type overlaps per {args.bin_size}bp bin")
+    with timer.time_step(indent=2):
+        # Check number of intervals in original coordinates file
+        num_orig_lines = get_file_num_lines(
+            in_file=paths["coordinates_file"],
+        )
 
-    def make_overlap_counts_path(paths, cell_type):
-        return paths["tmp_overlaps_dir"] / (cell_type + ".bed")
+        def make_overlap_counts_path(paths, cell_type):
+            return paths["tmp_overlaps_dir"] / (cell_type + ".bed")
 
-    find_overlaps_kwargs = [
-        {
-            "coordinates_file": paths["coordinates_file"],
-            "overlapping_file": make_subtracted_path(paths, cell_type),
-            "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
-        }
-        for cell_type in unique_cell_types
-    ] + [
-        {
-            "coordinates_file": paths["coordinates_file"],
-            "overlapping_file": paths["consensus_intervals_file"],
-            "overlap_counts_file": make_overlap_counts_path(paths, "consensus"),
-        }
-    ]
-    run_parallel_tasks(
-        task_list=find_overlaps_kwargs,
-        worker=find_overlaps,
-        max_workers=args.num_jobs,
-        messenger=messenger,
-    )
+        find_overlaps_kwargs = [
+            {
+                "coordinates_file": paths["coordinates_file"],
+                "overlapping_file": make_subtracted_path(paths, cell_type),
+                "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
+            }
+            for cell_type in unique_cell_types
+        ] + [
+            {
+                "coordinates_file": paths["coordinates_file"],
+                "overlapping_file": paths["consensus_intervals_file"],
+                "overlap_counts_file": make_overlap_counts_path(paths, "consensus"),
+            }
+        ]
+        run_parallel_tasks(
+            task_list=find_overlaps_kwargs,
+            worker=find_overlaps,
+            max_workers=args.num_jobs,
+            messenger=messenger,
+        )
 
     # NOTE: Requires loading into RAM so run serially
+    messenger("Start: Sparsifying and saving overlap percentages")
+    with timer.time_step(indent=2):
+        for cell_type in unique_cell_types + ["consensus"]:
+            chrom_out_files = {
+                chrom: paths[f"{cell_type}_{chrom}_out_file"] for chrom in chroms
+            }
 
-    for cell_type in unique_cell_types + ["consensus"]:
-        chrom_out_files = {
-            chrom: paths[f"{cell_type}_{chrom}_out_file"] for chrom in chroms
-        }
-
-        sparsify_overlap_percentages(
-            coordinates_file=paths["coordinates_file"],
-            overlap_counts_file=make_overlap_counts_path(paths, cell_type),
-            out_files=chrom_out_files,
-            num_orig_lines=num_orig_lines,
-            bin_size=args.bin_size,
-        )
+            sparsify_overlap_percentages(
+                coordinates_file=paths["coordinates_file"],
+                overlap_counts_file=make_overlap_counts_path(paths, cell_type),
+                out_files=chrom_out_files,
+                num_orig_lines=num_orig_lines,
+                bin_size=args.bin_size,
+            )
 
     # Remove temporary files
     paths.rm_tmp_dirs(messenger=messenger)
