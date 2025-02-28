@@ -323,7 +323,7 @@ def main():
 
             sparsify_overlap_percentages(
                 overlap_counts_file=make_overlap_counts_path(paths, cell_type),
-                out_files=chrom_out_files,
+                chrom_out_files=chrom_out_files,
                 num_orig_lines=num_orig_lines,
                 bin_size=args.bin_size,
             )
