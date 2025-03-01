@@ -72,12 +72,14 @@ $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {
 echo "Calculate coverage statistics..."
 read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
     count_val = $4;
-    sum += count_val;
+    # Convert floating-point count to integer (rounded)
+    count_int = int(count_val + 0.5);
+    sum += count_int;
     total++;
-    if (count_val != 0)
+    if (count_int != 0)
         nz++;
-    if (count_val > max)
-        max = count_val;
+    if (count_int > max)
+        max = count_int;
 } END {
     if (total > 0)
         print sum/total, total, nz, max, nz/total;
