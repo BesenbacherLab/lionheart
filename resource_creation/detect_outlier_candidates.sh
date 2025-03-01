@@ -39,13 +39,36 @@ echo "Running mosdepth on BAM file..."
 "$mosdepth_path" --by 10 --threads 4 --no-per-base --mapq 20 --min-frag-len 100 --max-frag-len 220 --fragment-mode "$tmpdir/coverage" "$input_file"
 coverage_file="$tmpdir/coverage.regions.bed.gz"
 
-# Filter the mosdepth output with bedtools intersect using the keep file.
+# Filter the mosdepth output using keep file indices (chromosome and new index).
 filtered_file="$tmpdir/filtered_input.bed"
-echo "Filtering mosdepth output with keep file using bedtools intersect..."
-zcat "$coverage_file" | sort -k1,1 -k2,2n -k3,3n | bedtools intersect -a - -b "$keep_file" -sorted > "$filtered_file"
+echo "Filtering mosdepth output using keep file indices..."
+zcat "$coverage_file" | gawk -F'\t' -v keep_file="$keep_file" 'BEGIN {
+    # Build an array of indices from the keep file, keyed by "chrom:new_index".
+    while ((getline line < keep_file) > 0) {
+        split(line, a, "\t");
+        key = a[1] ":" a[4];
+        keep[key] = 1;
+    }
+    close(keep_file);
+    prev = "";
+    i = 0;
+}
+# Process only autosomes (chr1 to chr22) and compute the new index per chromosome.
+$1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {
+    if ($1 != prev) {
+        i = 1;
+        prev = $1;
+    } else {
+        i++;
+    }
+    key = $1 ":" i;
+    if (key in keep)
+        print;
+}
+' > "$filtered_file"
 
-# Step 2: First pass on the filtered file: compute mean, total rows, nonzero count,
-#         maximum count, and p_nonzero.
+# First pass on the filtered file: compute mean, total rows, nonzero count,
+# maximum count, and p_nonzero.
 echo "Calculate coverage statistics..."
 read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
     count_val = $4;
