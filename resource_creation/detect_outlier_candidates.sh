@@ -10,7 +10,7 @@
 # computes zero-inflated Poisson probabilities, and outputs:
 #   zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
 #   candidates.txt: row index, count, and ZIP probability (tab-separated) for rows with count > threshold.
-# Temporary files are stored in a temporary directory inside out_dir and removed on exit.
+# Temporary files are stored in a temporary directory inside out_dir and removed on exit. 
 # 
 # NOTE: make script executable: chmod +x detect_outlier_candidates.sh
 
