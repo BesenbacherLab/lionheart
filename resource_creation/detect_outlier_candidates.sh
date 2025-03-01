@@ -1,5 +1,5 @@
 #!/bin/bash
-# Usage: ./detect_outliers_candidates.sh input_file.bam mosdepth_path threshold keep_file out_dir
+# Usage: ./detect_outlier_candidates.sh input_file.bam mosdepth_path threshold keep_file out_dir
 #   input_file.bam: BAM file to run mosdepth on
 #   mosdepth_path: Path to mosdepth executable (set LD_LIBRARY_PATH if needed)
 #   threshold: probability threshold (e.g., 0.001)
@@ -11,6 +11,8 @@
 #   zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
 #   candidates.txt: row index, count, and ZIP probability (tab-separated) for rows with count > threshold.
 # Temporary files are stored in a temporary directory inside out_dir and removed on exit.
+# 
+# NOTE: make script executable: chmod +x detect_outlier_candidates.sh
 
 set -euo pipefail
 
@@ -33,17 +35,19 @@ tmpdir=$(mktemp -d -p "$out_dir" tmp.XXXXXXXX)
 trap "rm -rf '$tmpdir'" EXIT
 
 # Run mosdepth, outputting to the temporary directory
+echo "Running mosdepth on BAM file..."
 "$mosdepth_path" --by 10 --threads 4 --no-per-base --mapq 20 --min-frag-len 100 --max-frag-len 220 --fragment-mode "$tmpdir/coverage" "$input_file"
 coverage_file="$tmpdir/coverage.regions.bed.gz"
 
-# Step 1: Filter the mosdepth output with bedtools intersect using the keep file.
+# Filter the mosdepth output with bedtools intersect using the keep file.
 filtered_file="$tmpdir/filtered_input.bed"
 echo "Filtering mosdepth output with keep file using bedtools intersect..."
 zcat "$coverage_file" | bedtools intersect -a - -b "$keep_file" -sorted > "$filtered_file"
 
 # Step 2: First pass on the filtered file: compute mean, total rows, nonzero count,
 #         maximum count, and p_nonzero.
-read mean total nonzeros max_count p_nonzero < <(awk -F'\t' '{
+echo "Calculate coverage statistics..."
+read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
     count_val = $4;
     sum += count_val;
     total++;
@@ -56,25 +60,29 @@ read mean total nonzeros max_count p_nonzero < <(awk -F'\t' '{
         print sum/total, total, nz, max, nz/total;
 }' "$filtered_file")
 
-echo -e "Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: $max_count\tNonzero probability: $p_nonzero"
+echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: $max_count\tNonzero probability: $p_nonzero"
 
-# Step 3: Determine count_threshold: find the smallest count > int(mean)
-#         for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
-count_threshold=$(awk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" 'BEGIN {
+# Determine count_threshold: find the smallest count > int(mean)
+# for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
+echo "Calculate coverage threshold..."
+count_threshold=$(gawk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" 'BEGIN {
     count = int(mean) + 1;
     while ( p_nonzero * ( exp(-mean) * (mean^count) / gamma(count+1) ) > threshold ) {
          count++;
     }
     print count;
 }' "$filtered_file")
-echo "Count threshold = $count_threshold"
+echo "  Count threshold = $count_threshold"
 
-# Step 4: Second pass on the filtered file:
-#         Cache full ZIP probability for counts from count_threshold to max_count,
-#         and output tab-separated rows:
-#           - zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
-#           - candidates.txt: row index, count, and ZIP probability for rows with count > count_threshold.
-awk -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
+# Second pass on the filtered file:
+#   Cache full ZIP probability for counts from count_threshold to max_count,
+#   and output tab-separated rows:
+#    - zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
+#    - candidates.txt: row index, count, and ZIP probability for rows with count > count_threshold.
+echo "Extracting outlier indices..."
+candidates_file="$out_dir/candidates.txt"
+zeros_file="$out_dir/zeros.txt"
+gawk -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
 BEGIN {
     idx = 0;
     # Precompute full ZIP probability for counts from count_threshold to max_count.
@@ -93,5 +101,9 @@ BEGIN {
     idx++;
 }
 ' "$filtered_file"
+
+read num_candidates _ < <(wc -l "$candidates_file")
+read num_zeros _ < <(wc -l "$zeros_file")
+echo -e "  # candidates: $num_candidates\t# zeros: $num_zeros"
 
 echo "Processing complete. Results are in $out_dir."
