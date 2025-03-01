@@ -42,7 +42,7 @@ coverage_file="$tmpdir/coverage.regions.bed.gz"
 # Filter the mosdepth output with bedtools intersect using the keep file.
 filtered_file="$tmpdir/filtered_input.bed"
 echo "Filtering mosdepth output with keep file using bedtools intersect..."
-zcat "$coverage_file" | bedtools intersect -a - -b "$keep_file" -sorted > "$filtered_file"
+zcat "$coverage_file" | sort -k1,1 -k2,2n | bedtools intersect -a - -b "$keep_file" > "$filtered_file"
 
 # Step 2: First pass on the filtered file: compute mean, total rows, nonzero count,
 #         maximum count, and p_nonzero.
