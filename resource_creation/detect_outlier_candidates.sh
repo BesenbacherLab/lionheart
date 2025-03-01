@@ -47,7 +47,7 @@ zcat "$coverage_file" | bedtools intersect -a - -b "$keep_file" -sorted > "$filt
 # Step 2: First pass on the filtered file: compute mean, total rows, nonzero count,
 #         maximum count, and p_nonzero.
 echo "Calculate coverage statistics..."
-read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
+read mean total nonzeros max_count p_nonzero < <(awk -F'\t' '{
     count_val = $4;
     sum += count_val;
     total++;
@@ -65,7 +65,14 @@ echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: 
 # Determine count_threshold: find the smallest count > int(mean)
 # for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
 echo "Calculate coverage threshold..."
-count_threshold=$(gawk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" 'BEGIN {
+count_threshold=$(awk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" 'BEGIN {
+    function gamma(x,    i, result) {
+        result = 1;
+        for (i = 1; i < x; i++) {
+            result *= i;
+        }
+        return result;
+    }
     count = int(mean) + 1;
     while ( p_nonzero * ( exp(-mean) * (mean^count) / gamma(count+1) ) > threshold ) {
          count++;
@@ -82,8 +89,15 @@ echo "  Count threshold = $count_threshold"
 echo "Extracting outlier indices..."
 candidates_file="$out_dir/candidates.txt"
 zeros_file="$out_dir/zeros.txt"
-gawk -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
+awk -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
 BEGIN {
+    function gamma(x,    i, result) {
+        result = 1;
+        for (i = 1; i < x; i++) {
+            result *= i;
+        }
+        return result;
+    }
     idx = 0;
     # Precompute full ZIP probability for counts from count_threshold to max_count.
     for (i = count_threshold; i <= max_count; i++) {
