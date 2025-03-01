@@ -130,10 +130,12 @@ BEGIN {
 }
 {
     count_val = $4;
-    if (count_val == 0) {
+    # Convert floating-point count to integer (rounded)
+    count_int = int(count_val + 0.5);
+    if (count_int == 0) {
         print idx > out_dir"/zeros.txt";
-    } else if (count_val > count_threshold) {
-         zip_prob = zip_cache[count_val];
+    } else if (count_int > count_threshold) {
+         zip_prob = zip_cache[count_int];
          print idx "\t" count_val "\t" zip_prob > out_dir"/candidates.txt";
     }
     idx++;
