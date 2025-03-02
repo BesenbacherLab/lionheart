@@ -74,7 +74,9 @@ read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
     count_val = $4;
     # Convert floating-point count to integer (rounded)
     count_int = int(count_val + 0.5);
-    sum += count_int;
+    # Use floating point for mean calculation
+    # As it is more precise
+    sum += count_val;
     total++;
     if (count_int != 0)
         nz++;
