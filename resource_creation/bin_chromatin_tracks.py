@@ -126,7 +126,10 @@ def main():
             "track_dir": track_dir,
         },
         out_dirs={"out_dir": out_dir},
-        out_files={"consensus_intervals_file": out_dir / "consensus_intervals.bed"},
+        out_files={
+            "consensus_intervals_file": out_dir / "consensus_intervals.bed",
+            "chrom_cell_paths": out_dir / "binned_per_chrom_and_cell_type_paths.tsv",
+        },
         # tmp_files={
         # },
         tmp_dirs={
@@ -136,6 +139,7 @@ def main():
             "tmp_subtracted_dir": tmp_dir / "consensus_subtracted",
             "tmp_overlaps_dir": tmp_dir / "overlaps",
         },
+        print_note="Paths to the sparse arrays per cell-type and chromosome are created on the fly.",
     )
 
     # Load meta data
@@ -321,10 +325,12 @@ def main():
     # NOTE: Requires loading into RAM so run serially
     messenger("Start: Sparsifying and saving overlap percentages")
     with timer.time_step(indent=2):
+        chrom_cell_out_path_dicts = {}
         for cell_type in unique_cell_types + ["consensus"]:
             chrom_out_files = {
                 chrom: paths[f"{cell_type}_{chrom}_out_file"] for chrom in chroms
             }
+            chrom_cell_out_path_dicts[cell_type] = chrom_out_files
 
             sparsify_overlap_percentages(
                 overlap_counts_file=make_overlap_counts_path(paths, cell_type),
@@ -332,6 +338,14 @@ def main():
                 num_orig_lines=num_orig_lines,
                 bin_size=args.bin_size,
             )
+
+    # Write paths to tsv file
+    paths_df = (
+        pd.DataFrame(chrom_cell_out_path_dicts)
+        .reset_index()
+        .rename(columns={"index": "Chromosome"})
+    )
+    paths_df.to_csv(paths["chrom_cell_paths"], index=False, sep="\t")
 
     # Remove temporary files
     paths.rm_tmp_dirs(messenger=messenger)

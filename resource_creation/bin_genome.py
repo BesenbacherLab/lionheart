@@ -178,7 +178,7 @@ def main():
         out_dirs={"out_dir": out_dir},
         out_files={
             **chrom_out_files,
-            "coordinates_file": out_dir / "bin_coordinates.tsv",
+            "coordinates_file": out_dir / "bin_coordinates.bed",
             "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
             "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
         },
@@ -287,7 +287,9 @@ def main():
     with timer.time_step(indent=2):
         bins_df = ensure_col_types(bins_df, dtypes={"idx": "int32", "GC": "float32"})
         # Save coordinates (used to create cell-type masks)
-        coordinates_df = bins_df.loc[:, ["chromosome", "start", "end", "idx"]]
+        coordinates_df = bins_df.loc[
+            :, ["chromosome", "start", "end", "idx"]
+        ].sort_values(["chromosome", "start"])
 
         # No compression (was too slow and this is overall a tmp file anyway)
         with timer.time_step(indent=4):
@@ -295,7 +297,7 @@ def main():
                 paths["coordinates_file"],
                 sep="\t",
                 index=False,
-                header=True,
+                header=False,
             )
 
             messenger(
