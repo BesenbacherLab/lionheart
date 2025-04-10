@@ -36,7 +36,7 @@ trap "rm -rf '$tmpdir'" EXIT
 
 # Run mosdepth, outputting to the temporary directory
 echo "Running mosdepth on BAM file..."
-"$mosdepth_path" --by 10 --threads 4 --no-per-base --mapq 20 --min-frag-len 100 --max-frag-len 220 --fragment-mode "$tmpdir/coverage" "$input_file"
+"$mosdepth_path" --by 10 --threads 4 --no-per-base --mapq 20 --min-frag-len 20 --max-frag-len 600 --fragment-mode "$tmpdir/coverage" "$input_file"
 coverage_file="$tmpdir/coverage.regions.bed.gz"
 
 # Filter the mosdepth output using keep file indices (chromosome and new index).
@@ -66,6 +66,17 @@ $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {
         print;
 }
 ' > "$filtered_file"
+
+# Compute histogram of rounded coverage counts and save to histogram.txt.
+echo "Computing histogram of coverage counts..."
+gawk -F'\t' '{
+    count_int = int($4 + 0.5);
+    hist[count_int]++;
+}
+END {
+    for (c in hist)
+        print c "\t" hist[c];
+}' "$filtered_file" > "$out_dir/histogram.txt"
 
 # First pass on the filtered file: compute mean, total rows, nonzero count,
 # maximum count, and p_nonzero.
@@ -100,14 +111,27 @@ function gamma(x, i, result) {
     }
     return result;
 }
+# Function to compute the tail probability from count c up to m.
+function tailProb(c, m,   j, total) {
+    total = 0;
+    for (j = c; j <= m; j++) {
+         total += p_nonzero * ( exp(-mean) * (mean^j) / gamma(j+1) );
+    }
+    return total;
+}
 BEGIN {
     count = int(mean) + 1;
-    while ( p_nonzero * ( exp(-mean) * (mean^count) / gamma(count+1) ) > threshold ) {
-            count++;
+    while ( count <= max_count && tailProb(count, max_count) > threshold ) {
+        count++;
     }
     print count;
 }' "$filtered_file")
 echo "  Count threshold = $count_threshold"
+
+# Save statistics to a TSV file
+stats_file="$out_dir/stats.tsv"
+echo -e "mean\ttotal\tnonzeros\tmax_count\tp_nonzero\tcount_threshold" > "$stats_file"
+echo -e "$mean\t$total\t$nonzeros\t$max_count\t$p_nonzero\t$count_threshold" >> "$stats_file"
 
 # Second pass on the filtered file:
 #   Cache full ZIP probability for counts from count_threshold to max_count,
@@ -131,6 +155,11 @@ BEGIN {
     for (i = count_threshold; i <= max_count; i++) {
          zip_cache[i] = p_nonzero * ( exp(-mean) * (mean^i) / gamma(i+1) );
     }
+    # Precompute tail probability for each count as the cumulative sum from i to max_count.
+    tail_cache[max_count] = zip_cache[max_count];
+    for (i = max_count - 1; i >= count_threshold; i--) {
+         tail_cache[i] = tail_cache[i+1] + zip_cache[i];
+    }
 }
 {
     count_val = $4;
@@ -139,8 +168,8 @@ BEGIN {
     if (count_int == 0) {
         print idx > out_dir"/zeros.txt";
     } else if (count_int > count_threshold) {
-         zip_prob = zip_cache[count_int];
-         print idx "\t" count_val "\t" zip_prob > out_dir"/candidates.txt";
+         tail_prob = tail_cache[count_int];
+         print idx "\t" count_val "\t" tail_prob > out_dir"/candidates.txt";
     }
     idx++;
 }
