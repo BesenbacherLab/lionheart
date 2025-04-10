@@ -138,7 +138,7 @@ def bin_chromatin_tracks(
 
     track_files = list(tracks_dir.glob("*.bed"))
 
-    input_files = [meta_data_file, chrom_sizes_file] + track_files
+    input_files = [meta_data_file, chrom_sizes_file, coordinates_file] + track_files
 
     out_files = {
         "binned_chrom_cell_type_paths": out_dir
