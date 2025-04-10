@@ -12,7 +12,7 @@ import argparse
 import logging
 import pathlib
 import subprocess
-from typing import Dict, List
+from typing import Dict, List, Optional
 import concurrent
 import concurrent.futures
 import pandas as pd
@@ -206,6 +206,7 @@ def main():
             {
                 "in_file": paths["track_" + sample_id],
                 "out_file": make_flattened_path(paths, sample_id),
+                "use_n_cols": 3,
             }
             for sample_id in sample_ids
         ]
@@ -354,7 +355,11 @@ def main():
     messenger(f"Finished. Took: {timer.get_total_time()}")
 
 
-def sort_and_flatten_track(in_file: pathlib.Path, out_file: pathlib.Path):
+def sort_and_flatten_track(
+    in_file: pathlib.Path,
+    out_file: pathlib.Path,
+    use_n_cols: Optional[int] = None,
+):
     """
     Sorts and flattens individual interval track.
     """
@@ -365,6 +370,7 @@ def sort_and_flatten_track(in_file: pathlib.Path, out_file: pathlib.Path):
         keep_zero_coverage=False,
         rm_non_autosomes=True,
         pre_sort=True,
+        use_n_cols=use_n_cols,
     )
 
 
