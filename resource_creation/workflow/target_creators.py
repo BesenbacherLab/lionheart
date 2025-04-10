@@ -361,6 +361,7 @@ def collect_outliers_across_datasets(
     )
 
     input_files = flattened_candidate_files
+    print(flattened_candidate_files)
     output_files = {
         "outlier_indices": out_dir / "outlier_indices.npy",
         "zero_coverage_indices": out_dir / "zero_coverage_indices.npy",
