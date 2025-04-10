@@ -103,7 +103,7 @@ echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: 
 # Determine count_threshold: find the smallest count > int(mean)
 # for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
 echo "Calculate coverage threshold..."
-count_threshold=$(gawk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" '
+count_threshold=$(gawk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" -v max_count="$max_count" '
 function gamma(x, i, result) {
     result = 1;
     for (i = 1; i < x; i++) {
