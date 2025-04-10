@@ -555,37 +555,22 @@ def _cat_files(
     cat_fn = "zcat" if str(in_files[0])[-3:] == ".gz" else "cat"
 
     if use_n_cols is not None:
-        cols = ", ".join(f"${i}" for i in range(1, use_n_cols + 1))
-        if use_n_cols is not None:
-            awk_cmd = (
-                f"awk -F'\t' -v OFS='\t' -v n={use_n_cols} '"
-                "{"
-                "if ($1 ~ /^chr/) { "
-                '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
-                "} else if ($2 ~ /^chr/) { "
-                '   for(i=2;i<=n+1;i++) { printf "%s%s", $i, (i<n+1 ? OFS : ORS) } '
-                "} else { "
-                '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
-                "}"
-                "}'"
-            )
-            concat_str = (
-                "( "
-                + " ; ".join(
-                    [f"{cat_fn} {file} | {awk_cmd}" for file in _to_strings(in_files)]
-                )
-                + " ) | "
-            )
-        else:
-            concat_str = " ".join([cat_fn] + _to_strings(in_files) + ["|"])
-
+        awk_cmd = (
+            f"awk -F'\t' -v OFS='\t' -v n={use_n_cols} '"
+            "{"
+            "if ($1 ~ /^chr/) { "
+            '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
+            "} else if ($2 ~ /^chr/) { "
+            '   for(i=2;i<=n+1;i++) { printf "%s%s", $i, (i<n+1 ? OFS : ORS) } '
+            "} else { "
+            '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
+            "}"
+            "}'"
+        )
         concat_str = (
             "( "
             + " ; ".join(
-                [
-                    f"{cat_fn} {file} | awk -F'\t' -v OFS='\t' '{{print {cols}}}'"
-                    for file in _to_strings(in_files)
-                ]
+                [f"{cat_fn} {file} | {awk_cmd}" for file in _to_strings(in_files)]
             )
             + " ) | "
         )
