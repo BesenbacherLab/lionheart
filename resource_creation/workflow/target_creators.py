@@ -246,7 +246,7 @@ def find_outlier_candidates(
             # input_file mosdepth_path threshold keep_file out_dir
             << log_context(
                 f"""
-            {path_var}{scripts_dir / "detect_outlier_candidates.sh"} {bam_file} {mosdepth_path} 0.001 {coordinates_file} {bam_out_dir}
+            {path_var} time {scripts_dir / "detect_outlier_candidates.sh"} {bam_file} {mosdepth_path} 1e-4 {coordinates_file} {bam_out_dir}
             """
             )
         )
