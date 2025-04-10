@@ -325,7 +325,7 @@ def collect_outliers_across_datasets(
     gwf: Workflow,
     scripts_dir: Union[str, pathlib.Path],
     out_dir: Union[str, pathlib.Path],
-    dataset_to_outlier_paths: Dict[str, List[Union[str, pathlib.Path]]],
+    dataset_to_outlier_paths: Dict[str, Dict[str, Union[str, pathlib.Path]]],
     walltime: str = "02:00:00",
     memory: str = "15g",
     cores: int = 1,
@@ -354,7 +354,7 @@ def collect_outliers_across_datasets(
     scripts_dir = pathlib.Path(scripts_dir).resolve()
 
     flattened_candidate_files = [
-        file for files in dataset_to_outlier_paths.values() for file in files
+        file for files in dataset_to_outlier_paths.values() for file in files.values()
     ]
     candidate_dirs = list(
         set([pathlib.Path(file).parent for file in flattened_candidate_files])
