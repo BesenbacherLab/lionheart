@@ -223,7 +223,7 @@ def find_outlier_candidates(
 
     for bam_idx, bam_file in enumerate(bam_files):
         bam_file = pathlib.Path(bam_file).resolve()
-        bam_out_dir = out_dir / bam_idx
+        bam_out_dir = out_dir / str(bam_idx)
 
         input_files = [bam_file, coordinates_file]
         expected_output_files = [

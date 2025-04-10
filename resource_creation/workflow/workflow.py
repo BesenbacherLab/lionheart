@@ -125,7 +125,7 @@ for dataset, bam_files in dataset_to_bam_files.items():
         bam_files=bam_files,
         mosdepth_path=mosdepth_path,
         ld_library_path=ld_library_path,
-        keep_file=genome_binning_out_files["coordinates"],
+        coordinates_file=genome_binning_out_files["coordinates"],
         cores=min(4, num_cores),
     )
 
