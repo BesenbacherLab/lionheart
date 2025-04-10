@@ -253,6 +253,7 @@ def merge_multifile_intervals(
     max_distance: int = 0,
     rm_non_autosomes: bool = False,
     pre_sort: bool = False,
+    use_n_cols: Optional[int] = None,
     add_index: bool = False,
 ):
     """
@@ -292,6 +293,10 @@ def merge_multifile_intervals(
         Maximum distance between intervals allowed for intervals
         to be merged. Default is 0. That is, overlapping and/or book-ended
         intervals are merged.
+    use_n_cols
+        Optional number of most-left columns to use. E.g., when
+        the files have different columns, we can select just the
+        first three (chrom, start, end).
     add_index
         Whether to add an interval index column.
     """
@@ -315,6 +320,7 @@ def merge_multifile_intervals(
             pre_sort=pre_sort,
             min_coverage=min_coverage,
             max_distance=max_distance,
+            use_n_cols=use_n_cols,
             add_index=add_index,
         )
     else:
@@ -324,6 +330,7 @@ def merge_multifile_intervals(
             rm_non_autosomes=rm_non_autosomes,
             pre_sort=pre_sort,
             max_distance=max_distance,
+            use_n_cols=use_n_cols,
             add_index=add_index,
         )
 
@@ -337,6 +344,7 @@ def merge_overlapping_intervals_with_coverage(
     keep_zero_coverages: bool = False,
     min_coverage: int = 0,
     max_distance: int = 0,
+    use_n_cols: Optional[int] = None,
     add_index=False,
 ) -> None:
     """
@@ -375,6 +383,7 @@ def merge_overlapping_intervals_with_coverage(
         in_files=in_files,
         rm_non_autosomes=rm_non_autosomes,
         always_sort=pre_sort,
+        use_n_cols=use_n_cols,
     )
 
     # Coverage filtering
@@ -425,6 +434,7 @@ def merge_overlapping_intervals(
     rm_non_autosomes: bool = False,
     pre_sort: bool = False,
     max_distance: int = 0,
+    use_n_cols: Optional[int] = None,
     add_index: bool = False,
 ) -> None:
     """
@@ -455,6 +465,7 @@ def merge_overlapping_intervals(
         in_files=in_files,
         rm_non_autosomes=rm_non_autosomes,
         always_sort=pre_sort,
+        use_n_cols=use_n_cols,
     )
 
     add_index_str = ""
@@ -522,6 +533,7 @@ def _cat_files(
     in_files: List[Union[str, pathlib.Path]],
     rm_non_autosomes: bool = False,
     always_sort: bool = False,
+    use_n_cols: Optional[int] = None,
 ):
     """
     Create string for 'cat'ing the files, removing non-autosomes, and sorting if necessary (or specified).
@@ -535,7 +547,22 @@ def _cat_files(
     """
     assert isinstance(in_files, list)
     cat_fn = "zcat" if str(in_files[0])[-3:] == ".gz" else "cat"
-    concat_str = " ".join([cat_fn] + _to_strings(in_files) + ["|"])
+
+    if use_n_cols is not None:
+        cols = ", ".join(f"${i}" for i in range(1, use_n_cols + 1))
+        concat_str = (
+            "( "
+            + " ; ".join(
+                [
+                    f"{cat_fn} {file} | awk -F'\t' -v OFS='\t' '{{print {cols}}}'"
+                    for file in _to_strings(in_files)
+                ]
+            )
+            + " ) | "
+        )
+    else:
+        concat_str = " ".join([cat_fn] + _to_strings(in_files) + ["|"])
+
     if rm_non_autosomes:
         concat_str += " awk -F'\t' -v OFS='\t' '$1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/' | "
     if len(in_files) > 1 or always_sort:
