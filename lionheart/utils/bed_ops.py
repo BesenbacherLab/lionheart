@@ -541,6 +541,12 @@ def _cat_files(
     Detects ".gz" extension from the first file only. All `in_files` should thus be consistently
     without or without gzip compression!
 
+    use_n_cols
+        Use the first n columns only.
+        NOTE: When the first column does not contain "chr*" (e.g., index)
+        it detects if that pattern is in the second column
+        in which case it starts from the second column.
+
     always_sort
         Whether to sort even when `in_files` only contains 1 file.
         Otherwise, only sorts when multiple files are specified
@@ -550,6 +556,29 @@ def _cat_files(
 
     if use_n_cols is not None:
         cols = ", ".join(f"${i}" for i in range(1, use_n_cols + 1))
+        if use_n_cols is not None:
+            awk_cmd = (
+                f"awk -F'\t' -v OFS='\t' -v n={use_n_cols} '"
+                "{"
+                "if ($1 ~ /^chr/) { "
+                '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
+                "} else if ($2 ~ /^chr/) { "
+                '   for(i=2;i<=n+1;i++) { printf "%s%s", $i, (i<n+1 ? OFS : ORS) } '
+                "} else { "
+                '   for(i=1;i<=n;i++) { printf "%s%s", $i, (i<n ? OFS : ORS) } '
+                "}"
+                "}'"
+            )
+            concat_str = (
+                "( "
+                + " ; ".join(
+                    [f"{cat_fn} {file} | {awk_cmd}" for file in _to_strings(in_files)]
+                )
+                + " ) | "
+            )
+        else:
+            concat_str = " ".join([cat_fn] + _to_strings(in_files) + ["|"])
+
         concat_str = (
             "( "
             + " ; ".join(
