@@ -42,10 +42,14 @@ ld_library_path = "/home/<username>/anaconda3/envs/lionheart/lib/"
 # TODO: Perhaps base on resource dir with genome files etc.? Can be added to zenodo
 
 # Path to needed files
+# We used the BAM file downloaded from: https://zenodo.org/records/13909979
 mini_bam = "path/to/bam_file.bam"
-reference_file = "path/to/reference_hg38.?"
-chrom_sizes_file = "path/to/chrom_sizes_file.?"
-exclusion_files = ["path/to/encode_blacklist.bed", "path/to/umap_k100_exclusion.bed"]
+reference_file = "path/to/hg38.2bit"
+chrom_sizes_file = "path/to/hg38.chrom.sizes"
+exclusion_files = [
+    "path/to/hg38-blacklist.v2.bed",
+    "path/to/k100.umap.exclusion_intervals.bed",
+]
 
 tracks_dirs = {"ATAC": "path/to/ATAC_tracks", "DHS": "path/to/DHS_tracks"}
 
@@ -89,6 +93,7 @@ genome_binning_out_files = bin_genome(
     reference_file=reference_file,
     chrom_sizes_file=chrom_sizes_file,
     exclusion_files=exclusion_files,
+    cores=min(4, num_cores),
 )
 
 for track_type, track_dir in tracks_dirs.items():
@@ -100,6 +105,8 @@ for track_type, track_dir in tracks_dirs.items():
         tracks_dir=track_dir,
         meta_data_file=meta_data_files[track_type],
         chrom_sizes_file=chrom_sizes_file,
+        track_type=track_type,
+        cores=num_cores,
     )
 
 #####################
@@ -119,6 +126,7 @@ for dataset, bam_files in dataset_to_bam_files.items():
         mosdepth_path=mosdepth_path,
         ld_library_path=ld_library_path,
         keep_file=genome_binning_out_files["coordinates"],
+        cores=min(4, num_cores),
     )
 
     dataset_to_dataset_outlier_paths[dataset] = collect_outliers_for_dataset(

@@ -106,6 +106,7 @@ def bin_chromatin_tracks(
     tracks_dir: Union[str, pathlib.Path],
     meta_data_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
+    track_type: str,
     walltime: str = "12:00:00",
     memory: str = "100g",
     cores: int = 12,
@@ -148,7 +149,7 @@ def bin_chromatin_tracks(
 
     (
         gwf.target(
-            legalize_target_name("lionheart_bin_chromatin_tracks"),
+            legalize_target_name(f"lionheart_bin_chromatin_tracks_{track_type}"),
             inputs=to_strings(input_files),
             outputs=to_strings(expected_output_files),
             walltime=walltime,
@@ -281,7 +282,6 @@ def collect_outliers_for_dataset(
         The memory (RAM) available to the target.
     cores
         The number of cores available to the target.
-        As many as possible!
     """
     out_dir = pathlib.Path(out_dir).resolve()
     scripts_dir = pathlib.Path(scripts_dir).resolve()
