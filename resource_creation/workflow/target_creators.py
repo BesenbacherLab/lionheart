@@ -20,8 +20,8 @@ def bin_genome(
     reference_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
     exclusion_files: List[Union[str, pathlib.Path]],
-    walltime: str = "12:00:00",
-    memory: str = "70g",
+    walltime: str = "02:00:00",
+    memory: str = "60g",
     cores: int = 4,
 ) -> dict:
     """
@@ -175,8 +175,8 @@ def find_outlier_candidates(
     mosdepth_path: Optional[Union[str, pathlib.Path]],
     ld_library_path: Optional[Union[str, pathlib.Path]],
     coordinates_file: Union[str, pathlib.Path],
-    walltime: str = "02:00:00",
-    memory: str = "15g",
+    walltime: str = "03:00:00",
+    memory: str = "50g",
     cores: int = 1,
 ) -> dict:
     """
