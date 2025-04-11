@@ -107,8 +107,8 @@ def bin_chromatin_tracks(
     meta_data_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
     track_type: str,
-    walltime: str = "12:00:00",
-    memory: str = "100g",
+    walltime: str = "23:00:00",
+    memory: str = "150g",
     cores: int = 12,
 ) -> dict:
     """
