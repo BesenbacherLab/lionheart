@@ -109,7 +109,7 @@ for track_type, track_dir in tracks_dirs.items():
         track_type=track_type,
         memory=f"{track_memory}g",
         cores=min(
-            num_cores, track_memory / 10 - 2
+            num_cores, int(track_memory / 10 - 3)
         ),  # ~10gb per file + indices file + headroom? Ish
     )
 

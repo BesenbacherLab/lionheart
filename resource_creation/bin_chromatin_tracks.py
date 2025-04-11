@@ -330,6 +330,12 @@ def main():
         # so we get the right indexing in the sparse arrays
         bin_indices_df = load_indices_file(coordinates_file=paths["coordinates_file"])
 
+        # Pre-split the bin indices once
+        chrom_to_bin_indices = {
+            chrom: group
+            for chrom, group in bin_indices_df.groupby("chromosome", sort=False)
+        }
+
         num_positive_overlaps = {}
 
         chrom_cell_out_path_dicts = {}
@@ -342,7 +348,7 @@ def main():
             {
                 "overlap_counts_file": make_overlap_counts_path(paths, cell_type),
                 "chrom_out_files": chrom_cell_out_path_dicts[cell_type],
-                "bin_indices_df": bin_indices_df,
+                "chrom_to_bin_indices": chrom_to_bin_indices,
                 "bin_size": args.bin_size,
                 "cell_type": cell_type,
                 "num_positive_overlaps": num_positive_overlaps,
@@ -539,7 +545,7 @@ def find_overlaps(
 def sparsify_overlap_percentages(
     overlap_counts_file: pathlib.Path,
     chrom_out_files: Dict[str, pathlib.Path],
-    bin_indices_df: pd.DataFrame,
+    chrom_to_bin_indices: Dict[str, pd.DataFrame],
     cell_type: str,
     num_positive_overlaps: dict,
     bin_size: int,
@@ -574,8 +580,8 @@ def sparsify_overlap_percentages(
     # Create the mapping from index to overlap from the right DataFrame.
     mapping = overlaps_df.set_index("idx")["overlap"]
 
-    # Group by "chromosome" and set sort=False to preserve the input order.
-    for chrom, group in bin_indices_df.groupby("chromosome", sort=False):
+    # Run per chromosome
+    for chrom, group in chrom_to_bin_indices.items():
         # Map the 'idx' column of this group to get the overlaps
         # Fill missing values with 0
         overlaps = group["idx"].map(mapping).fillna(0.0).to_numpy(dtype=np.float64)
@@ -584,6 +590,9 @@ def sparsify_overlap_percentages(
 
         out_filename = chrom_out_files[chrom]
         save_sparse_array(arr=sparse_overlaps, path=out_filename)
+
+        del overlaps
+        gc.collect()
 
     # Remove the tmp counts file
     os.remove(str(overlap_counts_file))
