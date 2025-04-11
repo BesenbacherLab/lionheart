@@ -96,6 +96,7 @@ genome_binning_out_files = bin_genome(
     cores=min(4, num_cores),
 )
 
+track_memory = 150
 for track_type, track_dir in tracks_dirs.items():
     bin_chromatin_tracks(
         gwf=gwf,
@@ -106,7 +107,10 @@ for track_type, track_dir in tracks_dirs.items():
         meta_data_file=meta_data_files[track_type],
         chrom_sizes_file=chrom_sizes_file,
         track_type=track_type,
-        cores=num_cores,
+        memory=f"{track_memory}g",
+        cores=min(
+            num_cores, track_memory / 10 - 2
+        ),  # ~10gb per file + indices file + headroom? Ish
     )
 
 #####################

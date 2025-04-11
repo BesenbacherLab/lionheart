@@ -346,6 +346,7 @@ def main():
                 "bin_size": args.bin_size,
                 "cell_type": cell_type,
                 "num_positive_overlaps": num_positive_overlaps,
+                "messenger": messenger,
             }
             for cell_type in unique_cell_types + ["consensus"]
         ]
@@ -541,8 +542,11 @@ def sparsify_overlap_percentages(
     bin_indices_df: pd.DataFrame,
     cell_type: str,
     num_positive_overlaps: dict,
-    bin_size: int = 10,
+    bin_size: int,
+    messenger,
 ):
+    messenger(f"  {cell_type}")
+
     # Read as data frame and calculate number of overlaps per interval index
     overlaps_df = (
         read_bed_as_df(path=overlap_counts_file, col_names=["idx", "overlap"])
@@ -583,6 +587,9 @@ def sparsify_overlap_percentages(
 
     # Remove the tmp counts file
     os.remove(str(overlap_counts_file))
+
+    del overlaps_df
+    gc.collect()
 
 
 def save_sparse_array(arr, path: pathlib.Path) -> None:
