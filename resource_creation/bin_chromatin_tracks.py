@@ -326,15 +326,20 @@ def main():
     # NOTE: Requires loading into RAM so run serially
     messenger("Start: Sparsifying and saving overlap percentages")
     with timer.time_step(indent=2):
-        # Read in bin indices for joining the sparse overlap counts onto
-        # so we get the right indexing in the sparse arrays
-        bin_indices_df = load_indices_file(coordinates_file=paths["coordinates_file"])
-
-        # Pre-split the bin indices once
-        chrom_to_bin_indices = {
-            chrom: group
-            for chrom, group in bin_indices_df.groupby("chromosome", sort=False)
-        }
+        messenger("Reading bin indices", indent=2)
+        with timer.time_step(indent=4):
+            # Read in bin indices for joining the sparse overlap counts onto
+            # so we get the right indexing in the sparse arrays
+            bin_indices_df = load_indices_file(
+                coordinates_file=paths["coordinates_file"]
+            )
+        messenger("Splitting bin indices per chromosome", indent=2)
+        with timer.time_step(indent=4):
+            # Pre-split the bin indices once
+            chrom_to_bin_indices = {
+                chrom: group
+                for chrom, group in bin_indices_df.groupby("chromosome", sort=False)
+            }
 
         num_positive_overlaps = {}
 
