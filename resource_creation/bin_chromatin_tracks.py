@@ -129,6 +129,7 @@ def main():
         out_files={
             "consensus_intervals_file": out_dir / "consensus_intervals.bed",
             "chrom_cell_paths": out_dir / "binned_per_chrom_and_cell_type_paths.tsv",
+            "overlap_stats": out_dir / "overlap_counts.tsv",
         },
         # tmp_files={
         # },
@@ -375,7 +376,7 @@ def main():
         num_positive_overlaps=num_positive_overlaps
     )
     messenger(num_overlap_message)
-    overlap_stats_df.to_csv(paths["overlap_counts"], index=False)
+    overlap_stats_df.to_csv(paths["overlap_stats"], index=False)
 
     # Write paths to tsv file
     paths_df = (
