@@ -32,7 +32,7 @@ def load_zero_cov_indices(path):
     # zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
     with open(path, "r") as file:
         indices = [int(line.strip()) for line in file.readlines()]
-    return np.array(indices)
+    return np.array(indices).flatten()
 
 
 if __name__ == "__main__":
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
         # Find the indices that have zero-coverage in all bins
         always_zero_indices = unique_indices[
-            np.argwhere(index_counts == len(all_zero_indices)).flatten()
+            np.argwhere(index_counts == len(zero_cov_paths.values())).flatten()
         ]
 
         messenger(f"Found {len(always_zero_indices)} all-zero bins", indent=2)
