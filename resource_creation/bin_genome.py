@@ -176,7 +176,10 @@ def main():
             "reference_file": args.reference_file,
             **exclusion_paths,
         },
-        out_dirs={"out_dir": out_dir},
+        out_dirs={
+            "out_dir": out_dir,
+            "bin_indices_by_chromosome": out_dir / "bin_indices_by_chromosome",
+        },
         out_files={
             **chrom_out_files,
             "coordinates_file": out_dir / "bin_coordinates.bed",

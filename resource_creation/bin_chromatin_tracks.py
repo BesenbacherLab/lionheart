@@ -125,7 +125,10 @@ def main():
         in_dirs={
             "track_dir": track_dir,
         },
-        out_dirs={"out_dir": out_dir},
+        out_dirs={
+            "out_dir": out_dir,
+            "sparse_overlaps_by_chromosome": out_dir / "sparse_overlaps_by_chromosome",
+        },
         out_files={
             "consensus_intervals_file": out_dir / "consensus_intervals.bed",
             "chrom_cell_paths": out_dir / "binned_per_chrom_and_cell_type_paths.tsv",
@@ -174,9 +177,7 @@ def main():
 
     chroms = [f"chr{i}" for i in range(1, 23)]
     cell_type_out_dirs = {
-        f"{cell_type}_out_dir": out_dir
-        / "sparse_bin_overlaps_by_chromosome"
-        / cell_type
+        f"{cell_type}_out_dir": out_dir / "sparse_overlaps_by_chromosome" / cell_type
         for cell_type in set(unique_cell_types + ["consensus"])
     }
     cell_chrom_out_files = {
