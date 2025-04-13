@@ -16,16 +16,18 @@
 
 set -euo pipefail
 
-if [ "$#" -lt 5 ]; then
-    echo "Usage: $0 input_file.bam mosdepth_path threshold keep_file out_dir"
+if [ "$#" -lt 6 ]; then
+    echo "Usage: $0 input_file.bam mosdepth_path threshold bin_size keep_file out_dir"
     exit 1
 fi
 
 input_file="$1"
 mosdepth_path="$2"
 threshold="$3"
-keep_file="$4"
-out_dir="$5"
+bin_size="$4"
+keep_file="$5"
+out_dir="$6"
+
 
 # Create output directory if it doesn't exist
 mkdir -p "$out_dir"
@@ -36,7 +38,7 @@ trap "rm -rf '$tmpdir'" EXIT
 
 # Run mosdepth, outputting to the temporary directory
 echo "Running mosdepth on BAM file..."
-"$mosdepth_path" --by 10 --threads 4 --no-per-base --mapq 20 --min-frag-len 20 --max-frag-len 600 --fragment-mode "$tmpdir/coverage" "$input_file"
+"$mosdepth_path" --by "$bin_size" --threads 4 --no-per-base --mapq 20 --min-frag-len 20 --max-frag-len 600 --fragment-mode "$tmpdir/coverage" "$input_file"
 coverage_file="$tmpdir/coverage.regions.bed.gz"
 
 # Filter the mosdepth output using keep file indices (chromosome and new index).
