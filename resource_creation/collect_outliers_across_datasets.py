@@ -113,8 +113,8 @@ if __name__ == "__main__":
             "out_dir": out_dir,
         },
         out_files={
-            "outlier_indices": out_dir / "outlier_indices.npz",
-            "zero_coverage_indices": out_dir / "zero_coverage_indices.npz",
+            "outlier_indices": out_dir / "outlier_indices.npy",
+            "zero_coverage_indices": out_dir / "zero_coverage_indices.npy",
         },
     )
 

@@ -63,7 +63,10 @@ def bin_genome(
     input_files = [bam_file, reference_file, chrom_sizes_file, *exclusion_files]
 
     chroms = [f"chr{i}" for i in range(1, 23)]
-    chrom_bin_files = {chrom: out_dir / f"{chrom}.parquet" for chrom in chroms}
+    chrom_bin_files = {
+        chrom: out_dir / "bin_indices_by_chromosome" / f"{chrom}.parquet"
+        for chrom in chroms
+    }
 
     out_files = {
         "gc_bin_edges": out_dir / "gc_contents_bin_edges.npy",
@@ -313,12 +316,10 @@ def collect_outliers_for_dataset(
         )
         << log_context(
             f"""
-        python {scripts_dir / "collect_outliers.py"} --candidate_dirs {" ".join(to_strings(candidate_dirs))} --out_dir {out_dir} --thresholds 1e-4 {1 / 263_108_376} --out_ofs 0.25 0.1
+        python {scripts_dir / "collect_outliers.py"} --candidate_dirs {" ".join(to_strings(candidate_dirs))} --out_dir {out_dir} --thresholds 1e-4 {1 / 263_051_621} --out_ofs 0.25 0.1
         """
         )
     )
-
-    # TODO: Update num bins in thresholds to the new coordinates file
 
     return output_files
 

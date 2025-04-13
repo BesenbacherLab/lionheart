@@ -174,11 +174,14 @@ def main():
 
     chroms = [f"chr{i}" for i in range(1, 23)]
     cell_type_out_dirs = {
-        f"{cell_type}_out_dir": out_dir / cell_type
+        f"{cell_type}_out_dir": out_dir
+        / "sparse_bin_overlaps_by_chromosome"
+        / cell_type
         for cell_type in set(unique_cell_types + ["consensus"])
     }
     cell_chrom_out_files = {
-        f"{cell_type}_{chrom}_out_file": out_dir / cell_type / f"{chrom}.npz"
+        f"{cell_type}_{chrom}_out_file": cell_type_out_dirs[f"{cell_type}_out_dir"]
+        / f"{chrom}.npz"
         for cell_type in set(unique_cell_types + ["consensus"])
         for chrom in chroms
     }

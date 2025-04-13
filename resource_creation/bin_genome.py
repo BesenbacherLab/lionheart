@@ -161,7 +161,8 @@ def main():
     chroms = [f"chr{i}" for i in range(1, 23)]
 
     chrom_out_files = {
-        f"{chrom}_out_file": out_dir / f"{chrom}.parquet" for chrom in chroms
+        f"{chrom}_out_file": out_dir / "bin_indices_by_chromosome" / f"{chrom}.parquet"
+        for chrom in chroms
     }
 
     exclusion_paths = {
