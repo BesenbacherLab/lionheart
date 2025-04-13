@@ -20,6 +20,7 @@ def bin_genome(
     reference_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
     exclusion_files: List[Union[str, pathlib.Path]],
+    bin_size: int = 10,
     walltime: str = "02:00:00",
     memory: str = "60g",
     cores: int = 4,
@@ -89,7 +90,7 @@ def bin_genome(
         )
         << log_context(
             f"""
-        python {scripts_dir / "bin_genome.py"} --bam_file {bam_file} --out_dir {out_dir} --chrom_sizes_file {chrom_sizes_file} --exclusion_bed_files {" ".join(to_strings(exclusion_files))} --reference_file {reference_file} --bin_size 10 --gc_bin_size 100 --num_gc_bins 100 {app_args}
+        python {scripts_dir / "bin_genome.py"} --bam_file {bam_file} --out_dir {out_dir} --chrom_sizes_file {chrom_sizes_file} --exclusion_bed_files {" ".join(to_strings(exclusion_files))} --reference_file {reference_file} --bin_size {bin_size} --gc_bin_size 100 --num_gc_bins 100 {app_args}
         """
         )
     )
@@ -107,8 +108,9 @@ def bin_chromatin_tracks(
     meta_data_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
     track_type: str,
-    walltime: str = "23:00:00",
-    memory: str = "150g",
+    bin_size: int = 10,
+    walltime: str = "12:00:00",
+    memory: str = "50g",
     cores: int = 12,
 ) -> dict:
     """
@@ -158,7 +160,7 @@ def bin_chromatin_tracks(
         )
         << log_context(
             f"""
-        python {scripts_dir / "bin_chromatin_tracks.py"} --coordinates_file {coordinates_file} --tracks_dir {tracks_dir} --out_dir {out_dir} --meta_data_file {meta_data_file} --chrom_sizes_file {chrom_sizes_file} --bin_size 10 --num_jobs {cores}
+        python {scripts_dir / "bin_chromatin_tracks.py"} --coordinates_file {coordinates_file} --tracks_dir {tracks_dir} --out_dir {out_dir} --meta_data_file {meta_data_file} --chrom_sizes_file {chrom_sizes_file} --bin_size {bin_size} --num_jobs {cores}
         """
         )
     )
