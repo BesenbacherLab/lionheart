@@ -45,7 +45,6 @@ class MosdepthPaths:
 
 def run_mosdepth(
     in_file: pathlib.Path,
-    by_file: pathlib.Path,
     out_dir: pathlib.Path,
     insert_size_mode: bool,
     n_jobs: int,
@@ -71,8 +70,7 @@ def run_mosdepth(
             str(out_dir),
             ";",
             f"{mosdepth_reference}",
-            "--by",
-            f"{by_file}",
+            "--by 10",
             "--threads",
             f"{n_jobs}",
             "--mapq",
@@ -412,7 +410,6 @@ def main(args):
         with messenger.indentation(add_indent=4):
             coverage_by_chrom_paths = run_mosdepth(
                 in_file=paths["bam_file"],
-                by_file=paths["binned_whole_genome"],
                 out_dir=paths["coverage_dir"],
                 n_jobs=args.n_jobs,
                 mosdepth_paths=mosdepth_paths,
@@ -424,7 +421,6 @@ def main(args):
         with messenger.indentation(add_indent=4):
             insert_sizes_by_chrom_paths = run_mosdepth(
                 in_file=paths["bam_file"],
-                by_file=paths["binned_whole_genome"],
                 out_dir=paths["coverage_dir"],
                 n_jobs=args.n_jobs,
                 mosdepth_paths=mosdepth_paths,
@@ -464,7 +460,8 @@ def main(args):
         feature_dataset = np.hstack(
             [
                 np.load(
-                    output_path_collections[mask_type].dataset, allow_pickle=True
+                    output_path_collections[mask_type].dataset,
+                    allow_pickle=True,
                 ).astype(np.float32)
                 for mask_type in ["ATAC", "DHS"]
             ]
