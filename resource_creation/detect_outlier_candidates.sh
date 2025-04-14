@@ -102,32 +102,28 @@ read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
 
 echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: $max_count\tNonzero probability: $p_nonzero"
 
+cdf_lookup_file="$tmpdir/cdf_lookup.tsv"
+python3 calculate_tail_cdf.py --mean "$mean" --p_nonzero "$p_nonzero" --max_count "$max_count" --out_file "$cdf_lookup_file"
+
 # Determine count_threshold: find the smallest count > int(mean)
 # for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
 echo "Calculate coverage threshold..."
-count_threshold=$(gawk -F'\t' -v mean="$mean" -v p_nonzero="$p_nonzero" -v threshold="$threshold" -v max_count="$max_count" '
-function gamma(x, i, result) {
-    result = 1;
-    for (i = 1; i < x; i++) {
-        result *= i;
-    }
-    return result;
+count_threshold=$(gawk -M -v PREC=80 -F'\t' -v threshold="$threshold" -v mean="$mean" -v max_count="$max_count" '
+#--- First, read the lookup table from the Python-generated file ---
+FNR==NR {
+    # Skip header line (assumed to be the first line)
+    if (NR == 1) next;
+    tailprobs[$1] = $2;
+    next;
 }
-# Function to compute the tail probability from count c up to m.
-function tailProb(c, m,   j, total) {
-    total = 0;
-    for (j = c; j <= m; j++) {
-         total += p_nonzero * ( exp(-mean) * (mean^j) / gamma(j+1) );
-    }
-    return total;
-}
-BEGIN {
+#--- Second, find first count below the threshold ---
+END {
     count = int(mean) + 1;
-    while ( count <= max_count && tailProb(count, max_count) > threshold ) {
+    while ( count <= max_count && tailprobs[count] > threshold ) {
         count++;
     }
     print count;
-}' "$filtered_file")
+}' "$cdf_lookup_file")
 echo "  Count threshold = $count_threshold"
 
 # Save statistics to a TSV file
@@ -143,39 +139,31 @@ echo -e "$mean\t$total\t$nonzeros\t$max_count\t$p_nonzero\t$count_threshold" >> 
 echo "Extracting outlier indices..."
 candidates_file="$out_dir/candidates.txt"
 zeros_file="$out_dir/zeros.txt"
-gawk -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
-function gamma(x, i, result) {
-    result = 1;
-    for (i = 1; i < x; i++) {
-        result *= i;
-    }
-    return result;
-}
+gawk -M -v PREC=80 -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
 BEGIN {
     idx = 0;
-    # Precompute full ZIP probability for counts from count_threshold to max_count.
-    for (i = count_threshold; i <= max_count; i++) {
-         zip_cache[i] = p_nonzero * ( exp(-mean) * (mean^i) / gamma(i+1) );
-    }
-    # Precompute tail probability for each count as the cumulative sum from i to max_count.
-    tail_cache[max_count] = zip_cache[max_count];
-    for (i = max_count - 1; i >= count_threshold; i--) {
-         tail_cache[i] = tail_cache[i+1] + zip_cache[i];
-    }
 }
+#--- Read the lookup table from the Python-generated file ---
+FNR==NR {
+    # Skip header line (assumed to be the first line)
+    if (NR == 1) next;
+    tailprobs[$1] = $2;
+    next;
+}
+#--- Write out outlier candidates
 {
+    idx++;
     count_val = $4;
     # Convert floating-point count to integer (rounded)
     count_int = int(count_val + 0.5);
     if (count_int == 0) {
         print idx > out_dir"/zeros.txt";
     } else if (count_int > count_threshold) {
-         tail_prob = tail_cache[count_int];
+         tail_prob = (count_int in tailprobs) ? tailprobs[count_int] : 0;
          print idx "\t" count_val "\t" tail_prob > out_dir"/candidates.txt";
     }
-    idx++;
 }
-' "$filtered_file"
+' "$cdf_lookup_file" "$filtered_file"
 
 read num_candidates _ < <(wc -l "$candidates_file")
 read num_zeros _ < <(wc -l "$zeros_file")
