@@ -36,6 +36,9 @@ mkdir -p "$out_dir"
 tmpdir=$(mktemp -d -p "$out_dir" tmp.XXXXXXXX)
 trap "rm -rf '$tmpdir'" EXIT
 
+# Detect the directory where this script resides
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Run mosdepth, outputting to the temporary directory
 echo "Running mosdepth on BAM file..."
 "$mosdepth_path" --by "$bin_size" --threads 4 --no-per-base --mapq 20 --min-frag-len 20 --max-frag-len 600 --fragment-mode "$tmpdir/coverage" "$input_file"
@@ -103,7 +106,7 @@ read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
 echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: $max_count\tNonzero probability: $p_nonzero"
 
 cdf_lookup_file="$tmpdir/cdf_lookup.tsv"
-python3 calculate_tail_cdf.py --mean "$mean" --p_nonzero "$p_nonzero" --max_count "$max_count" --out_file "$cdf_lookup_file"
+python3 "$script_dir"/calculate_tail_cdf.py --mean "$mean" --p_nonzero "$p_nonzero" --max_count "$max_count" --out_file "$cdf_lookup_file"
 
 # Determine count_threshold: find the smallest count > int(mean)
 # for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
