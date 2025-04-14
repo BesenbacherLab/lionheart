@@ -267,7 +267,7 @@ def collect_outliers_for_dataset(
     dataset_name: str,
     candidate_files: Dict[int, List[Union[str, pathlib.Path]]],
     walltime: str = "02:00:00",
-    memory: str = "15g",
+    memory: str = "100g",
     cores: int = 1,
 ) -> dict:
     """
@@ -331,7 +331,7 @@ def collect_outliers_across_datasets(
     out_dir: Union[str, pathlib.Path],
     dataset_to_outlier_paths: Dict[str, Dict[str, Union[str, pathlib.Path]]],
     walltime: str = "02:00:00",
-    memory: str = "15g",
+    memory: str = "100g",
     cores: int = 1,
 ) -> dict:
     """
