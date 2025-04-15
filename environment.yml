@@ -17,6 +17,7 @@ dependencies:
   - statsmodels=0.14.1
   - seaborn=0.13.2
   - matplotlib=3.9.1
+  - conda-forge::pigz
   - pip:
     - nattrs==0.2.2
     - pytest==7.1.2
