@@ -38,24 +38,29 @@ def load_candidate_df(path, messenger) -> pd.DataFrame:
     return df
 
 
-def load_zero_cov_indices_to_structured_array(path, messenger):
+def load_zero_cov_indices(path, messenger) -> Set[str]:
+    """
+    Load text file with chromosome-wise indices of zero-coverage bins.
+
+    Parameters
+    ----------
+    path
+        Path to text file (zeros.txt) with rows containing:
+            chromosome, original index in chromosome
+            for bins with count == 0.
+
+    Returns
+    -------
+    set
+        Set of strings formatted as "<chrom>__<chrom_index>".
+    """
     df = read_bed_as_df(
         path=path,
         col_names=["chromosome", "index"],
         messenger=messenger,
     )
-
-    # Convert chromosome number to integer
-    df["chromosome"] = df["chromosome"].str.replace("chr", "").astype(np.int32)
-    df["index"] = df["index"].astype(np.int32)
-
-    # Convert to a list of tuples and then to a structured array
-    tuples = list(df.itertuples(index=False, name=None))
-    dtype = np.dtype([("chr", np.int32), ("index", np.int32)])
-    arr = np.array(tuples, dtype=dtype)
-
-    # Sort the array by the tuple keys
-    return arr
+    df["key"] = df["chromosome"] + "__" + df["index"].astype(str)
+    return set(df["key"])
 
 
 def parse_chrom_index_strings(s: Union[List[str], Set[str]]) -> Dict[str, np.ndarray]:
@@ -89,36 +94,6 @@ def parse_chrom_index_strings(s: Union[List[str], Set[str]]) -> Dict[str, np.nda
         chrom_to_indices[chrom] = np.sort(group["index"].to_numpy())
 
     return chrom_to_indices
-
-
-def structured_array_to_dict(x):
-    """
-    Convert a sorted structured array with fields 'chr' and 'index'
-    into a dictionary mapping each chromosome to its sorted numpy array of indices.
-
-    Parameters
-    ----------
-    x : np.ndarray
-        Structured numpy array with dtype [('chr', np.int32), ('index', np.int32)].
-
-    Returns
-    -------
-    dict
-        Dictionary where keys are chromosomes and values are numpy arrays of indices.
-    """
-    result = {}
-    if x.size == 0:
-        return result
-
-    # Find where the chromosome changes; assumes common is sorted by 'chr'
-    unique_chroms, start_idx = np.unique(x["chr"], return_index=True)
-    # Iterate over each unique chromosome
-    for i, chrom in enumerate(unique_chroms):
-        start = start_idx[i]
-        end = start_idx[i + 1] if i + 1 < len(start_idx) else x.size
-        # You can return as int arrays
-        result[f"chr{chrom}"] = np.asarray(x["index"][start:end], dtype=np.int64)
-    return result
 
 
 if __name__ == "__main__":
@@ -331,30 +306,30 @@ if __name__ == "__main__":
 
     num_paths = len(zero_cov_paths.values())
     for i, path in enumerate(zero_cov_paths.values()):
-        zeros_chrom_index_arr = load_zero_cov_indices_to_structured_array(
-            path, messenger=messenger
-        )
+        zeros_chrom_index_string_set = load_zero_cov_indices(path, messenger=messenger)
         if i == 0:
-            always_zero_chrom_index_arr = zeros_chrom_index_arr
+            always_zero_chrom_index_string_set = zeros_chrom_index_string_set
         else:
-            always_zero_chrom_index_arr = np.intersect1d(
-                always_zero_chrom_index_arr,
-                zeros_chrom_index_arr,
-                assume_unique=True,
+            always_zero_chrom_index_string_set = (
+                always_zero_chrom_index_string_set.intersection(
+                    zeros_chrom_index_string_set
+                )
             )
 
-        del zeros_chrom_index_arr
         if i % 5 == 0:
             messenger(
-                f"{i}/{num_paths}: {len(always_zero_chrom_index_arr)} uniques",
+                f"{i}/{num_paths}: {len(always_zero_chrom_index_string_set)} uniques",
                 indent=2,
             )
-            gc.collect()
 
-    messenger(f"Found {len(always_zero_chrom_index_arr)} all-zero bins", indent=2)
+    messenger(
+        f"Found {len(always_zero_chrom_index_string_set)} all-zero bins", indent=2
+    )
 
     # Convert to `chrom -> indices` mapping
-    zeros_chrom_to_indices = structured_array_to_dict(always_zero_chrom_index_arr)
+    zeros_chrom_to_indices = parse_chrom_index_strings(
+        always_zero_chrom_index_string_set
+    )
 
     messenger("Start: Saving all-zero coverage bins")
     np.savez(paths["outlier_indices"], **zeros_chrom_to_indices)

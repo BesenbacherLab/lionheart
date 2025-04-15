@@ -266,8 +266,8 @@ def collect_outliers_for_dataset(
     out_dir: Union[str, pathlib.Path],
     dataset_name: str,
     candidate_files: Dict[int, List[Union[str, pathlib.Path]]],
-    walltime: str = "23:00:00",
-    memory: str = "100g",
+    walltime: str = "12:00:00",
+    memory: str = "35g",
     cores: int = 1,
 ) -> dict:
     """
