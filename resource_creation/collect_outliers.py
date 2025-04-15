@@ -10,6 +10,7 @@ from typing import Dict, List, Set, Union
 import numpy as np
 import pandas as pd
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from utipy import Messenger, StepTimer, IOPaths
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.bed_ops import (
@@ -38,7 +39,7 @@ def load_candidate_df(path, messenger) -> pd.DataFrame:
     return df
 
 
-def load_zero_cov_indices(path, messenger) -> Set[str]:
+def load_zero_cov_indices(path) -> Set[str]:
     """
     Load text file with chromosome-wise indices of zero-coverage bins.
 
@@ -57,7 +58,7 @@ def load_zero_cov_indices(path, messenger) -> Set[str]:
     df = read_bed_as_df(
         path=path,
         col_names=["chromosome", "index"],
-        messenger=messenger,
+        messenger=None,
     )
     df["key"] = df["chromosome"] + "__" + df["index"].astype(str)
     return set(df["key"])
@@ -90,10 +91,38 @@ def parse_chrom_index_strings(s: Union[List[str], Set[str]]) -> Dict[str, np.nda
 
     # Convert to dict to allow saving in npz file
     chrom_to_indices = {}
-    for chrom, group in chrom_to_index_df.groupby(["chromosome"], sort=False):
+    for chrom, group in chrom_to_index_df.groupby("chromosome", sort=False):
         chrom_to_indices[chrom] = np.sort(group["index"].to_numpy())
 
     return chrom_to_indices
+
+
+def intersect_zero_paths(chunk):
+    # Compute the intersection for a given chunk of file paths
+    # Note: We pass the global 'messenger' so that each file read
+    # reports progress. If that's not desired or causes issues,
+    # you can remove it from here
+    result = None
+    for path in chunk:
+        zeros_set = load_zero_cov_indices(path)
+        if result is None:
+            result = zeros_set
+        else:
+            result = result.intersection(zeros_set)
+    return result
+
+
+def chunk_zero_paths(paths, n_chunks: int = 3):
+    # Convert the zero_cov_paths.values() to a list of paths
+    zero_paths = list(zero_cov_paths.values())
+
+    # Compute chunk size so the list of paths is split into roughly equal parts
+    chunk_size = int(np.ceil(len(zero_paths) / n_chunks))
+
+    # Create the list of chunks
+    return [
+        zero_paths[i : i + chunk_size] for i in range(0, len(zero_paths), chunk_size)
+    ]
 
 
 if __name__ == "__main__":
@@ -145,6 +174,13 @@ if __name__ == "__main__":
     )
     parser.add_argument("--candidates_filename", type=str, default="candidates.txt")
     parser.add_argument("--zero_cov_filename", type=str, default="zeros.txt")
+    parser.add_argument(
+        "--n_chunks",
+        type=str,
+        default=3,
+        help="Number of chunks to run intersections in for zero-coverage indices. "
+        "Beware of memory usage with higher settings.",
+    )
     args = parser.parse_args()
 
     out_dir = pathlib.Path(args.out_dir)
@@ -305,31 +341,33 @@ if __name__ == "__main__":
     messenger("Start: Finding all-zero coverage bins")
 
     num_paths = len(zero_cov_paths.values())
-    for i, path in enumerate(zero_cov_paths.values()):
-        zeros_chrom_index_string_set = load_zero_cov_indices(path, messenger=messenger)
-        if i == 0:
-            always_zero_chrom_index_string_set = zeros_chrom_index_string_set
+
+    # Chunk zero-coverage paths to parallellize intersections
+    chunks = chunk_zero_paths(paths=zero_cov_paths.values(), n_chunks=args.n_chunks)
+
+    # Process each chunk in parallel.
+    results = []
+    with ProcessPoolExecutor(max_workers=args.n_chunks) as executor:
+        futures = {
+            executor.submit(intersect_zero_paths, chunk): chunk for chunk in chunks
+        }
+        for future in as_completed(futures):
+            chunk_result = future.result()
+            messenger(f"Processed a chunk with {len(chunk_result)} uniques", indent=2)
+            results.append(chunk_result)
+
+    # Final overall intersection across all chunks
+    overall_zero_set = None
+    for s in results:
+        if overall_zero_set is None:
+            overall_zero_set = s
         else:
-            always_zero_chrom_index_string_set = (
-                always_zero_chrom_index_string_set.intersection(
-                    zeros_chrom_index_string_set
-                )
-            )
+            overall_zero_set = overall_zero_set.intersection(s)
 
-        if i % 5 == 0:
-            messenger(
-                f"{i}/{num_paths}: {len(always_zero_chrom_index_string_set)} uniques",
-                indent=2,
-            )
-
-    messenger(
-        f"Found {len(always_zero_chrom_index_string_set)} all-zero bins", indent=2
-    )
+    messenger(f"Found {len(overall_zero_set)} all-zero bins", indent=2)
 
     # Convert to `chrom -> indices` mapping
-    zeros_chrom_to_indices = parse_chrom_index_strings(
-        always_zero_chrom_index_string_set
-    )
+    zeros_chrom_to_indices = parse_chrom_index_strings(overall_zero_set)
 
     messenger("Start: Saving all-zero coverage bins")
     np.savez(paths["outlier_indices"], **zeros_chrom_to_indices)

@@ -267,8 +267,8 @@ def collect_outliers_for_dataset(
     dataset_name: str,
     candidate_files: Dict[int, List[Union[str, pathlib.Path]]],
     walltime: str = "12:00:00",
-    memory: str = "35g",
-    cores: int = 1,
+    memory: str = "150g",
+    cores: int = 3,
 ) -> dict:
     """
     Create target for extracting features for a single sample (i.e. one BAM file).
@@ -317,7 +317,7 @@ def collect_outliers_for_dataset(
         )
         << log_context(
             f"""
-        python {scripts_dir / "collect_outliers.py"} --candidate_dirs {" ".join(to_strings(candidate_dirs))} --out_dir {out_dir} --thresholds 1e-4 {1 / 263_051_621} --out_ofs 0.25 0.1
+        python {scripts_dir / "collect_outliers.py"} --candidate_dirs {" ".join(to_strings(candidate_dirs))} --out_dir {out_dir} --thresholds 1e-4 {1 / 263_051_621} --out_ofs 0.25 0.1 --n_chunks {cores}
         """
         )
     )
