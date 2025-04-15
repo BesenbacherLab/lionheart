@@ -115,9 +115,9 @@ def load_bins(
         col_names=["chromosome", "start", "end", "gc", "mappability"],
         messenger=messenger,
     )
-    assert (
-        len(df.chromosome.unique()) == 1
-    ), f"Found more than one ({len(df.chromosome.unique())}) chromosome in: {path}"
+    assert len(df.chromosome.unique()) == 1, (
+        f"Found more than one ({len(df.chromosome.unique())}) chromosome in: {path}"
+    )
     return (
         df["gc"].to_numpy().astype(np.float64),
         df["start"].to_numpy().astype(np.int64),

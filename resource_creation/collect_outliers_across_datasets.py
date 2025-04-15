@@ -11,6 +11,7 @@ import numpy as np
 
 from utipy import Messenger, StepTimer, IOPaths
 from lionheart.utils.dual_log import setup_logging
+from lionheart.utils.utils import load_chrom_indices
 
 
 def combine_arrays(arrs: List[np.ndarray], method: str) -> np.ndarray:
@@ -36,7 +37,7 @@ if __name__ == "__main__":
         required=True,
         type=str,
         nargs="*",
-        help=("Paths to directories outliers and zero-coverage bins."),
+        help=("Paths to directories with outliers and zero-coverage bins."),
     )
     parser.add_argument(
         "--out_dir",
@@ -64,13 +65,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--outlier_filename",
         type=str,
-        default="outlier_indices.npy",
+        default="outlier_indices.npz",
         help=("Name of the outlier indices file within each outlier directory."),
     )
     parser.add_argument(
         "--zero_filename",
         type=str,
-        default="zero_coverage_indices.npy",
+        default="zero_coverage_indices.npz",
         help=("Name of the zero-coverage indices file within each outlier directory."),
     )
 
@@ -113,10 +114,12 @@ if __name__ == "__main__":
             "out_dir": out_dir,
         },
         out_files={
-            "outlier_indices": out_dir / "outlier_indices.npy",
-            "zero_coverage_indices": out_dir / "zero_coverage_indices.npy",
+            "outlier_indices": out_dir / "outlier_indices.npz",
+            "zero_coverage_indices": out_dir / "zero_coverage_indices.npz",
         },
     )
+
+    chromosomes = [f"chr{i}" for i in range(1, 23)]
 
     # Create output directory
     paths.mk_output_dirs(collection="out_dirs")
@@ -132,15 +135,26 @@ if __name__ == "__main__":
         f"Start: Combining outlier bin indices using method: {args.outlier_method}"
     )
 
-    # Combine outliers across datasets
-    outlier_indices = combine_arrays(
-        arrs=[np.load(paths[key]) for key in outlier_paths.keys()],
-        method=args.outlier_method,
-    )
-    messenger(f"Final outlier indices: {len(outlier_indices)}", indent=2)
+    # Load outlier dicts from each dataset
+    outlier_index_collections = [
+        load_chrom_indices(paths[key]) for key in outlier_paths.keys()
+    ]
+
+    # Combine outliers across datasets per chromosome
+    outlier_chrom_to_indices = {
+        chrom: combine_arrays(
+            arrs=[coll[chrom] for coll in outlier_index_collections],
+            method=args.outlier_method,
+        )
+        for chrom in chromosomes
+    }
+
+    messenger("Final outlier counts:", indent=2)
+    for chrom in chromosomes:
+        messenger(f"{chrom}: {len(outlier_chrom_to_indices[chrom])}", indent=4)
 
     messenger("Start: Saving outlier indices")
-    np.save(paths["outlier_indices"], outlier_indices)
+    np.savez(paths["outlier_indices"], **outlier_chrom_to_indices)
 
     #######################
     #### Zero-coverage ####
@@ -150,15 +164,26 @@ if __name__ == "__main__":
         f"Start: Combining zero-coverage bin indices using method: {args.zero_method}"
     )
 
-    # Combine zero-coverage indices across datasets
-    zero_indices = combine_arrays(
-        arrs=[np.load(paths[key]) for key in zero_paths.keys()],
-        method=args.zero_method,
-    )
-    messenger(f"Final zero-coverage indices: {len(zero_indices)}", indent=2)
+    # Load zero-coverage dicts from each dataset
+    always_zero_index_collections = [
+        load_chrom_indices(paths[key]) for key in zero_paths.keys()
+    ]
+
+    # Combine zero-coverage indices across datasets per chromosome
+    always_zero_chrom_to_indices = {
+        chrom: combine_arrays(
+            arrs=[coll[chrom] for coll in always_zero_index_collections],
+            method=args.zero_method,
+        )
+        for chrom in chromosomes
+    }
+
+    messenger("Final zero-coverage bin counts:", indent=2)
+    for chrom in chromosomes:
+        messenger(f"{chrom}: {len(always_zero_chrom_to_indices[chrom])}", indent=4)
 
     messenger("Start: Saving zero-coverage indices")
-    np.save(paths["zero_coverage_indices"], zero_indices)
+    np.savez(paths["zero_coverage_indices"], **always_zero_chrom_to_indices)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
