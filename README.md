@@ -2,7 +2,9 @@
 
 LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA.
 
-This software lets you run feature extraction and predict the cancer status of your samples. Further, you can train a model on your own data. 
+This software lets you run feature extraction and predict the cancer status of your samples. Further, you can train a model on your own data.
+
+All you need is a **BAM file** with whole genome sequenced cell-free DNA.
 
 Developed for hg38. See the `remap` directory for the applied remapping pipeline.
 
