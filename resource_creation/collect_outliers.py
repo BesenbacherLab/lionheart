@@ -3,8 +3,10 @@ Script for finding bins with outlier-level coverages across samples (e.g. contro
 """
 
 import argparse
+import gc
 import logging
 import pathlib
+from typing import Dict, List, Set, Union
 import numpy as np
 import pandas as pd
 
@@ -15,24 +17,83 @@ from lionheart.utils.bed_ops import (
 )
 
 
-def load_candidate_df(path, messenger):
-    # candidates.txt: row index, count, and ZIP probability for rows with count > count_threshold.
+def load_candidate_df(path, messenger) -> pd.DataFrame:
+    """
+    Load outlier candidates.
+
+    Parameters
+    ----------
+    path
+        Path to text file (candidates.txt) with rows containing:
+           chromosome, original index in chromosome, coverage count, and
+           ZIP tail (cdf) probability for bins with count > count_threshold
+    """
+
     df = read_bed_as_df(
         path=path,
-        col_names=["index", "coverage", "poisson_prob"],
+        col_names=["chromosome", "index", "coverage", "poisson_prob"],
         messenger=messenger,
     )
+    df["key"] = df["chromosome"] + "__" + df["index"].astype(str)
     return df
 
 
-def load_zero_cov_indices(path):
+def load_zero_cov_indices(path, messenger) -> Set[str]:
     """
-    Load text file with indices of zero-coverage bins
+    Load text file with chromosome-wise indices of zero-coverage bins.
+
+    Parameters
+    ----------
+    path
+        Path to text file (zeros.txt) with rows containing:
+            chromosome, original index in chromosome
+            for bins with count == 0.
+
+    Returns
+    -------
+    set
+        Set of strings formatted as "<chrom>__<chrom_index>".
     """
-    # zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
-    with open(path, "r") as file:
-        indices = [int(line.strip()) for line in file.readlines()]
-    return np.array(indices).flatten()
+    df = read_bed_as_df(
+        path=path,
+        col_names=["chromosome", "index"],
+        messenger=messenger,
+    )
+    df["key"] = df["chromosome"] + "__" + df["index"].astype(str)
+    return set(df["key"])
+
+
+def parse_chrom_index_strings(s: Union[List[str], Set[str]]) -> Dict[str, np.ndarray]:
+    """
+    Parse the "<chrom>__<chrom_index>" strings from a list/set
+    and produce a dictionary mapping each chromosome to its
+    indices.
+
+    Parameters
+    ----------
+    s
+        Set of strings formatted as "<chrom>__<chrom_index>".
+
+    Returns
+    -------
+    Dict
+        Mapping of chromosomes to integer numpy arrays with chromosome-wise indices.
+    """
+    # Split into columns in data frame
+    chrom_to_index_df = pd.DataFrame(
+        [tuple(key.split("__")) for key in s],
+        columns=["chromosome", "index"],
+    )
+
+    # Make index integer
+    chrom_to_index_df["index"] = chrom_to_index_df["index"].astype(int)
+
+    # Convert to dict to allow saving in npz file
+    chrom_to_indices = {}
+    for chrom, group in chrom_to_index_df.groupby(["chromosome"], sort=False):
+        chrom_to_indices[chrom] = np.sort(group["index"].to_numpy())
+
+    return chrom_to_indices
 
 
 if __name__ == "__main__":
@@ -123,8 +184,8 @@ if __name__ == "__main__":
             "out_dir": out_dir,
         },
         out_files={
-            "outlier_indices": out_dir / "outlier_indices.npy",
-            "zero_coverage_bins_indices": out_dir / "zero_coverage_indices.npy",
+            "outlier_indices": out_dir / "outlier_indices.npz",
+            "zero_coverage_bins_indices": out_dir / "zero_coverage_indices.npz",
         },
     )
 
@@ -188,43 +249,53 @@ if __name__ == "__main__":
     messenger("Start: Extracting outliers for each threshold")
 
     with timer.time_step(indent=4):
-        outlier_indices = []
+        outlier_keys = []
 
         messenger(f"Total non-unique candidates: {len(candidates_df)}", indent=2)
 
         for thresh, out_of in zip(thresholds, out_ofs):
             # Get bin indices where the bins have probabilities
             # below or equal to the threshold
-            candidate_indices = (
-                candidates_df[candidates_df["poisson_prob"] <= thresh]["index"]
-                .to_numpy()
-                .flatten()
-            )
+            candidate_keys = candidates_df[candidates_df["poisson_prob"] <= thresh][
+                "key"
+            ]
 
             # Count the number of samples an index is
             # an outlier candidate in
             candidate_indices, idx_counts = np.unique(
-                candidate_indices, return_counts=True
+                candidate_keys, return_counts=True
             )
 
             # Get indices where they are outlier candidates in
             # `out_of` percentage or more of the samples
-            indices_for_thresh = list(
+            keys_for_thresh = list(
                 candidate_indices[idx_counts / len(candidate_paths) >= out_of]
             )
-            outlier_indices += indices_for_thresh
+            outlier_keys += keys_for_thresh
             messenger(
-                f"Threshold {thresh}: {len(indices_for_thresh)} outliers",
+                f"Threshold {thresh}: {len(keys_for_thresh)} outliers",
                 indent=2,
             )
 
         # Remove duplicate indices
-        outlier_indices = np.unique(outlier_indices)
+        outlier_keys = set(outlier_keys)
 
-        messenger(f"Unique outliers: {len(outlier_indices)}", indent=2)
+        messenger(f"Unique outliers: {len(outlier_keys)}", indent=2)
+
+    # Convert to `chrom -> indices` mapping
+    outliers_chrom_to_indices = parse_chrom_index_strings(outlier_keys)
 
     messenger("Start: Saving outlier indices")
-    np.save(paths["outlier_indices"], outlier_indices)
+    np.savez(paths["outlier_indices"], **outliers_chrom_to_indices)
+
+    del (
+        outliers_chrom_to_indices,
+        outlier_keys,
+        keys_for_thresh,
+        candidates_df,
+        candidate_keys,
+    )
+    gc.collect()
 
     ##############################
     #### All-zero coordinates ####
@@ -235,28 +306,33 @@ if __name__ == "__main__":
 
     num_paths = len(zero_cov_paths.values())
     for i, path in enumerate(zero_cov_paths.values()):
-        zero_indices = load_zero_cov_indices(path)
+        zeros_chrom_index_string_set = load_zero_cov_indices(path, messenger=messenger)
         if i == 0:
-            always_zero_indices = zero_indices
+            always_zero_chrom_index_string_set = zeros_chrom_index_string_set
         else:
-            # Count how many times each index is present
-            unique_indices, index_counts = np.unique(
-                np.concatenate([always_zero_indices, zero_indices]),
-                return_counts=True,
+            always_zero_chrom_index_string_set = (
+                always_zero_chrom_index_string_set.intersection(
+                    zeros_chrom_index_string_set
+                )
             )
-            # Find the indices that have zero-coverage in all bins so far
-            # that is current (1) and all previous (1) == 2
-            always_zero_indices = unique_indices[
-                np.argwhere(index_counts == 2).flatten()
-            ].flatten()
 
         if i % 5 == 0:
-            messenger(f"{i}/{num_paths}: {len(always_zero_indices)} uniques", indent=2)
+            messenger(
+                f"{i}/{num_paths}: {len(always_zero_chrom_index_string_set)} uniques",
+                indent=2,
+            )
 
-    messenger(f"Found {len(always_zero_indices)} all-zero bins", indent=2)
+    messenger(
+        f"Found {len(always_zero_chrom_index_string_set)} all-zero bins", indent=2
+    )
+
+    # Convert to `chrom -> indices` mapping
+    zeros_chrom_to_indices = parse_chrom_index_strings(
+        always_zero_chrom_index_string_set
+    )
 
     messenger("Start: Saving all-zero coverage bins")
-    np.save(paths["zero_coverage_bins_indices"], always_zero_indices)
+    np.savez(paths["outlier_indices"], **zeros_chrom_to_indices)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
