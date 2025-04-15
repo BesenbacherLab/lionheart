@@ -233,28 +233,27 @@ if __name__ == "__main__":
     # All-zero coordinates
     messenger("Start: Finding all-zero coverage bins")
 
-    # NOTE: This likely takes a lot of memory?
-    all_zero_indices = [load_zero_cov_indices(path) for path in zero_cov_paths.values()]
+    num_paths = len(zero_cov_paths.values())
+    for i, path in enumerate(zero_cov_paths.values()):
+        zero_indices = load_zero_cov_indices(path)
+        if i == 0:
+            all_zero_indices = zero_indices
+        else:
+            # Count how many times each index is present
+            unique_indices, index_counts = np.unique(
+                np.concatenate([all_zero_indices, zero_indices]),
+                return_counts=True,
+            )
+            # Find the indices that have zero-coverage in all bins so far
+            # that is current (1) and all previous (1) == 2
+            always_zero_indices = unique_indices[
+                np.argwhere(index_counts == 2).flatten()
+            ].flatten()
 
-    messenger(
-        "Non-unique zero-coverage bins: "
-        f"{len(np.concatenate(all_zero_indices).flatten())} ",
-        indent=2,
-    )
+        if i % 5 == 0:
+            messenger(f"{i}/{num_paths}: {len(all_zero_indices)} uniques", indent=2)
 
-    with timer.time_step(indent=2, name_prefix="zeroes"):
-        # Combine all zero-coverage indices across samples
-        all_zero_indices = np.concatenate(all_zero_indices).flatten()
-
-        # Count how many times each index is present
-        unique_indices, index_counts = np.unique(all_zero_indices, return_counts=True)
-
-        # Find the indices that have zero-coverage in all bins
-        always_zero_indices = unique_indices[
-            np.argwhere(index_counts == len(zero_cov_paths.values())).flatten()
-        ]
-
-        messenger(f"Found {len(always_zero_indices)} all-zero bins", indent=2)
+    messenger(f"Found {len(always_zero_indices)} all-zero bins", indent=2)
 
     messenger("Start: Saving all-zero coverage bins")
     np.save(paths["zero_coverage_bins_indices"], always_zero_indices)
