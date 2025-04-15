@@ -359,7 +359,7 @@ def _exclude_bins(
     # Start by indexing per chromosome, keeping only autosomes
     # Then exclude any bins that overlap with exclude file intervals
     index_and_subtract_cmd = f"""
-zcat {in_file} | awk -F'\t' -v OFS='\t' '
+unpigz -c {in_file} | awk -F'\t' -v OFS='\t' '
 BEGIN {{
   prev = "";
   i = 0

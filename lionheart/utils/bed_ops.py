@@ -205,7 +205,7 @@ def get_file_num_columns(in_file: Union[str, pathlib.Path]) -> int:
     Note: When the file is empty, 0 is returned!
     """
     # Whether to read from gzipped file or not
-    cat_type = "zcat" if str(in_file)[-3:] == ".gz" else "cat"
+    cat_type = "unpigz -c" if str(in_file)[-3:] == ".gz" else "cat"
     call = (
         # If file is not empty
         f"[ -s {in_file} ] && "
@@ -552,7 +552,7 @@ def _cat_files(
         Otherwise, only sorts when multiple files are specified
     """
     assert isinstance(in_files, list)
-    cat_fn = "zcat" if str(in_files[0])[-3:] == ".gz" else "cat"
+    cat_fn = "unpigz -c" if str(in_files[0])[-3:] == ".gz" else "cat"
 
     if use_n_cols is not None:
         awk_cmd = (

@@ -47,7 +47,7 @@ coverage_file="$tmpdir/coverage.regions.bed.gz"
 # Filter the mosdepth output using keep file indices (chromosome and new index).
 filtered_file="$tmpdir/filtered_input.bed"
 echo "Filtering mosdepth output using keep file indices..."
-zcat "$coverage_file" | gawk -F'\t' -v keep_file="$keep_file" 'BEGIN {
+unpigz -c "$coverage_file" | gawk -F'\t' -v keep_file="$keep_file" 'BEGIN {
     # Build an array of indices from the keep file, keyed by "chrom:new_index".
     while ((getline line < keep_file) > 0) {
         split(line, a, "\t");
