@@ -21,7 +21,7 @@ def load_chrom_indices(path: pathlib.Path) -> Dict[str, np.ndarray]:
     """
     chrom_to_indices_arr = np.load(path, allow_pickle=True)
     return {
-        chrom: chrom_to_indices_arr[chrom]
+        chrom: chrom_to_indices_arr[chrom].flatten()
         for chrom in [f"chr{i}" for i in range(1, 23)]
         if chrom in chrom_to_indices_arr.files
     }

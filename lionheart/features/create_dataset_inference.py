@@ -14,6 +14,7 @@ import pathlib
 import json
 import gc
 from dataclasses import dataclass
+import warnings
 import numpy as np
 import scipy.sparse
 import pandas as pd
@@ -33,6 +34,7 @@ from lionheart.features.correction.poisson import ZIPoissonPMF
 from lionheart.features.correction.normalize_megabins import normalize_megabins
 from lionheart.features.running_pearson_r import RunningPearsonR
 from lionheart.features.running_stats import RunningStats
+from lionheart.utils.utils import load_chrom_indices
 
 # Constants
 THRESHOLD: float = 1 / 263_108_376
@@ -248,7 +250,7 @@ def create_dataset_for_inference(
 
         for path in exclude_paths:
             try:
-                exclude_dicts.append(np.load(path, allow_pickle=True))
+                exclude_dicts.append(load_chrom_indices(path))
             except:
                 messenger(f"Failed to load exclusion indices from: {path}")
                 raise
@@ -256,10 +258,16 @@ def create_dataset_for_inference(
         exclude_bins_by_chrom = {}
         for chrom in chroms_ordered:
             excl_arrays = [
-                excl_dict[chrom].flatten()
+                excl_dict[chrom]
                 for excl_dict in exclude_dicts
-                if chrom in excl_dict.files
+                if chrom in excl_dict.keys()
             ]
+            if len(excl_arrays) != len(exclude_dicts):
+                messenger(
+                    f"Not all exclude arrays contained the following chromosome: {chrom}",
+                    add_indent=2,
+                    add_msg_fn=warnings.warn,
+                )
             if excl_arrays:
                 exclude_bins_by_chrom[chrom] = np.unique(np.concatenate(excl_arrays))
             else:
