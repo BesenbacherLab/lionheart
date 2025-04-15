@@ -1,17 +1,18 @@
 #!/bin/bash
-# Usage: ./detect_outlier_candidates.sh input_file.bam mosdepth_path threshold keep_file out_dir
+# Usage: ./detect_outlier_candidates.sh input_file.bam mosdepth_path threshold bin_size keep_file out_dir
 #   input_file.bam: BAM file to run mosdepth on
 #   mosdepth_path: Path to mosdepth executable (set LD_LIBRARY_PATH if needed)
 #   threshold: probability threshold (e.g., 0.001)
+#   bin_size: window size for mosdepth (--by option)
 #   keep_file: BED file with intervals to keep (tab-separated; at least chrom, start, end)
-#   out_dir: output directory for zeros.txt and candidates.txt
+#   out_dir: output directory for zeros.txt, candidates.txt, etc.
 #
 # This script runs mosdepth, filters its output using bedtools intersect with the keep file,
 # computes zero-inflated Poisson probabilities, and outputs:
-#   zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
-#   candidates.txt: row index, count, and ZIP probability (tab-separated) for rows with count > threshold.
-# Temporary files are stored in a temporary directory inside out_dir and removed on exit. 
-# 
+#   zeros.txt: lines (per chromosome) with count == 0 with chrom and per-chrom index
+#   candidates.txt: chrom, per-chrom index, count, and ZIP tail probability for rows with count > mean and > computed threshold
+#
+# Temporary files are stored in a temporary directory inside out_dir and removed on exit
 # NOTE: make script executable: chmod +x detect_outlier_candidates.sh
 
 set -euo pipefail
@@ -28,11 +29,10 @@ bin_size="$4"
 keep_file="$5"
 out_dir="$6"
 
-
 # Create output directory if it doesn't exist
 mkdir -p "$out_dir"
 
-# Create temporary directory inside out_dir and clean it up on exit
+# Create a temporary directory inside out_dir and remove it on exit
 tmpdir=$(mktemp -d -p "$out_dir" tmp.XXXXXXXX)
 trap "rm -rf '$tmpdir'" EXIT
 
@@ -44,88 +44,85 @@ echo "Running mosdepth on BAM file..."
 "$mosdepth_path" --by "$bin_size" --threads 4 --no-per-base --mapq 20 --min-frag-len 20 --max-frag-len 600 --fragment-mode "$tmpdir/coverage" "$input_file"
 coverage_file="$tmpdir/coverage.regions.bed.gz"
 
-# Filter the mosdepth output using keep file indices (chromosome and new index).
+# Filter the mosdepth output using keep file indices (chromosome and new index)
 filtered_file="$tmpdir/filtered_input.bed"
 echo "Filtering mosdepth output using keep file indices..."
 unpigz -c "$coverage_file" | gawk -F'\t' -v keep_file="$keep_file" 'BEGIN {
-    # Build an array of indices from the keep file, keyed by "chrom:new_index".
+    # Build an array from the keep file keyed by "chrom:new_index"
     while ((getline line < keep_file) > 0) {
-        split(line, a, "\t");
-        key = a[1] ":" a[4];
-        keep[key] = 1;
+        split(line, a, "\t")
+        key = a[1] ":" a[4]
+        keep[key] = 1
     }
-    close(keep_file);
-    prev = "";
-    i = 0;
+    close(keep_file)
+    prev = ""
+    i = 0
 }
-# Process only autosomes (chr1 to chr22) and compute the new index per chromosome.
+# Process only autosomes (chr1 to chr22) and assign a per-chromosome index
 $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {
     if ($1 != prev) {
-        i = 1;
-        prev = $1;
+        i = 1
+        prev = $1
     } else {
-        i++;
+        i++
     }
-    key = $1 ":" i;
+    key = $1 ":" i
     if (key in keep)
-        print;
+        # Append the per-chromosome index as a new column
+        print $0 "\t" i
 }
 ' > "$filtered_file"
 
-# Compute histogram of rounded coverage counts and save to histogram.txt.
+# Compute histogram of rounded coverage counts and save to histogram.txt
 echo "Computing histogram of coverage counts..."
 gawk -F'\t' '{
-    count_int = int($4 + 0.5);
-    hist[count_int]++;
+    count_int = int($4 + 0.5)
+    hist[count_int]++
 }
 END {
     for (c in hist)
-        print c "\t" hist[c];
+        print c "\t" hist[c]
 }' "$filtered_file" > "$out_dir/histogram.txt"
 
 # First pass on the filtered file: compute mean, total rows, nonzero count,
-# maximum count, and p_nonzero.
+# maximum count, and p_nonzero
 echo "Calculate coverage statistics..."
 read mean total nonzeros max_count p_nonzero < <(gawk -F'\t' '{
-    count_val = $4;
-    # Convert floating-point count to integer (rounded)
-    count_int = int(count_val + 0.5);
+    count_val = $4
+    count_int = int(count_val + 0.5)
     # Use floating point for mean calculation
     # As it is more precise
-    sum += count_val;
-    total++;
+    sum += count_val
+    total++
     if (count_int != 0)
-        nz++;
+        nz++
     if (count_int > max)
-        max = count_int;
+        max = count_int
 } END {
     if (total > 0)
-        print sum/total, total, nz, max, nz/total;
+        print sum/total, total, nz, max, nz/total
 }' "$filtered_file")
 
 echo -e "  Mean: $mean\tTotal rows: $total\tNonzero rows: $nonzeros\tMax count: $max_count\tNonzero probability: $p_nonzero"
 
+# Precompute tail probabilities using Python
 cdf_lookup_file="$tmpdir/cdf_lookup.tsv"
-python3 "$script_dir"/calculate_tail_cdf.py --mean "$mean" --p_nonzero "$p_nonzero" --max_count "$max_count" --out_file "$cdf_lookup_file"
+python3 "$script_dir/calculate_tail_cdf.py" --mean "$mean" --p_nonzero "$p_nonzero" --max_count "$max_count" --out_file "$cdf_lookup_file"
 
-# Determine count_threshold: find the smallest count > int(mean)
-# for which ZIP_prob = p_nonzero * (exp(-mean)*mean^count/gamma(count+1)) <= threshold.
+# Determine count_threshold using only the lookup table
 echo "Calculate coverage threshold..."
-count_threshold=$(gawk -M -v PREC=80 -F'\t' -v threshold="$threshold" -v mean="$mean" -v max_count="$max_count" '
-#--- First, read the lookup table from the Python-generated file ---
+count_threshold=$(gawk -M -v PREC=100 -F'\t' -v threshold="$threshold" -v mean="$mean" -v max_count="$max_count" '
 FNR==NR {
-    # Skip header line (assumed to be the first line)
-    if (NR == 1) next;
-    tailprobs[$1] = $2;
-    next;
+    if (NR == 1) next
+    tailprobs[$1] = $2
+    next
 }
-#--- Second, find first count below the threshold ---
 END {
-    count = int(mean) + 1;
-    while ( count <= max_count && tailprobs[count] > threshold ) {
-        count++;
+    count = int(mean) + 1
+    while (count <= max_count && tailprobs[count] > threshold) {
+        count++
     }
-    print count;
+    print count
 }' "$cdf_lookup_file")
 echo "  Count threshold = $count_threshold"
 
@@ -135,35 +132,36 @@ echo -e "mean\ttotal\tnonzeros\tmax_count\tp_nonzero\tcount_threshold" > "$stats
 echo -e "$mean\t$total\t$nonzeros\t$max_count\t$p_nonzero\t$count_threshold" >> "$stats_file"
 
 # Second pass on the filtered file:
-#   Cache full ZIP probability for counts from count_threshold to max_count,
-#   and output tab-separated rows:
-#    - zeros.txt: 0-indexed row indices (from the filtered rows) with count == 0.
-#    - candidates.txt: row index, count, and ZIP probability for rows with count > count_threshold.
-echo "Extracting outlier indices..."
+# For each chromosome, reuse the per-chromosome index computed in the filtering step.
+# Only consider outlier candidates where count > count_threshold.
+# Output:
+#   zeros.txt: chrom and per-chrom index for rows with count == 0
+#   candidates.txt: chrom, per-chrom index, count, and tail probability
+echo "Extracting outlier indices per chromosome..."
 candidates_file="$out_dir/candidates.txt"
 zeros_file="$out_dir/zeros.txt"
-gawk -M -v PREC=80 -F'\t' -v count_threshold="$count_threshold" -v mean="$mean" -v p_nonzero="$p_nonzero" -v max_count="$max_count" -v out_dir="$out_dir" '
+gawk -M -v PREC=80 -F'\t' -v count_threshold="$count_threshold" -v out_dir="$out_dir" '
 BEGIN {
-    idx = 0;
+    # No need for a separate index; we reuse the per-chromosome index (last field)
 }
-#--- Read the lookup table from the Python-generated file ---
+# Read the lookup table from the Python-generated file
 FNR==NR {
-    # Skip header line (assumed to be the first line)
-    if (NR == 1) next;
-    tailprobs[$1] = $2;
-    next;
+    if (NR == 1) next
+    tailprobs[$1] = $2
+    next
 }
-#--- Write out outlier candidates
+# Process the filtered file
 {
-    idx++;
-    count_val = $4;
-    # Convert floating-point count to integer (rounded)
-    count_int = int(count_val + 0.5);
+    chrom = $1
+    # The filtered file now has an extra field (the last field) containing the per-chrom index
+    chrom_idx = $NF
+    count_val = $4
+    count_int = int(count_val + 0.5)
     if (count_int == 0) {
-        print idx > out_dir"/zeros.txt";
+         print chrom "\t" chrom_idx > out_dir"/zeros.txt"
     } else if (count_int > count_threshold) {
-         tail_prob = (count_int in tailprobs) ? tailprobs[count_int] : 0;
-         print idx "\t" count_val "\t" tail_prob > out_dir"/candidates.txt";
+         tail_prob = (count_int in tailprobs) ? tailprobs[count_int] : 0
+         print chrom "\t" chrom_idx "\t" count_val "\t" tail_prob > out_dir"/candidates.txt"
     }
 }
 ' "$cdf_lookup_file" "$filtered_file"
