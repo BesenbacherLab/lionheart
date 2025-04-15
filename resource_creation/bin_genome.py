@@ -373,7 +373,7 @@ $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {{
   }}
   # Output: chrom, start, end, new_index
   print $1, $2, $3, i
-}}' | bedtools subtract -a - -b {exclude_file} -A | gzip > {out_file}
+}}' | bedtools subtract -a - -b {exclude_file} -A | pigz -c > {out_file}
 """
 
     call_subprocess(
