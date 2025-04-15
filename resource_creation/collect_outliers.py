@@ -237,11 +237,11 @@ if __name__ == "__main__":
     for i, path in enumerate(zero_cov_paths.values()):
         zero_indices = load_zero_cov_indices(path)
         if i == 0:
-            all_zero_indices = zero_indices
+            always_zero_indices = zero_indices
         else:
             # Count how many times each index is present
             unique_indices, index_counts = np.unique(
-                np.concatenate([all_zero_indices, zero_indices]),
+                np.concatenate([always_zero_indices, zero_indices]),
                 return_counts=True,
             )
             # Find the indices that have zero-coverage in all bins so far
@@ -251,7 +251,7 @@ if __name__ == "__main__":
             ].flatten()
 
         if i % 5 == 0:
-            messenger(f"{i}/{num_paths}: {len(all_zero_indices)} uniques", indent=2)
+            messenger(f"{i}/{num_paths}: {len(always_zero_indices)} uniques", indent=2)
 
     messenger(f"Found {len(always_zero_indices)} all-zero bins", indent=2)
 
