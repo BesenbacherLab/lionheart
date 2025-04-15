@@ -46,7 +46,7 @@ def load_zero_cov_indices_to_structured_array(path, messenger):
     )
 
     # Convert chromosome number to integer
-    df["chromosome"] = df["chromosome"].replace("chr", "").astype(np.int32)
+    df["chromosome"] = df["chromosome"].str.replace("chr", "").astype(np.int32)
     df["index"] = df["index"].astype(np.int32)
 
     # Convert to a list of tuples and then to a structured array
