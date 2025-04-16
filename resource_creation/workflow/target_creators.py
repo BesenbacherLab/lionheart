@@ -268,7 +268,7 @@ def collect_outliers_for_dataset(
     candidate_files: Dict[int, List[Union[str, pathlib.Path]]],
     walltime: str = "12:00:00",
     memory: str = "250g",
-    cores: int = 5,
+    cores: int = 4,
 ) -> dict:
     """
     Create target for extracting features for a single sample (i.e. one BAM file).
