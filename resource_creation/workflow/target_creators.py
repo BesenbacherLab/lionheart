@@ -301,8 +301,8 @@ def collect_outliers_for_dataset(
 
     input_files = flattened_candidate_files
     output_files = {
-        "outlier_indices": out_dir / "outlier_indices.npy",
-        "zero_coverage_indices": out_dir / "zero_coverage_indices.npy",
+        "outlier_indices": out_dir / "outlier_indices.npz",
+        "zero_coverage_indices": out_dir / "zero_coverage_indices.npz",
     }
     expected_output_files = list(output_files.values())
 
@@ -367,8 +367,8 @@ def collect_outliers_across_datasets(
     input_files = flattened_candidate_files
 
     output_files = {
-        "outlier_indices": out_dir / "outlier_indices.npy",
-        "zero_coverage_indices": out_dir / "zero_coverage_indices.npy",
+        "outlier_indices": out_dir / "outlier_indices.npz",
+        "zero_coverage_indices": out_dir / "zero_coverage_indices.npz",
     }
     expected_output_files = list(output_files.values())
 
