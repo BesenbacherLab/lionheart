@@ -1,4 +1,4 @@
-#!/usr/bin/awk -f
+#!/usr/bin/mawk -f
 # This script saves the (non-duplicate) file indices and values of non-zero overlaps
 # given a data frame of (chromosome, bin index, overlap)
 # Consequtive duplicates are summed

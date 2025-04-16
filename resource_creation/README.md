@@ -13,6 +13,7 @@ Running these scripts require a few more dependencies. Since installing these wi
  - `py2bit` (`conda install bioconda::py2bit`)
  - `pyarrow` (`pip install pyarrow`)
  - `gawk` (conda install -c conda-forge gawk)
+ - `mawk` (conda install bioconda::mawk)
 
 
 ## Required files

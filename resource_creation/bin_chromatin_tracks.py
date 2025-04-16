@@ -534,6 +534,7 @@ def find_overlaps(
 
     overlaps_call = " ".join(
         [
+            "LC_ALL=C",  # Possible speedup for mawk in the end (not sure if it actually has an effect)
             cat_fn,
             str(coordinates_file),
             # Find number of intersecting bps per interval
@@ -546,12 +547,12 @@ def find_overlaps(
             str(overlapping_file),
             "-wao",  # Return coordinates from both files and the overlap count
             "|",
-            # Call awk sparsification script that saves indices and values of non-zero overlaps
+            # Call mawk sparsification script that saves indices and values of non-zero overlaps
             # Note: This handles when original intervals are present >1 time due to multiple overlaps
-            f"awk -v outdir='{initial_sparse_overlaps_dir}' -v chr_col=1 -v bin_col=4 -v overlap_col=8 -f {script_dir / 'sparsify_overlaps.awk'}",
+            f"mawk -v outdir='{initial_sparse_overlaps_dir}' -v chr_col=1 -v bin_col=4 -v overlap_col=8 -f {script_dir / 'sparsify_overlaps.awk'}",
         ]
     )
-    call_subprocess(overlaps_call, "`awk` or `bedtools::intersect` failed")
+    call_subprocess(overlaps_call, "`mawk` or `bedtools::intersect` failed")
 
 
 def convert_to_sparse_arrays(
