@@ -614,7 +614,7 @@ def convert_to_csc(
     assert len(data) > 1
 
     rows = data.loc[:, "index"].to_numpy()
-    overlaps = data.loc[:, "overlaps"].to_numpy()
+    overlaps = data.loc[:, "overlap"].to_numpy()
 
     overlap_sum = overlaps.sum()
 
