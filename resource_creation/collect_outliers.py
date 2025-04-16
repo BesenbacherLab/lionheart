@@ -177,7 +177,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_chunks",
         type=int,
-        default=3,
+        default=5,
         help="Number of chunks to run intersections in for zero-coverage indices. "
         "Beware of memory usage with higher settings.",
     )
