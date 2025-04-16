@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--zero_cov_filename", type=str, default="zeros.txt")
     parser.add_argument(
         "--n_chunks",
-        type=str,
+        type=int,
         default=3,
         help="Number of chunks to run intersections in for zero-coverage indices. "
         "Beware of memory usage with higher settings.",
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     # Chunk zero-coverage paths to parallellize intersections
     chunks = chunk_zero_paths(paths=zero_cov_paths.values(), n_chunks=args.n_chunks)
 
-    # Process each chunk in parallel.
+    # Process each chunk in parallel
     results = []
     with ProcessPoolExecutor(max_workers=args.n_chunks) as executor:
         futures = {
