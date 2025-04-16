@@ -112,9 +112,9 @@ def bin_chromatin_tracks(
     chrom_sizes_file: Union[str, pathlib.Path],
     track_type: str,
     bin_size: int = 10,
-    walltime: str = "12:00:00",
-    memory: str = "50g",
-    cores: int = 12,
+    walltime: str = "23:00:00",
+    memory: str = "150g",
+    cores: int = 24,
 ) -> dict:
     """
     Create target for extracting features for a single sample (i.e. one BAM file).
