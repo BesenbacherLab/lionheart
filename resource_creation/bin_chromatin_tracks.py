@@ -376,13 +376,15 @@ def main():
             for cell_type in unique_cell_types + ["consensus"]
         ]
 
-        run_parallel_tasks(
-            task_list=sparsify_kwargs,
-            worker=convert_to_sparse_arrays,
-            max_workers=args.num_jobs,
-            messenger=messenger,
-            extra_verbose=args.extra_verbose,
-        )
+        messenger("Running conversion to sparse arrays", indent=2)
+        with timer.time_step(indent=4):
+            run_parallel_tasks(
+                task_list=sparsify_kwargs,
+                worker=convert_to_sparse_arrays,
+                max_workers=args.num_jobs,
+                messenger=messenger,
+                extra_verbose=args.extra_verbose,
+            )
 
     messenger("Number of overlapping bins per cell-type:")
     overlap_stats_df, num_overlap_message = prepare_overlap_stats(
@@ -392,6 +394,7 @@ def main():
     overlap_stats_df.to_csv(paths["overlap_stats"], index=False)
 
     # Write paths to tsv file
+    messenger("Saving paths to output files", indent=2)
     paths_df = (
         pd.DataFrame(chrom_cell_out_path_dicts)
         .reset_index()
@@ -400,7 +403,8 @@ def main():
     paths_df.to_csv(paths["chrom_cell_paths"], index=False, sep="\t")
 
     # Remove temporary files
-    paths.rm_tmp_dirs(messenger=messenger)
+    messenger("Removing temporary directories", indent=2)
+    paths.rm_tmp_dirs(messenger=messenger, rm_paths=False)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
