@@ -112,17 +112,12 @@ def intersect_zero_paths(chunk):
     return result
 
 
-def chunk_zero_paths(paths, n_chunks: int = 3):
-    # Convert the zero_cov_paths.values() to a list of paths
-    zero_paths = list(zero_cov_paths.values())
-
+def chunk_zero_paths(paths, n_chunks: int):
     # Compute chunk size so the list of paths is split into roughly equal parts
-    chunk_size = int(np.ceil(len(zero_paths) / n_chunks))
+    chunk_size = int(np.ceil(len(paths) / n_chunks))
 
     # Create the list of chunks
-    return [
-        zero_paths[i : i + chunk_size] for i in range(0, len(zero_paths), chunk_size)
-    ]
+    return [paths[i : i + chunk_size] for i in range(0, len(paths), chunk_size)]
 
 
 if __name__ == "__main__":
@@ -342,8 +337,11 @@ if __name__ == "__main__":
 
     num_paths = len(zero_cov_paths.values())
 
-    # Chunk zero-coverage paths to parallellize intersections
-    chunks = chunk_zero_paths(paths=zero_cov_paths.values(), n_chunks=args.n_chunks)
+    # Chunk zero-coverage paths to parallelize intersections
+    chunks = chunk_zero_paths(
+        paths=list(zero_cov_paths.values()),
+        n_chunks=args.n_chunks,
+    )
 
     # Process each chunk in parallel
     results = []
@@ -370,7 +368,7 @@ if __name__ == "__main__":
     zeros_chrom_to_indices = parse_chrom_index_strings(overall_zero_set)
 
     messenger("Start: Saving all-zero coverage bins")
-    np.savez(paths["outlier_indices"], **zeros_chrom_to_indices)
+    np.savez(paths["zero_coverage_bins_indices"], **zeros_chrom_to_indices)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
