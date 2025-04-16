@@ -188,9 +188,15 @@ def main():
         for chrom in chroms
     }
 
+    cell_overlap_tmp_dirs = {
+        f"tmp_{cell_type}_overlap_out_dir": paths["tmp_overlaps_dir"] / cell_type
+        for cell_type in set(unique_cell_types + ["consensus"])
+    }
+
     paths.set_paths(paths=dict(track_paths), collection="in_files")
     paths.set_paths(paths=cell_type_out_dirs, collection="out_dirs")
     paths.set_paths(paths=cell_chrom_out_files, collection="out_files")
+    paths.set_paths(paths=cell_overlap_tmp_dirs, collection="tmp_dirs")
 
     # Show overview of the paths
     messenger(paths)
@@ -303,7 +309,7 @@ def main():
             num_orig_lines -= 1
 
         def make_overlap_dir_path(paths, cell_type):
-            return paths["tmp_overlaps_dir"] / cell_type
+            return paths[f"tmp_{cell_type}_overlap_out_dir"]
 
         find_overlaps_kwargs = [
             {
