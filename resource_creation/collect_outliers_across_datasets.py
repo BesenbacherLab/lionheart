@@ -168,8 +168,12 @@ if __name__ == "__main__":
     }
 
     messenger("Final outlier counts:", indent=2)
+    total_outliers = 0
     for chrom in chromosomes:
-        messenger(f"{chrom}: {len(outlier_chrom_to_indices[chrom])}", indent=4)
+        chrom_outliers = len(outlier_chrom_to_indices[chrom])
+        total_outliers += chrom_outliers
+        messenger(f"{chrom}: {chrom_outliers}", indent=4)
+    messenger(f"TOTAL: {total_outliers}", indent=4)
 
     messenger("Start: Saving outlier indices")
     np.savez(paths["outlier_indices"], **outlier_chrom_to_indices)
@@ -214,8 +218,12 @@ if __name__ == "__main__":
     }
 
     messenger("Final zero-coverage bin counts:", indent=2)
+    total_zeros = 0
     for chrom in chromosomes:
-        messenger(f"{chrom}: {len(always_zero_chrom_to_indices[chrom])}", indent=4)
+        chrom_zeros = len(always_zero_chrom_to_indices[chrom])
+        total_zeros += chrom_zeros
+        messenger(f"{chrom}: {chrom_zeros}", indent=4)
+    messenger(f"TOTAL: {total_zeros}", indent=4)
 
     messenger("Start: Saving zero-coverage indices")
     np.savez(paths["zero_coverage_indices"], **always_zero_chrom_to_indices)
