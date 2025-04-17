@@ -7,6 +7,7 @@ import argparse
 import logging
 import pathlib
 from typing import List
+import warnings
 import numpy as np
 
 from utipy import Messenger, StepTimer, IOPaths
@@ -136,14 +137,31 @@ if __name__ == "__main__":
     )
 
     # Load outlier dicts from each dataset
-    outlier_index_collections = [
-        load_chrom_indices(paths[key]) for key in outlier_paths.keys()
+    outlier_index_collections = {
+        key: load_chrom_indices(paths[key]) for key in outlier_paths.keys()
+    }
+
+    # Check availability of chromosomes per collection
+    missing_chromosomes = [
+        (key, chrom)
+        for key, coll in outlier_index_collections.items()
+        for chrom in chromosomes
+        if chrom not in coll
     ]
+    if missing_chromosomes:
+        messenger(
+            "These chromosomes were missing from the following "
+            f"outlier collections:\n{missing_chromosomes}",
+            add_msg_fn=warnings.warn,
+        )
 
     # Combine outliers across datasets per chromosome
     outlier_chrom_to_indices = {
         chrom: combine_arrays(
-            arrs=[coll[chrom] for coll in outlier_index_collections],
+            arrs=[
+                coll.get(chrom, np.array([]))[chrom]
+                for coll in outlier_index_collections
+            ],
             method=args.outlier_method,
         )
         for chrom in chromosomes
@@ -165,14 +183,31 @@ if __name__ == "__main__":
     )
 
     # Load zero-coverage dicts from each dataset
-    always_zero_index_collections = [
-        load_chrom_indices(paths[key]) for key in zero_paths.keys()
+    always_zero_index_collections = {
+        key: load_chrom_indices(paths[key]) for key in zero_paths.keys()
+    }
+
+    # Check availability of chromosomes per collection
+    missing_chromosomes = [
+        (key, chrom)
+        for key, coll in outlier_index_collections.items()
+        for chrom in chromosomes
+        if chrom not in coll
     ]
+    if missing_chromosomes:
+        messenger(
+            "These chromosomes were missing from the following "
+            f"zero-coverage collections:\n{missing_chromosomes}",
+            add_msg_fn=warnings.warn,
+        )
 
     # Combine zero-coverage indices across datasets per chromosome
     always_zero_chrom_to_indices = {
         chrom: combine_arrays(
-            arrs=[coll[chrom] for coll in always_zero_index_collections],
+            arrs=[
+                coll.get(chrom, np.array([]))[chrom]
+                for coll in always_zero_index_collections
+            ],
             method=args.zero_method,
         )
         for chrom in chromosomes

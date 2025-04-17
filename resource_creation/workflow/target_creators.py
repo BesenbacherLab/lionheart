@@ -113,7 +113,7 @@ def bin_chromatin_tracks(
     track_type: str,
     bin_size: int = 10,
     walltime: str = "23:00:00",
-    memory: str = "150g",
+    memory: str = "60g",
     cores: int = 24,
 ) -> dict:
     """
