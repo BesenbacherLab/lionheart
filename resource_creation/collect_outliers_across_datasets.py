@@ -6,7 +6,7 @@ Script for collecting outliers across datasets.
 import argparse
 import logging
 import pathlib
-from typing import List
+from typing import Dict, List
 import warnings
 import numpy as np
 
@@ -137,7 +137,7 @@ if __name__ == "__main__":
     )
 
     # Load outlier dicts from each dataset
-    outlier_index_collections = {
+    outlier_index_collections: Dict[str, Dict[str, np.ndarray]] = {
         key: load_chrom_indices(paths[key]) for key in outlier_paths.keys()
     }
 
@@ -159,8 +159,8 @@ if __name__ == "__main__":
     outlier_chrom_to_indices = {
         chrom: combine_arrays(
             arrs=[
-                coll.get(chrom, np.array([]))[chrom]
-                for coll in outlier_index_collections
+                coll.get(chrom, np.array([]))
+                for coll in outlier_index_collections.values()
             ],
             method=args.outlier_method,
         )
@@ -183,7 +183,7 @@ if __name__ == "__main__":
     )
 
     # Load zero-coverage dicts from each dataset
-    always_zero_index_collections = {
+    always_zero_index_collections: Dict[str, Dict[str, np.ndarray]] = {
         key: load_chrom_indices(paths[key]) for key in zero_paths.keys()
     }
 
@@ -205,8 +205,8 @@ if __name__ == "__main__":
     always_zero_chrom_to_indices = {
         chrom: combine_arrays(
             arrs=[
-                coll.get(chrom, np.array([]))[chrom]
-                for coll in always_zero_index_collections
+                coll.get(chrom, np.array([]))
+                for coll in always_zero_index_collections.values()
             ],
             method=args.zero_method,
         )
