@@ -51,11 +51,11 @@ exclusion_files = [
     "path/to/k100.umap.exclusion_intervals.bed",
 ]
 
-tracks_dirs = {"ATAC": "path/to/ATAC_tracks", "DHS": "path/to/DHS_tracks"}
+tracks_dirs = {"ATAC": "path/to/ATAC_tracks", "DNase": "path/to/DNase_tracks"}
 
 meta_data_files = {
     "ATAC": "path/to/ATAC_meta_data_file.tsv",
-    "DHS": "path/to/DHS_meta_data_file.tsv",
+    "DNase": "path/to/DNase_meta_data_file.tsv",
 }
 
 # Outlier detection uses all BAM files from all available datasets

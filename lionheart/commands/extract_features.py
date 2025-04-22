@@ -98,7 +98,10 @@ def run_mosdepth(
         arg_name="df_by_chromosome - mosdepth splits",
         raise_on_exists=False,
     )
-    split_by_chromosome(in_file=coverage_out_file, out_dir=df_splits_path)
+    split_by_chromosome(
+        in_file=coverage_out_file,
+        out_dir=df_splits_path,
+    )
 
     messenger("Checking that the splits have the expected number of bins")
     # NOTE: Theoretically this would not catch weird cases where
@@ -310,31 +313,30 @@ def main(args):
 
     # We only save the files that are the same across mask types once
     # So ATAC only has the feature dataset path
-    dhs_outputs = DatasetOutputPaths.create_default(
-        dataset_dir=dataset_dir, mask_type="DHS"
+    dnase_outputs = DatasetOutputPaths.create_default(
+        dataset_dir=dataset_dir, mask_type="DNase"
     )
     atac_outputs = DatasetOutputPaths(
         dataset=dataset_dir / "ATAC" / "feature_dataset.npy",
     )
-    output_path_collections = {"DHS": dhs_outputs, "ATAC": atac_outputs}
+    output_path_collections = {"DNase": dnase_outputs, "ATAC": atac_outputs}
 
     paths = IOPaths(
         in_files={
             "bam_file": args.bam_file,
             "binned_whole_genome": resources_dir
             / "whole_genome.mappable.binned_10bp.bed.gz",
-            "gc_correction_bin_edges_path": resources_dir
-            / "whole_genome.mappable.binned_10bp.gc_contents_bin_edges.npy",
+            "gc_correction_bin_edges_path": resources_dir / "gc_contents_bin_edges.npy",
             "insert_size_correction_bin_edges_path": resources_dir
-            / "whole_genome.mappable.binned_10bp.insert_size_bin_edges.npy",
+            / "insert_size_bin_edges.npy",
             "exclude_outlier_indices": resources_dir
-            / "exclude_bins"
+            / "outliers"
             / "outlier_indices.npz",
             "exclude_zero_indices": resources_dir
-            / "exclude_bins"
+            / "outliers"
             / "zero_coverage_bins_indices.npz",
             "ATAC_cell_type_order": resources_dir / "ATAC.idx_to_cell_type.csv",
-            "DHS_cell_type_order": resources_dir / "DHS.idx_to_cell_type.csv",
+            "DNase_cell_type_order": resources_dir / "DNase.idx_to_cell_type.csv",
         },
         in_dirs={
             "resources_dir": resources_dir,
@@ -343,17 +345,17 @@ def main(args):
             "chromatin_masks": resources_dir / "chromatin_masks",
             "consensus_super_dir": resources_dir / "consensus_bins",
             "consensus_ATAC_dir": resources_dir / "consensus_bins" / "ATAC",
-            "consensus_DHS_dir": resources_dir / "consensus_bins" / "DHS",
+            "consensus_DNase_dir": resources_dir / "consensus_bins" / "DNase",
         },
         out_dirs={
             "out_path": out_path,
             "coverage_dir": out_path / "coverage",
             "dataset_dir": dataset_dir,
             "atac_dataset_dir": dataset_dir / "ATAC",
-            "dhs_dataset_dir": dataset_dir / "DHS",
+            "dnase_dataset_dir": dataset_dir / "DNase",
         },
         out_files={
-            **dhs_outputs.get_path_dict(key_prefix="DHS_"),
+            **dnase_outputs.get_path_dict(key_prefix="DNase_"),
             **atac_outputs.get_path_dict(key_prefix="ATAC_"),
             "dataset_out_path": dataset_dir / "feature_dataset.npy",
             "standardization_params": dataset_dir / "standardization_params.json",
@@ -367,7 +369,7 @@ def main(args):
     mask_to_cell_type_to_idx = {}
     mask_to_cell_type_mask_dirs = {}
 
-    for mask_type in ["DHS", "ATAC"]:
+    for mask_type in ["DNase", "ATAC"]:
         # Data frame with features indices for cell types
         mask_to_cell_type_to_idx[mask_type] = pd.read_csv(
             paths[f"{mask_type}_cell_type_order"]
@@ -430,7 +432,7 @@ def main(args):
     messenger("Start: Calculating features")
     messenger("-------------", indent=4)
     with timer.time_step(indent=4, name_prefix="dataset_creation"):
-        for mask_type in ["DHS", "ATAC"]:
+        for mask_type in ["DNase", "ATAC"]:
             messenger(f"{mask_type} features", indent=4)
             messenger("-------------", indent=4)
             with messenger.indentation(add_indent=8):
@@ -439,7 +441,9 @@ def main(args):
                     chrom_insert_size_paths=insert_sizes_by_chrom_paths,
                     cell_type_paths=mask_to_cell_type_mask_dirs[mask_type],
                     output_paths=output_path_collections[mask_type],
-                    bins_info_dir_path=paths["bins_by_chromosome_dir"],
+                    bins_info_dir_path=paths[
+                        "bins_by_chromosome_dir"
+                    ],  # TODO Update this file with new coordinates
                     cell_type_to_idx=mask_to_cell_type_to_idx[mask_type],
                     gc_correction_bin_edges_path=paths["gc_correction_bin_edges_path"],
                     insert_size_correction_bin_edges_path=paths[
@@ -447,6 +451,7 @@ def main(args):
                     ],
                     consensus_dir_path=paths[f"consensus_{mask_type}_dir"],
                     exclude_paths=[
+                        # TODO: Add exclude_mappability_indices here as well?
                         paths["exclude_outlier_indices"],
                         paths["exclude_zero_indices"],
                     ],
@@ -455,7 +460,7 @@ def main(args):
                 )
             messenger("-------------", indent=4)
 
-    messenger("Start: Collecting features across ATAC and DHS")
+    messenger("Start: Collecting features across ATAC and DNase")
     with timer.time_step(indent=4, name_prefix="stack_mask_types"):
         feature_dataset = np.hstack(
             [
@@ -463,7 +468,7 @@ def main(args):
                     output_path_collections[mask_type].dataset,
                     allow_pickle=True,
                 ).astype(np.float32)
-                for mask_type in ["ATAC", "DHS"]
+                for mask_type in ["ATAC", "DNase"]
             ]
         )
 
@@ -488,7 +493,7 @@ def main(args):
             messenger("Removing coverage files")
             paths.rm_dir("coverage_dir", messenger=messenger)
             paths.rm_dir("atac_dataset_dir", messenger=messenger)
-            paths.rm_dir("dhs_dataset_dir", messenger=messenger)
+            paths.rm_dir("dnase_dataset_dir", messenger=messenger)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")

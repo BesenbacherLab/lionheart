@@ -226,9 +226,11 @@ def get_file_num_columns(in_file: Union[str, pathlib.Path]) -> int:
 
 
 def split_by_chromosome(
-    in_file: Union[str, pathlib.Path], out_dir: Union[str, pathlib.Path]
+    in_file: Union[str, pathlib.Path],
+    out_dir: Union[str, pathlib.Path],
 ) -> None:
     check_paths_for_subprocess(in_file)
+
     split_call = " ".join(
         [
             "awk",

@@ -70,7 +70,7 @@ class DatasetOutputPaths:
         }
 
     @staticmethod
-    def create_default(dataset_dir: pathlib.Path, mask_type: Optional[str] = "DHS"):
+    def create_default(dataset_dir: pathlib.Path, mask_type: Optional[str] = "DNase"):
         if not isinstance(dataset_dir, pathlib.Path):
             raise TypeError(
                 f"`dataset_dir` must have type `pathlib.Path`. Got: {type(dataset_dir)}."

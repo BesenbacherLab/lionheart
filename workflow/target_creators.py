@@ -81,7 +81,7 @@ def extract_features(
         resources_dir / "whole_genome.mappable.binned_10bp.gc_contents_bin_edges.npy",
         resources_dir / "whole_genome.mappable.binned_10bp.insert_size_bin_edges.npy",
         resources_dir / "ATAC.idx_to_cell_type.csv",
-        resources_dir / "DHS.idx_to_cell_type.csv",
+        resources_dir / "DNase.idx_to_cell_type.csv",
         resources_dir / "exclude_bins" / "outlier_indices.npz",
         resources_dir / "exclude_bins" / "zero_coverage_bins_indices.npz",
     ]
