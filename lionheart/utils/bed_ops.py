@@ -28,7 +28,7 @@ def read_bed_as_df(
     Parameters
     ----------
     path:
-        Path to BED file.
+        Path to BED file with no header.
     when_empty: str
         How to react to empty files.
         One of {'raise', 'empty', 'warn_empty'}.
@@ -225,7 +225,7 @@ def get_file_num_columns(in_file: Union[str, pathlib.Path]) -> int:
     )
 
 
-def split_by_chromosome(
+def split_nonzeros_by_chromosome(
     in_file: Union[str, pathlib.Path],
     out_dir: Union[str, pathlib.Path],
 ) -> None:
@@ -233,12 +233,21 @@ def split_by_chromosome(
 
     split_call = " ".join(
         [
-            "awk",
+            "MAWK=$(command -v mawk >/dev/null 2>&1 && echo mawk || echo awk);",
+            "LC_ALL=C",
+            "$MAWK",
             "-F'\t'",
             "-v",
             "OFS='\t'",
-            "'{print",
-            '>"' + str(out_dir) + '/"$1".bed"}' + "'",
+            '-v outdir="' + str(out_dir) + '"',
+            "'{",
+            "i[$1]++;",
+            # Print (index (zero-indexed), value) for nonzero rows
+            'if($NF>0) print i[$1]-1, $NF > (outdir "/" $1 ".txt");',
+            "}",
+            "END {",
+            'for (chr in i) print chr, i[chr] > (outdir "/total_rows.txt");',
+            "}'",
             str(in_file),
         ]
     )
