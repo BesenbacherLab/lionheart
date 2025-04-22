@@ -147,7 +147,8 @@ def bin_chromatin_tracks(
 
     out_files = {
         "binned_chrom_cell_type_paths": out_dir
-        / "binned_per_chrom_and_cell_type_paths.tsv"
+        / "binned_per_chrom_and_cell_type_paths.tsv",
+        "idx_to_cell_type": out_dir / "idx_to_cell_type.csv",
     }
 
     expected_output_files = list(out_files.values())
@@ -169,6 +170,36 @@ def bin_chromatin_tracks(
     )
 
     return out_files
+
+
+def copy_index_map(
+    gwf: Workflow,
+    chromatin_out_files: Dict[str, pathlib.Path],
+    track_type: str,
+    new_resources_dir: pathlib.Path,
+):
+    # Copy the index -> cell_type files to outer directory
+    old_idx_to_cell_type_file = chromatin_out_files["idx_to_cell_type"]
+    # E.g., 'path/ATAC.idx_to_cell_type.csv
+    new_idx_to_cell_type_file = new_resources_dir / (
+        track_type + "." + old_idx_to_cell_type_file.name
+    )
+
+    (
+        gwf.target(
+            legalize_target_name(f"lionheart_copy_resources_{track_type}"),
+            inputs=to_strings([old_idx_to_cell_type_file]),
+            outputs=to_strings([new_idx_to_cell_type_file]),
+            walltime="00:10:00",
+            memory="3g",
+            cores=1,
+        )
+        << log_context(
+            f"""
+        cp {old_idx_to_cell_type_file} {new_idx_to_cell_type_file}
+        """
+        )
+    )
 
 
 def find_outlier_candidates(

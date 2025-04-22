@@ -11,7 +11,11 @@ from resource_creation.workflow.target_creators import (
     bin_genome,
     collect_outliers_across_datasets,
     collect_outliers_for_dataset,
+    copy_index_map,
     find_outlier_candidates,
+    legalize_target_name,
+    log_context,
+    to_strings,
 )
 
 # Create `gwf` workflow
@@ -98,7 +102,7 @@ genome_binning_out_files = bin_genome(
 
 track_memory = 100
 for track_type, track_dir in tracks_dirs.items():
-    bin_chromatin_tracks(
+    chromatin_out_files = bin_chromatin_tracks(
         gwf=gwf,
         scripts_dir=scripts_dir,
         out_dir=new_resources_dir / "chromatin_masks" / track_type,
@@ -110,6 +114,15 @@ for track_type, track_dir in tracks_dirs.items():
         memory=f"{track_memory}g",
         cores=num_cores,
     )
+
+    # Copy the `idx --> cell_type` map to outer directory
+    copy_index_map(
+        gwf=gwf,
+        chromatin_out_files=chromatin_out_files,
+        track_type=track_type,
+        new_resources_dir=new_resources_dir,
+    )
+
 
 #####################
 # Outlier Detection #

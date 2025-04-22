@@ -134,6 +134,7 @@ def main():
             "consensus_intervals_file": out_dir / "consensus_intervals.bed",
             "chrom_cell_paths": out_dir / "binned_per_chrom_and_cell_type_paths.tsv",
             "overlap_stats": out_dir / "overlap_counts.tsv",
+            "idx_to_cell_type_file": out_dir / "idx_to_cell_type.csv",
         },
         # tmp_files={
         # },
@@ -393,8 +394,20 @@ def main():
     messenger(num_overlap_message)
     overlap_stats_df.to_csv(paths["overlap_stats"], index=False)
 
+    # Create map of (index -> cell type)
+    messenger("Start: Saving index --> cell type map for array ordering")
+    idx_to_cell_type = pd.DataFrame(
+        enumerate(sorted(set(unique_cell_types + ["consensus"]))),
+        columns=["idx", "cell_type"],
+    )
+    idx_to_cell_type.to_csv(
+        paths["idx_to_cell_type_file"],
+        index=False,
+        sep=",",
+    )
+
     # Write paths to tsv file
-    messenger("Saving paths to output files", indent=2)
+    messenger("Start: Saving paths to output files")
     paths_df = (
         pd.DataFrame(chrom_cell_out_path_dicts)
         .reset_index()
@@ -403,7 +416,7 @@ def main():
     paths_df.to_csv(paths["chrom_cell_paths"], index=False, sep="\t")
 
     # Remove temporary files
-    messenger("Removing temporary directories", indent=2)
+    messenger("Start: Removing temporary directories", indent=2)
     paths.rm_tmp_dirs(messenger=messenger, rm_paths=False)
 
     timer.stamp()
@@ -592,66 +605,6 @@ def convert_to_sparse_arrays(
         int(total_nonzeros),  # Num bins
         int(total_sum),  # Num bases
     )
-
-
-# def sparsify_overlap_percentages(
-#     overlap_counts_file: pathlib.Path,
-#     chrom_out_files: Dict[str, pathlib.Path],
-#     chrom_to_bin_keys_indices: Dict[str, pd.DataFrame],
-#     cell_type: str,
-#     num_positive_overlaps: dict,
-#     bin_size: int,
-# ):
-#     # Read as data frame and calculate number of overlaps per interval index
-#     overlaps_df = (
-#         read_bed_as_df(
-#             path=overlap_counts_file, col_names=["chromosome", "idx", "overlap"]
-#         )
-#         .groupby(["chromosome", "idx"])
-#         .overlap.sum()
-#         .reset_index()
-#         .reset_index(drop=True)
-#     )
-
-#     num_positive_overlaps[cell_type] = (
-#         len(overlaps_df),  # Num bins
-#         int(overlaps_df["overlap"].sum()),  # Num bases
-#     )
-
-#     # Convert to percentage
-#     overlaps_df["overlap"] /= bin_size
-
-#     if len(overlaps_df) < 100:
-#         raise ValueError(f"`overlaps_df` only contained {len(overlaps_df)} rows.")
-
-#     # For each unique chromosome, write a sparse array with the overlap count
-#     # We use a fast, memory-efficient "left-join" using .map
-#     # This should avoid copying the data frame and keep the order of bin_indices_df
-
-#     # Create the mapping from index to overlap from the right DataFrame
-#     mapping = overlaps_df.set_index(["chromosome", "idx"])["overlap"]
-
-#     # Run per chromosome
-#     for chrom, keys in chrom_to_bin_keys_indices.items():
-#         # Map the keys (combination of 'chromosome' and 'idx' columns)
-#         # of this chromosome to get the overlaps
-#         # Fill missing values with 0
-#         overlaps = keys.map(mapping).fillna(0.0).to_numpy(dtype=np.float64)
-
-#         # Create the sparse CSC matrix
-#         sparse_overlaps = scipy.sparse.csc_matrix(overlaps)
-
-#         out_filename = chrom_out_files[chrom]
-#         save_sparse_array(arr=sparse_overlaps, path=out_filename)
-
-#         del overlaps
-#         gc.collect()
-
-#     # Remove the tmp counts file
-#     os.remove(str(overlap_counts_file))
-
-#     del overlaps_df
-#     gc.collect()
 
 
 def save_sparse_array(arr, path: pathlib.Path) -> None:
