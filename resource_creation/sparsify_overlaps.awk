@@ -2,7 +2,7 @@
 # This script saves the (non-duplicate) file indices and values of non-zero overlaps
 # given a data frame of (chromosome, bin index, overlap)
 # Consequtive duplicates are summed
-# The new index is restarted per chromosome
+# The new index (zero-indexed) is restarted per chromosome
 # The non-zero index and values are saved in chromosome-wise files
 # allowing the construction of sparse arrays without mapping 
 # the non-zero values onto the original data frame (expensive)

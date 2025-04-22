@@ -3,6 +3,8 @@
 ## 1.1.*
 
  - Adds `pigz` as dependency for faster (de)compression.
+ - Adds `gawk` and `mawk` as dependencies.
+ - Adds `samtools` as dependency to allow check of BAM files before running.
  - Adds `lionheart --version` command to CLI.
 
 ## 1.1.5

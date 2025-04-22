@@ -15,12 +15,12 @@ from typing import Dict, List, Optional, Tuple
 import concurrent
 import concurrent.futures
 import pandas as pd
-import numpy as np
 import scipy.sparse
 from utipy import StepTimer, IOPaths, Messenger, random_alphanumeric
 
 # Requires installation of lionheart
 from lionheart.utils.dual_log import setup_logging
+from lionheart.utils.sparse_ops import convert_nonzero_bins_to_sparse_array
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 from lionheart.utils.bed_ops import (
     get_file_num_lines,
@@ -538,6 +538,7 @@ def find_overlaps(
 
     overlaps_call = " ".join(
         [
+            "MAWK=$(command -v mawk >/dev/null 2>&1 && echo mawk || echo awk);",
             "LC_ALL=C",  # Possible speedup for mawk in the end (not sure if it actually has an effect)
             cat_fn,
             str(coordinates_file),
@@ -553,7 +554,7 @@ def find_overlaps(
             "|",
             # Call mawk sparsification script that saves indices and values of non-zero overlaps
             # Note: This handles when original intervals are present >1 time due to multiple overlaps
-            f"mawk -v outdir='{initial_sparse_overlaps_dir}' -v chr_col=1 -v bin_col=4 -v overlap_col=8 -f {script_dir / 'sparsify_overlaps.awk'}",
+            f"$MAWK -v outdir='{initial_sparse_overlaps_dir}' -v chr_col=1 -v bin_col=4 -v overlap_col=8 -f {script_dir / 'sparsify_overlaps.awk'}",
         ]
     )
     call_subprocess(overlaps_call, "`mawk` or `bedtools::intersect` failed")
@@ -577,11 +578,12 @@ def convert_to_sparse_arrays(
     total_sum = 0
 
     for chrom in chromosomes:
-        overlap_nonzeros, overlap_sum = convert_to_csc(
+        overlap_nonzeros, overlap_sum = convert_nonzero_bins_to_sparse_array(
             num_bins=chrom_to_num_chrom_bins[chrom],
-            bin_size=bin_size,
+            scaling_constant=bin_size,
             input_path=initial_sparse_array_paths[chrom],
             output_path=chrom_out_files[chrom],
+            array_type="csc",
         )
         total_nonzeros += overlap_nonzeros
         total_sum += overlap_sum
@@ -590,58 +592,6 @@ def convert_to_sparse_arrays(
         int(total_nonzeros),  # Num bins
         int(total_sum),  # Num bases
     )
-
-
-def convert_to_csc(
-    num_bins: int,
-    bin_size: int,
-    input_path: pathlib.Path,
-    output_path: pathlib.Path,
-) -> Tuple[int, int]:
-    """
-    Reads chrom.sparsed.txt from input_dir, converts it into a CSC column vector,
-    and saves chrom.npz in output_dir.
-
-    chrom: The chromosome name, e.g. "chr1"
-    input_dir: Directory containing the .sparsed.txt files
-    output_dir: Directory to write the .npz file
-    """
-
-    # Load two columns: [index, overlap]
-    data = pd.read_csv(
-        input_path,
-        sep="\t",
-        header=None,
-        names=["index", "overlap"],
-        dtype={0: "int64", 1: "float32"},
-    )
-    assert len(data) > 1
-
-    rows = data.loc[:, "index"].to_numpy()
-    overlaps = data.loc[:, "overlap"].to_numpy()
-
-    overlap_sum = overlaps.sum()
-
-    # Make into overlap percentage
-    overlaps /= bin_size
-
-    # Build a single column vector, so all entries are in col 0
-    cols = np.zeros_like(rows, dtype=int)
-
-    # The shape is (num_rows_in_chrom, 1)
-    shape = (num_bins, 1)
-
-    # 1) Construct in COO format
-    coo = scipy.sparse.coo_matrix((overlaps, (rows, cols)), shape=shape)
-
-    # 2) Convert to CSC
-    csc_mat = coo.tocsc()
-
-    # Save to disk in NPZ format
-    scipy.sparse.save_npz(output_path, csc_mat)
-
-    # Return counts of non-zero bins and overlapping positions
-    return len(rows), overlap_sum
 
 
 # def sparsify_overlap_percentages(

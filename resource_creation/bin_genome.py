@@ -185,6 +185,7 @@ def main():
             "coordinates_file": out_dir / "bin_coordinates.bed",
             "gc_bin_edges_file": out_dir / "gc_contents_bin_edges.npy",
             "iss_bin_edges_file": out_dir / "insert_size_bin_edges.npy",
+            "num_rows_per_chrom_file": out_dir / "rows_per_chrom_pre_exclusion.txt",
         },
         tmp_files={
             # NOTE: "binned_file" must match output of mosdepth -
@@ -247,6 +248,8 @@ def main():
         _exclude_bins(
             in_file=paths["binned_file"],
             out_file=paths["filtered_intervals_file"],
+            # Number of rows *before* the exclusion
+            num_rows_file=paths["num_rows_per_chrom_file"],
             exclude_file=paths["merged_exclusion_file"],
         )
 
@@ -279,6 +282,7 @@ def main():
     np.save(paths["gc_bin_edges_file"], gc_bin_edges)
 
     messenger("Start: Creating insert size bin edges")
+    # TODO: Update start/stop before merging with main!!
     iss_bin_edges = _create_insert_size_bin_edges(
         start=100,
         stop=220,
@@ -352,27 +356,35 @@ def _load_chrom_sizes_file(chrom_sizes_file: pathlib.Path) -> Dict[str, int]:
 def _exclude_bins(
     in_file: pathlib.Path,
     out_file: pathlib.Path,
+    num_rows_file: pathlib.Path,
     exclude_file: pathlib.Path,
 ) -> pathlib.Path:
     check_paths_for_subprocess([in_file, exclude_file], out_file)
 
     # Start by indexing per chromosome, keeping only autosomes
     # Then exclude any bins that overlap with exclude file intervals
+    # NOTE: 1-indexed throughout loop but saved as 0-indexed!
     index_and_subtract_cmd = f"""
-unpigz -c {in_file} | awk -F'\t' -v OFS='\t' '
+unpigz -c {in_file} | awk -F'\t' -v OFS='\t' -v numfile=\"{num_rows_file}\" '
 BEGIN {{
   prev = "";
-  i = 0
+  i = 0  # Never used
 }}
 $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {{
   if ($1 != prev) {{
-    i = 1;
+    if (prev != "") # On chrom change, write out the max+1 for the old chrom
+        print prev, i+1 > numfile;
+    i = 0; # Reset counter for the new chrom
     prev = $1
   }} else {{
     i++;
   }}
-  # Output: chrom, start, end, new_index
+  # Output: chrom, start, end, new_index (zero-indexed)
   print $1, $2, $3, i
+}}
+END {{
+  if (prev != "") # Write the max+1 for the last chrom
+    print prev, i+1 > numfile;
 }}' | bedtools subtract -a - -b {exclude_file} -A | pigz -c > {out_file}
 """
 

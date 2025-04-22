@@ -56,12 +56,12 @@ unpigz -c "$coverage_file" | gawk -F'\t' -v keep_file="$keep_file" 'BEGIN {
     }
     close(keep_file)
     prev = ""
-    i = 0
+    i = 0  # Never used
 }
 # Process only autosomes (chr1 to chr22) and assign a per-chromosome index
 $1 ~ /^chr([1-9]|1[0-9]|2[0-2])$/ {
     if ($1 != prev) {
-        i = 1
+        i = 0
         prev = $1
     } else {
         i++
