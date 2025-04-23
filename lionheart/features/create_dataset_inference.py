@@ -1,12 +1,19 @@
 """
-Script for calculating features from binned coverages counted per chromosome for a single subject.
+Script for calculating LIONHEART scores from binned coverages
+counted per chromosome for a single subject.
 
 Features:
-
-Pearson R (and uncorrected p-value)
-Within-cell_type-mask fraction
-Cosine similarity
-
+    0) Pearson's R
+    1) and its uncorrected p-value
+    2) The normalized dot product
+    3) Cosine Similarity
+    And the terms used:
+    4) x_sum
+    5) y_sum
+    6) x_squared_sum
+    7) y_squared_sum
+    8) xy_sum
+    9) n
 """
 
 from typing import Dict, List, Optional, Callable, Tuple
@@ -22,7 +29,6 @@ from joblib import Parallel, delayed
 
 from utipy import Messenger, StepTimer
 
-from lionheart.utils.bed_ops import read_bed_as_df
 from lionheart.features.correction.correction import (
     correct_bias,
     calculate_correction_factors,
@@ -37,7 +43,8 @@ from lionheart.features.running_stats import RunningStats
 from lionheart.utils.utils import load_chrom_indices
 
 # Constants
-THRESHOLD: float = 1 / 263_108_376
+# Threshold is approximately 1/num_bins (where num_bins is within a million)
+THRESHOLD: float = 1 / 263_000_000
 MEGABIN_SIZES: Tuple[int, int] = (5000000, 500000)
 
 
@@ -105,31 +112,28 @@ class DatasetOutputPaths:
         )
 
 
-def _load_sample_chrom_coverage(path: pathlib.Path) -> np.ndarray:
+def _load_from_sparse_array(path: pathlib.Path) -> np.ndarray:
+    """
+    Load a scipy.sparse array and convert to a dense, flat numpy array.
+    """
     return np.asarray(scipy.sparse.load_npz(path).todense(), dtype=np.float64).flatten()
 
 
-def load_bins(
-    path: pathlib.Path, messenger: Messenger
+def _load_bins_and_exclude(
+    bins_path: pathlib.Path,
+    exclude: Optional[np.ndarray],
 ) -> Tuple[np.ndarray, np.ndarray]:
-    df = read_bed_as_df(
-        path=path,
-        col_names=["chromosome", "start", "end", "gc", "mappability"],
-        messenger=messenger,
+    df = pd.read_parquet(
+        path=bins_path,
+        engine="pyarrow",
+        columns=["idx", "GC"],
     )
-    assert len(df.chromosome.unique()) == 1, (
-        f"Found more than one ({len(df.chromosome.unique())}) chromosome in: {path}"
-    )
+    if exclude is not None and exclude.size > 0:
+        df = df[~df["idx"].isin(exclude)].reset_index(drop=True)
     return (
+        df["idx"].to_numpy().astype(np.int64),
         df["gc"].to_numpy().astype(np.float64),
-        df["start"].to_numpy().astype(np.int64),
     )
-
-
-def _load_cell_type_chrom_mask(path: pathlib.Path) -> np.ndarray:
-    # Load sparse array
-    open_chromatin_mask = scipy.sparse.load_npz(path).todense()
-    return np.asarray(open_chromatin_mask, dtype=np.float64).flatten()
 
 
 def _update_r_calculator(
@@ -139,15 +143,15 @@ def _update_r_calculator(
     cell_type_cov: Optional[np.ndarray] = None,
     path: Optional[pathlib.Path] = None,
     chrom_r_calculator=None,
-    exclude_indices=None,
-    consensus_indices=None,  # Additional exclusion indices (*post* exclude_indices exclusion)
+    include_indices=None,
+    consensus_indices=None,  # Additional exclusion indices (*post* include_indices subsetting)
 ):
     assert sum([cell_type_cov is None, path is None]) == 1
     if path is not None:
-        cell_type_cov = _load_cell_type_chrom_mask(path)
+        cell_type_cov = _load_from_sparse_array(path)
 
-    if exclude_indices is not None:
-        cell_type_cov = np.delete(cell_type_cov, exclude_indices)
+    if include_indices is not None:
+        cell_type_cov = cell_type_cov[include_indices]
 
     if consensus_indices is not None:
         cell_type_cov = np.delete(cell_type_cov, consensus_indices)
@@ -189,7 +193,6 @@ def create_dataset_for_inference(
     cell_type_to_idx: pd.DataFrame,
     gc_correction_bin_edges_path: pathlib.Path,
     insert_size_correction_bin_edges_path: pathlib.Path,
-    consensus_dir_path: pathlib.Path,
     exclude_paths: List[pathlib.Path],
     n_jobs: int = 1,
     messenger: Optional[Callable] = Messenger(verbose=False, indent=0, msg_fn=print),
@@ -220,9 +223,9 @@ def create_dataset_for_inference(
             f"{missing_masks}"
         )
 
-    # Bin info paths per chromosome
+    # Paths to bin indices and GC contents per chromosome
     chrom_bins_paths = {
-        chrom: pathlib.Path(bins_info_dir_path) / (chrom + ".bed.gz")
+        chrom: pathlib.Path(bins_info_dir_path) / (chrom + ".parquet")
         for chrom in chroms_ordered
     }
 
@@ -273,17 +276,23 @@ def create_dataset_for_inference(
             else:
                 exclude_bins_by_chrom[chrom] = np.array([], dtype=np.int64)
 
+    # Extract consensus mask paths and remove
+    # from original `cell_type_chromosome_beds` dict
     consensus_chromosome_files = {
-        chrom: f"{consensus_dir_path}/{chrom}.npz" for chrom in chroms_ordered
+        chrom: cell_type_chromosome_beds.pop(f"consensus_{chrom}")
+        for chrom in chroms_ordered
     }
+
+    # Ensure `consensus` is in the passed cell type paths
+    assert "consensus" in cell_type_paths.keys()
 
     messenger("Preparing feature calculators")
 
     r_calculators: Dict[str, RunningPearsonR] = {}
     stats_calculator = RunningStats(ignore_nans=True)
-    extra_calculator_names = ["consensus"]
 
-    for cell_type in list(cell_type_paths.keys()) + extra_calculator_names:
+    # Initialize calculators
+    for cell_type in list(cell_type_paths.keys()):
         r_calculators[cell_type] = RunningPearsonR(ignore_nans=True)
 
     # Initialize Poisson distribution
@@ -294,7 +303,7 @@ def create_dataset_for_inference(
     # Also, we only allow very few negatives in total,
     # so we don't miss systematic errors
     messenger("Preparing outlier detector")
-    poiss = ZIPoissonPMF(handle_negatives="warn_truncate", max_num_negatives=50)
+    poiss = ZIPoisson(handle_negatives="warn_truncate", max_num_negatives=50)
 
     megabin_offset_combination_averages_collection = {}
     gc_correction_factors_collection = {}
@@ -313,7 +322,19 @@ def create_dataset_for_inference(
                 # Load coverages
                 # Even when GC-corrected coverages are passed
                 # we need this to find the average overlapping insert sizes below
-                sample_cov = _load_sample_chrom_coverage(chrom_coverage_paths[chrom])
+                with timer.time_step(
+                    indent=12,
+                    name_prefix=f"load_coverages_{chrom}",
+                ):
+                    sample_cov = _load_from_sparse_array(chrom_coverage_paths[chrom])
+
+                    messenger(
+                        f"Loaded coverages. Raw non-zero bin statistics: "
+                        f"min={sample_cov[sample_cov > 0].min()}, "
+                        f"max={sample_cov.max()}, "
+                        f"mean={sample_cov[sample_cov > 0].mean()}",
+                        indent=8,
+                    )
 
                 # Save the non-corrected raw integer counts
                 # Needed when calculating insert size correction model
@@ -323,10 +344,10 @@ def create_dataset_for_inference(
                 sample_insert_sizes = None
                 if chrom_insert_size_paths is not None:
                     with timer.time_step(
-                        indent=4,
+                        indent=12,
                         name_prefix=f"load_insert_sizes_{chrom}",
                     ):
-                        sample_insert_sizes = _load_sample_chrom_coverage(
+                        sample_insert_sizes = _load_from_sparse_array(
                             chrom_insert_size_paths[chrom]
                         )
 
@@ -336,7 +357,7 @@ def create_dataset_for_inference(
                             sample_cov > 0
                         ]
                         messenger(
-                            f"Loaded and averaged insert sizes. Non-zero bin statistics: "
+                            f"Loaded and averaged insert sizes. Raw non-zero bin statistics: "
                             f"min={sample_insert_sizes[sample_insert_sizes > 0].min()}, "
                             f"max={sample_insert_sizes.max()}, "
                             f"mean={sample_insert_sizes[sample_insert_sizes > 0].mean()}",
@@ -344,37 +365,36 @@ def create_dataset_for_inference(
                         )
 
                 # Load reference knowledge about the bins
-                (sample_gc, sample_start_coordinates) = load_bins(
-                    chrom_bins_paths[chrom], messenger=messenger
+                (include_indices, sample_gc) = _load_bins_and_exclude(
+                    bins_path=chrom_bins_paths[chrom],
+                    exclude=exclude_bins_by_chrom[chrom],
                 )
 
-                consensus_overlap = _load_cell_type_chrom_mask(
+                messenger(
+                    "Loaded bins to use and removed exclude bins. "
+                    f"Proceeding with {len(include_indices)} bins.",
+                    indent=8,
+                )
+
+                # Load consensus overlap mask separately
+                consensus_overlap = _load_from_sparse_array(
                     consensus_chromosome_files[chrom]
                 )
+
+                # Get included indices only
+                sample_cov = sample_cov[include_indices]
+                sample_cov_raw_counts = sample_cov_raw_counts[include_indices]
+                sample_insert_sizes = sample_insert_sizes[include_indices]
+                consensus_overlap = consensus_overlap[include_indices]
+
+                # Bins are every 10 from 0->, so start points
+                # are just the include indices times 10
+                sample_start_coordinates = include_indices * 10
 
                 # Fit of the zero-inflated Poisson distribution
                 # Must be done before exclusions and corrections to have the same thresholds
                 # as done in the outlier detection
                 poiss.reset().partial_fit(x=np.round(sample_cov).astype(np.int64))
-
-                exclude_indices = None
-                if exclude_paths:
-                    exclude_indices = exclude_bins_by_chrom[chrom]
-
-                    sample_cov = np.delete(sample_cov, exclude_indices)
-                    sample_cov_raw_counts = np.delete(
-                        sample_cov_raw_counts, exclude_indices
-                    )
-                    sample_gc = np.delete(sample_gc, exclude_indices)
-                    sample_insert_sizes = np.delete(
-                        sample_insert_sizes, exclude_indices
-                    )
-                    sample_start_coordinates = np.delete(
-                        sample_start_coordinates, exclude_indices
-                    )
-                    consensus_overlap = np.delete(consensus_overlap, exclude_indices)
-
-                    messenger(f"Excluded bins: {len(exclude_indices)}")
 
                 # Find the last count value that
                 # is above the probability threshold
@@ -385,11 +405,12 @@ def create_dataset_for_inference(
                 # low values with low probabilities
                 poiss.set_iter_pos(pos=int(np.floor(np.nanmean(sample_cov))))
                 while True:
-                    val, prob = next(poiss)
-                    # When the probability is below the threshold
-                    # we grab the previous value
-                    if prob < THRESHOLD:
-                        truncation_val = val - 1
+                    val, _, cum_prob = next(poiss)
+                    tail_prob = 1.0 - cum_prob  # P(X > val)
+                    # When the tail probability P(X > val) is below the threshold
+                    # we grab the current value
+                    if tail_prob < THRESHOLD:
+                        truncation_val = val
                         break
 
                 messenger(
@@ -449,7 +470,8 @@ def create_dataset_for_inference(
                 # Free up memory
                 del sample_gc
 
-                # Calculate and apply mappability correction factor for current chromosome
+                # Calculate and apply average overlapping insert size
+                # correction factor for current chromosome
                 with timer.time_step(indent=4):
                     # Init collection for correction factors
                     insert_size_noise_correction_factors_collection[chrom] = {}
@@ -597,6 +619,7 @@ def create_dataset_for_inference(
                 stats_calculator.add_data(x=sample_cov)
 
                 # Extract indices of the bins that overlap with consensus sites
+                # NOTE: These are the indices post the include_indices subsetting
                 consensus_overlap_indices = np.nonzero(consensus_overlap)[0]
                 messenger(
                     f"Found {len(consensus_overlap_indices)} consensus site bins",
@@ -612,7 +635,7 @@ def create_dataset_for_inference(
                     cell_type_cov=consensus_overlap,
                     cell_type="consensus",
                     r_calculator=r_calculators["consensus"],
-                    exclude_indices=None,  # Already excluded
+                    include_indices=None,  # Already subset
                 )
 
                 # Remove consensus site bins from sample coverage array
@@ -625,7 +648,7 @@ def create_dataset_for_inference(
                         path=cell_type_chromosome_beds[f"{cell_type}_{chrom}"],
                         cell_type=cell_type,
                         r_calculator=r_calculators[cell_type],
-                        exclude_indices=exclude_indices,
+                        include_indices=include_indices,
                         consensus_indices=consensus_overlap_indices,
                     )
                     for cell_type in cell_type_paths.keys()
@@ -642,6 +665,7 @@ def create_dataset_for_inference(
                 sample_start_coordinates,
                 consensus_overlap,
                 consensus_overlap_indices,
+                include_indices,
             )
             gc.collect()
 
