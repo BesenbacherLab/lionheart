@@ -11,21 +11,24 @@ import json
 from dataclasses import dataclass
 import pandas as pd
 import numpy as np
-import scipy.sparse
 from utipy import Messenger, StepTimer, IOPaths, mk_dir, rm_dir
 
+from lionheart.utils.bam_utils import check_autosomes_in_bam
 from lionheart.utils.bed_ops import (
     get_file_num_lines,
-    split_by_chromosome,
-    read_bed_as_df,
+    split_nonzeros_by_chromosome,
 )
 from lionheart.features.create_dataset_inference import (
     create_dataset_for_inference,
     DatasetOutputPaths,
 )
+from lionheart.utils.sparse_ops import convert_nonzero_bins_to_sparse_array
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
 from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples, Guide
+
+# NOTE: Ensure ISS bin edges file fits with this!
+FRAGMENT_LENGTH_LIMITS = (100, 220)
 
 
 @dataclass
@@ -47,10 +50,13 @@ def run_mosdepth(
     in_file: pathlib.Path,
     out_dir: pathlib.Path,
     insert_size_mode: bool,
+    chrom_to_num_chrom_bins: Dict[str, int],
     n_jobs: int,
+    length_limits: Tuple[int, int] = (100, 220),
     mosdepth_paths: Optional[MosdepthPaths] = None,
+    clean_intermediates: bool = True,
     messenger: Optional[Callable] = Messenger(verbose=False, indent=0, msg_fn=print),
-) -> Tuple[Dict[str, pathlib.Path], pathlib.Path]:
+) -> Dict[str, pathlib.Path]:
     if n_jobs < 0:
         n_jobs = 4
     n_jobs = min(4, n_jobs)
@@ -75,8 +81,9 @@ def run_mosdepth(
             f"{n_jobs}",
             "--mapq",
             "20",
-            "--min-frag-len 100",
-            "--max-frag-len 220" + (" --insert-size-mode" if insert_size_mode else ""),
+            f"--min-frag-len {length_limits[0]}",
+            f"--max-frag-len {length_limits[1]}"
+            + (" --insert-size-mode" if insert_size_mode else ""),
             "--no-per-base",
             f"{out_dir / coverage_type}",  # Output prefix
             str(in_file),
@@ -98,31 +105,30 @@ def run_mosdepth(
         arg_name="df_by_chromosome - mosdepth splits",
         raise_on_exists=False,
     )
-    split_by_chromosome(
+    split_nonzeros_by_chromosome(
         in_file=coverage_out_file,
         out_dir=df_splits_path,
     )
 
-    messenger("Checking that the splits have the expected number of bins")
-    # NOTE: Theoretically this would not catch weird cases where
-    # the overall number of bins is correct but the splitting
-    # was e.g., random (non-zero) (Unlikely!)
-
-    chrom_split_files = {
-        f"chr{chrom}": df_splits_path / f"chr{chrom}.bed" for chrom in range(1, 23)
+    # Paths to chromosome-wise nonzero coverage files
+    chrom_nonzero_files = {
+        f"chr{chrom}": df_splits_path / f"chr{chrom}.txt" for chrom in range(1, 23)
     }
 
-    split_sizes = [get_file_num_lines(path) for path in chrom_split_files.values()]
+    messenger("Checking that the splitting did not fail silently")
 
-    if not all([s > 0 for s in split_sizes]):
-        raise RuntimeError("One of the chromosome coverage files was empty.")
-
-    if sum(split_sizes) != coverage_num_lines:
+    split_num_rows = pd.read_csv(
+        df_splits_path / "total_rows.txt",
+        header=None,
+        names=["chromosome", "num_rows"],
+        sep="\t",
+    )
+    if split_num_rows["num_rows"].sum() != coverage_num_lines:
         raise RuntimeError(
             "Splitting coverage file by chromosome failed. "
             f"Original file had ({coverage_num_lines}) bins, but "
-            "the total number of bins from all chromosomes (after split) "
-            f"was ({sum(split_sizes)}). Please try again."
+            f"the total number of bins checked during splitting was {split_num_rows['num_rows'].sum()}."
+            f"Please try again and report if it keeps happening."
         )
 
     coverage_splits_path = out_dir / f"sparse_{coverage_type}_by_chromosome"
@@ -132,48 +138,62 @@ def run_mosdepth(
         raise_on_exists=False,
     )
 
+    # Paths to chromosome-wise sparse coverage array files
+    chrom_sparse_array_files = {
+        f"chr{chrom}": coverage_splits_path / f"chr{chrom}.npz"
+        for chrom in range(1, 23)
+    }
+
     # Clean up intermediate file
     coverage_out_file.unlink()
 
     # Save coverage as sparse arrays
-    coverage_paths = sparsify_coverage_files(
-        chrom_split_files=chrom_split_files,
-        coverage_splits_path=coverage_splits_path,
-        messenger=messenger,
+    messenger("Convert chromosome-wise nonzero coverages to sparse arrays")
+    total_nonzeros, _ = convert_nonzeros_to_sparse_arrays(
+        chrom_to_nonzero_files=chrom_nonzero_files,
+        chrom_out_files=chrom_sparse_array_files,
+        chrom_to_num_chrom_bins=chrom_to_num_chrom_bins,
     )
+    messenger(f"Got {total_nonzeros} bins with nonzero coverage", indent=2)
 
     # Clean up intermediate files
-    messenger("Clean up intermediate files")
-    rm_dir(
-        path=df_splits_path,
-        arg_name="df_splits_path",
-        raise_missing=True,
-        messenger=messenger,
-    )
-
-    return coverage_paths
-
-
-def sparsify_coverage_files(
-    chrom_split_files: Dict[str, pathlib.Path],
-    coverage_splits_path: pathlib.Path,
-    messenger: Messenger,
-) -> Dict[str, pathlib.Path]:
-    messenger("Reading each split separately and saving coverage as sparse array")
-    coverage_paths = {}
-    for chrom, file_path in chrom_split_files.items():
-        assert chrom[:3] == "chr"
-        chrom_df = read_bed_as_df(
-            path=file_path,
-            # mosdepth writes to 5th column if 4+ columns exist
-            col_names=["chromosome", "start", "end", "fourth_column", "coverage"],
+    if clean_intermediates:
+        messenger("Clean up intermediate files")
+        rm_dir(
+            path=df_splits_path,
+            arg_name="df_splits_path",
+            raise_missing=True,
+            messenger=messenger,
         )
-        coverage = chrom_df.coverage.to_numpy().astype(np.float64)
-        coverage = scipy.sparse.csr_matrix(coverage)
-        coverage_path = coverage_splits_path / f"{chrom}.npz"
-        scipy.sparse.save_npz(coverage_path, coverage)
-        coverage_paths[chrom] = coverage_path
-    return coverage_paths
+
+    return chrom_sparse_array_files
+
+
+def convert_nonzeros_to_sparse_arrays(
+    chrom_to_nonzero_files: Dict[str, pathlib.Path],
+    chrom_out_files: Dict[str, pathlib.Path],
+    chrom_to_num_chrom_bins: Dict[str, int],
+) -> Tuple[int, int]:
+    """
+    Converts chromosome-wise `.txt` files with nonzero (index, coverage)
+    rows to sparse arrays and saves them.
+    """
+    chromosomes = list(chrom_out_files.keys())
+    total_nonzeros = 0
+    total_sum = 0
+
+    for chrom in chromosomes:
+        coverage_nonzeros, coverage_sum = convert_nonzero_bins_to_sparse_array(
+            num_bins=chrom_to_num_chrom_bins[chrom],
+            scaling_constant=None,
+            input_path=chrom_to_nonzero_files[chrom],
+            output_path=chrom_out_files[chrom],
+            array_type="csr",
+        )
+        total_nonzeros += coverage_nonzeros
+        total_sum += coverage_sum
+
+    return int(total_nonzeros), int(total_sum)
 
 
 def standardize_sample(x):
@@ -314,7 +334,8 @@ def main(args):
     # We only save the files that are the same across mask types once
     # So ATAC only has the feature dataset path
     dnase_outputs = DatasetOutputPaths.create_default(
-        dataset_dir=dataset_dir, mask_type="DNase"
+        dataset_dir=dataset_dir,
+        mask_type="DNase",
     )
     atac_outputs = DatasetOutputPaths(
         dataset=dataset_dir / "ATAC" / "feature_dataset.npy",
@@ -324,8 +345,6 @@ def main(args):
     paths = IOPaths(
         in_files={
             "bam_file": args.bam_file,
-            "binned_whole_genome": resources_dir
-            / "whole_genome.mappable.binned_10bp.bed.gz",
             "gc_correction_bin_edges_path": resources_dir / "gc_contents_bin_edges.npy",
             "insert_size_correction_bin_edges_path": resources_dir
             / "insert_size_bin_edges.npy",
@@ -335,24 +354,25 @@ def main(args):
             "exclude_zero_indices": resources_dir
             / "outliers"
             / "zero_coverage_bins_indices.npz",
+            "num_rows_per_chrom_file": resources_dir
+            / "rows_per_chrom_pre_exclusion.txt",
             "ATAC_cell_type_order": resources_dir / "ATAC.idx_to_cell_type.csv",
             "DNase_cell_type_order": resources_dir / "DNase.idx_to_cell_type.csv",
         },
         in_dirs={
             "resources_dir": resources_dir,
-            "bins_by_chromosome_dir": resources_dir / "bins_by_chromosome_10bp",
-            "exclude_bins_dir": resources_dir / "exclude_bins",
+            "bins_by_chromosome_dir": resources_dir / "bin_indices_by_chromosome",
+            "outliers_dir": resources_dir / "outliers",
             "chromatin_masks": resources_dir / "chromatin_masks",
-            "consensus_super_dir": resources_dir / "consensus_bins",
-            "consensus_ATAC_dir": resources_dir / "consensus_bins" / "ATAC",
-            "consensus_DNase_dir": resources_dir / "consensus_bins" / "DNase",
+            "DNase_masks": resources_dir / "chromatin_masks" / "DNase",
+            "ATAC_masks": resources_dir / "chromatin_masks" / "ATAC",
         },
         out_dirs={
             "out_path": out_path,
             "coverage_dir": out_path / "coverage",
             "dataset_dir": dataset_dir,
-            "atac_dataset_dir": dataset_dir / "ATAC",
-            "dnase_dataset_dir": dataset_dir / "DNase",
+            "DNase_dataset_dir": dataset_dir / "DNase",
+            "ATAC_dataset_dir": dataset_dir / "ATAC",
         },
         out_files={
             **dnase_outputs.get_path_dict(key_prefix="DNase_"),
@@ -365,6 +385,8 @@ def main(args):
         paths.set_path("mosdepth", args.mosdepth_path, collection="in_files")
     if args.ld_library_path is not None:
         paths.set_path("ld_library", args.ld_library_path, collection="in_dirs")
+
+    # Load paths to masks/tracks
 
     mask_to_cell_type_to_idx = {}
     mask_to_cell_type_mask_dirs = {}
@@ -379,9 +401,8 @@ def main(args):
         # Maintaining the insertion order is paramount
         mask_to_cell_type_mask_dirs[mask_type] = OrderedDict(
             [
-                (cell_type, paths["chromatin_masks"] / mask_type / cell_type)
+                (cell_type, paths[f"{mask_type}_masks"] / cell_type)
                 for cell_type in mask_to_cell_type_to_idx[mask_type]["cell_type"]
-                if cell_type != "consensus"
             ]
         )
 
@@ -400,6 +421,29 @@ def main(args):
     # Show overview of the paths
     messenger(paths)
 
+    # Check that all autosomes are present, named using the "chr" prefix
+    check_autosomes_in_bam(bam_path=paths["bam_file"], messenger=messenger)
+
+    # Load the total number of intervals expected (pre-exclusion) per chromosome
+    messenger(
+        "Start: Loading expected number of intervals per chromosome before exclusion"
+    )
+    chrom_to_num_rows: Dict[str, int] = (
+        pd.read_csv(
+            paths["num_rows_per_chrom_file"],
+            sep="\t",
+            header=None,
+            names=["chromosome", "num_intervals"],
+        )
+        .set_index("chromosome")["num_intervals"]
+        .to_dict()
+    )
+    messenger(
+        "Got: "
+        + ", ".join([f"{key}:{int(num)}" for key, num in chrom_to_num_rows.items()]),
+        indent=2,
+    )
+
     mosdepth_paths = None
     if args.mosdepth_path is not None:
         mosdepth_paths = MosdepthPaths(
@@ -413,9 +457,13 @@ def main(args):
             coverage_by_chrom_paths = run_mosdepth(
                 in_file=paths["bam_file"],
                 out_dir=paths["coverage_dir"],
+                length_limits=FRAGMENT_LENGTH_LIMITS,
+                chrom_to_num_chrom_bins=chrom_to_num_rows,
                 n_jobs=args.n_jobs,
                 mosdepth_paths=mosdepth_paths,
                 insert_size_mode=False,
+                clean_intermediates=not args.keep_intermediates,
+                messenger=messenger,
             )
 
     messenger("Start: Extracting average overlapping insert sizes with mosdepth")
@@ -424,9 +472,13 @@ def main(args):
             insert_sizes_by_chrom_paths = run_mosdepth(
                 in_file=paths["bam_file"],
                 out_dir=paths["coverage_dir"],
+                length_limits=FRAGMENT_LENGTH_LIMITS,
+                chrom_to_num_chrom_bins=chrom_to_num_rows,
                 n_jobs=args.n_jobs,
                 mosdepth_paths=mosdepth_paths,
                 insert_size_mode=True,
+                clean_intermediates=not args.keep_intermediates,
+                messenger=messenger,
             )
 
     messenger("Start: Calculating features")
@@ -441,17 +493,13 @@ def main(args):
                     chrom_insert_size_paths=insert_sizes_by_chrom_paths,
                     cell_type_paths=mask_to_cell_type_mask_dirs[mask_type],
                     output_paths=output_path_collections[mask_type],
-                    bins_info_dir_path=paths[
-                        "bins_by_chromosome_dir"
-                    ],  # TODO Update this file with new coordinates
+                    bins_info_dir_path=paths["bins_by_chromosome_dir"],
                     cell_type_to_idx=mask_to_cell_type_to_idx[mask_type],
                     gc_correction_bin_edges_path=paths["gc_correction_bin_edges_path"],
                     insert_size_correction_bin_edges_path=paths[
                         "insert_size_correction_bin_edges_path"
                     ],
-                    consensus_dir_path=paths[f"consensus_{mask_type}_dir"],
                     exclude_paths=[
-                        # TODO: Add exclude_mappability_indices here as well?
                         paths["exclude_outlier_indices"],
                         paths["exclude_zero_indices"],
                     ],
@@ -492,8 +540,8 @@ def main(args):
         with messenger.indentation(add_indent=4):
             messenger("Removing coverage files")
             paths.rm_dir("coverage_dir", messenger=messenger)
-            paths.rm_dir("atac_dataset_dir", messenger=messenger)
-            paths.rm_dir("dnase_dataset_dir", messenger=messenger)
+            paths.rm_dir("ATAC_dataset_dir", messenger=messenger)
+            paths.rm_dir("DNase_dataset_dir", messenger=messenger)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
