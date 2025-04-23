@@ -13,9 +13,6 @@ from resource_creation.workflow.target_creators import (
     collect_outliers_for_dataset,
     copy_index_map,
     find_outlier_candidates,
-    legalize_target_name,
-    log_context,
-    to_strings,
 )
 
 # Create `gwf` workflow
