@@ -30,7 +30,7 @@ from lionheart.features.correction.correction import (
 from lionheart.features.correction.insert_size import (
     calculate_insert_size_correction_factors,
 )
-from lionheart.features.correction.poisson import ZIPoissonPMF
+from lionheart.features.correction.poisson import ZIPoisson
 from lionheart.features.correction.normalize_megabins import normalize_megabins
 from lionheart.features.running_pearson_r import RunningPearsonR
 from lionheart.features.running_stats import RunningStats
