@@ -325,6 +325,7 @@ def main():
             subset.to_parquet(
                 out_filename,
                 engine="pyarrow",
+                index=False,
                 compression="zstd",
                 compression_level=15,  # We need to share these files so reduced size is important!
             )
