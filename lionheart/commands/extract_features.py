@@ -353,7 +353,7 @@ def main(args):
             / "outlier_indices.npz",
             "exclude_zero_indices": resources_dir
             / "outliers"
-            / "zero_coverage_bins_indices.npz",
+            / "zero_coverage_indices.npz",
             "num_rows_per_chrom_file": resources_dir
             / "rows_per_chrom_pre_exclusion.txt",
             "ATAC_cell_type_order": resources_dir / "ATAC.idx_to_cell_type.csv",

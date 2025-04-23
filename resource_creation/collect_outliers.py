@@ -216,7 +216,7 @@ if __name__ == "__main__":
         },
         out_files={
             "outlier_indices": out_dir / "outlier_indices.npz",
-            "zero_coverage_bins_indices": out_dir / "zero_coverage_indices.npz",
+            "zero_coverage_indices": out_dir / "zero_coverage_indices.npz",
         },
     )
 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
     zeros_chrom_to_indices = parse_chrom_index_strings(overall_zero_set)
 
     messenger("Start: Saving all-zero coverage bins")
-    np.savez(paths["zero_coverage_bins_indices"], **zeros_chrom_to_indices)
+    np.savez(paths["zero_coverage_indices"], **zeros_chrom_to_indices)
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")

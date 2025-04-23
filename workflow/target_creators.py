@@ -83,7 +83,7 @@ def extract_features(
         resources_dir / "ATAC.idx_to_cell_type.csv",
         resources_dir / "DNase.idx_to_cell_type.csv",
         resources_dir / "exclude_bins" / "outlier_indices.npz",
-        resources_dir / "exclude_bins" / "zero_coverage_bins_indices.npz",
+        resources_dir / "exclude_bins" / "zero_coverage_indices.npz",
     ]
 
     expected_output_files = [
@@ -221,7 +221,7 @@ def predict_sample(
         )
         << log_context(
             f"""
-        lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {' '.join(thresholds)} --identifier {sample_id}
+        lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {" ".join(thresholds)} --identifier {sample_id}
         """
         )
     )
