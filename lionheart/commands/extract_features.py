@@ -577,6 +577,14 @@ def main(args):
             ]
         )
 
+    messenger(
+        "Score statistics (before standardization): "
+        f"Mean: {feature_dataset[0].mean()}; "
+        f"Std: {feature_dataset[0].std()}; "
+        f"Min: {feature_dataset[0].min()}; "
+        f"Max: {feature_dataset[0].max()}; "
+    )
+
     messenger("Start: Standardizing correlation coefficients")
     # Standardize pearson correlations to make them LIONHEART scores
     feature_dataset[0, :], center, scaling_factor = standardize_sample(
