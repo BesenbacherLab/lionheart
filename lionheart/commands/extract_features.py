@@ -363,9 +363,14 @@ def main(args):
             "resources_dir": resources_dir,
             "bins_by_chromosome_dir": resources_dir / "bin_indices_by_chromosome",
             "outliers_dir": resources_dir / "outliers",
-            "chromatin_masks": resources_dir / "chromatin_masks",
-            "DNase_masks": resources_dir / "chromatin_masks" / "DNase",
-            "ATAC_masks": resources_dir / "chromatin_masks" / "ATAC",
+            "DNase_masks": resources_dir
+            / "chromatin_masks"
+            / "DNase"
+            / "sparse_overlaps_by_chromosome",
+            "ATAC_masks": resources_dir
+            / "chromatin_masks"
+            / "ATAC"
+            / "sparse_overlaps_by_chromosome",
         },
         out_dirs={
             "out_path": out_path,
