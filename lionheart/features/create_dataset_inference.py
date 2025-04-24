@@ -283,17 +283,17 @@ def create_dataset_for_inference(
         for chrom in chroms_ordered
     }
 
-    # Ensure `consensus` is in the passed cell type paths
-    assert "consensus" in cell_type_paths.keys()
-
     messenger("Preparing feature calculators")
 
     r_calculators: Dict[str, RunningPearsonR] = {}
     stats_calculator = RunningStats(ignore_nans=True)
 
-    # Initialize calculators
+    # Initialize calculators (incl. consensus)
     for cell_type in list(cell_type_paths.keys()):
         r_calculators[cell_type] = RunningPearsonR(ignore_nans=True)
+
+    # Remove `consensus` from the cell type paths after this!
+    cell_type_paths.pop("consensus")
 
     # Initialize Poisson distribution
     # In very rare cases with NaNs (like -9223372036854775808)
@@ -626,6 +626,9 @@ def create_dataset_for_inference(
                 )
 
                 # Update calculator for consensus sites
+                messenger(
+                    "Updating calculation of r for consensus site bins",
+                )
                 (
                     _,
                     r_calculators["consensus"],
@@ -640,6 +643,10 @@ def create_dataset_for_inference(
 
                 # Remove consensus site bins from sample coverage array
                 sample_cov = np.delete(sample_cov, consensus_overlap_indices)
+
+                messenger(
+                    "Updating calculation of r for all cell types",
+                )
 
                 # Update calculators for all cell types
                 res = Parallel(n_jobs=n_jobs)(
