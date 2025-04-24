@@ -544,27 +544,34 @@ def main(args):
     messenger("-------------", indent=4)
     with timer.time_step(indent=4, name_prefix="dataset_creation"):
         for mask_type in ["DNase", "ATAC"]:
-            messenger(f"{mask_type} features", indent=4)
-            messenger("-------------", indent=4)
-            with messenger.indentation(add_indent=8):
-                create_dataset_for_inference(
-                    chrom_coverage_paths=coverage_by_chrom_paths,
-                    chrom_insert_size_paths=insert_sizes_by_chrom_paths,
-                    cell_type_paths=mask_to_cell_type_mask_dirs[mask_type],
-                    output_paths=output_path_collections[mask_type],
-                    bins_info_dir_path=paths["bins_by_chromosome_dir"],
-                    cell_type_to_idx=mask_to_cell_type_to_idx[mask_type],
-                    gc_correction_bin_edges_path=paths["gc_correction_bin_edges_path"],
-                    insert_size_correction_bin_edges_path=paths[
-                        "insert_size_correction_bin_edges_path"
-                    ],
-                    exclude_paths=[
-                        paths["exclude_outlier_indices"],
-                        paths["exclude_zero_indices"],
-                    ],
-                    n_jobs=args.n_jobs,
-                    messenger=messenger,
-                )
+            with timer.time_step(
+                indent=6,
+                name_prefix=f"{mask_type}_dataset_creation",
+                message=f"{mask_type} took: ",
+            ):
+                messenger(f"{mask_type} features", indent=4)
+                messenger("-------------", indent=4)
+                with messenger.indentation(add_indent=8):
+                    create_dataset_for_inference(
+                        chrom_coverage_paths=coverage_by_chrom_paths,
+                        chrom_insert_size_paths=insert_sizes_by_chrom_paths,
+                        cell_type_paths=mask_to_cell_type_mask_dirs[mask_type],
+                        output_paths=output_path_collections[mask_type],
+                        bins_info_dir_path=paths["bins_by_chromosome_dir"],
+                        cell_type_to_idx=mask_to_cell_type_to_idx[mask_type],
+                        gc_correction_bin_edges_path=paths[
+                            "gc_correction_bin_edges_path"
+                        ],
+                        insert_size_correction_bin_edges_path=paths[
+                            "insert_size_correction_bin_edges_path"
+                        ],
+                        exclude_paths=[
+                            paths["exclude_outlier_indices"],
+                            paths["exclude_zero_indices"],
+                        ],
+                        n_jobs=args.n_jobs,
+                        messenger=messenger,
+                    )
             messenger("-------------", indent=4)
 
     messenger("Start: Collecting features across ATAC and DNase")
@@ -574,7 +581,7 @@ def main(args):
                 np.load(
                     output_path_collections[mask_type].dataset,
                     allow_pickle=True,
-                ).astype(np.float32)
+                ).astype(np.float64)
                 for mask_type in ["ATAC", "DNase"]
             ]
         )
