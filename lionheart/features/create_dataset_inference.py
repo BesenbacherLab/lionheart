@@ -331,7 +331,7 @@ def create_dataset_for_inference(
 
     with timer.time_step(indent=4, name_prefix="load_and_add"):
         for chrom in chroms_ordered:
-            with timer.time_step(indent=4, name_prefix=f"{chrom}"):
+            with timer.time_step(name_prefix=f"{chrom}"):
                 messenger(f"{chrom}:", add_indent=-2)
 
                 # Load reference knowledge about the bins
@@ -363,7 +363,7 @@ def create_dataset_for_inference(
                         f"min={np.round(sample_cov[sample_cov > 0].min(), decimals=3)}, "
                         f"max={np.round(sample_cov.max(), decimals=3)}, "
                         f"mean={np.round(sample_cov[sample_cov > 0].mean(), decimals=3)}",
-                        indent=4,
+                        add_indent=4,
                     )
 
                 # Save the non-corrected raw integer counts
@@ -394,7 +394,7 @@ def create_dataset_for_inference(
                             f"min={np.round(sample_insert_sizes[sample_insert_sizes > 0].min(), decimals=3)}, "
                             f"max={np.round(sample_insert_sizes.max(), decimals=3)}, "
                             f"mean={np.round(sample_insert_sizes[sample_insert_sizes > 0].mean(), decimals=3)}",
-                            indent=4,
+                            add_indent=4,
                         )
 
                 # Load consensus overlap mask separately
@@ -646,17 +646,18 @@ def create_dataset_for_inference(
                 messenger(
                     "Updating calculation of r for consensus site bins",
                 )
-                (
-                    _,
-                    r_calculators["consensus"],
-                    _,
-                ) = _update_r_calculator(
-                    sample_cov=sample_cov,
-                    cell_type_cov=consensus_overlap,
-                    cell_type="consensus",
-                    r_calculator=r_calculators["consensus"],
-                    include_indices=None,  # Already subset
-                )
+                with timer.time_step(indent=4):
+                    (
+                        _,
+                        r_calculators["consensus"],
+                        _,
+                    ) = _update_r_calculator(
+                        sample_cov=sample_cov,
+                        cell_type_cov=consensus_overlap,
+                        cell_type="consensus",
+                        r_calculator=r_calculators["consensus"],
+                        include_indices=None,  # Already subset
+                    )
 
                 # Remove consensus site bins from sample coverage array
                 sample_cov = np.delete(sample_cov, consensus_overlap_indices)
@@ -664,19 +665,19 @@ def create_dataset_for_inference(
                 messenger(
                     "Updating calculation of r for all cell types",
                 )
-
-                # Update calculators for all cell types
-                res = Parallel(n_jobs=n_jobs)(
-                    delayed(_update_r_calculator)(
-                        sample_cov=sample_cov,
-                        path=cell_type_chromosome_beds[f"{cell_type}_{chrom}"],
-                        cell_type=cell_type,
-                        r_calculator=r_calculators[cell_type],
-                        include_indices=include_indices,
-                        consensus_indices=consensus_overlap_indices,
+                with timer.time_step(indent=4):
+                    # Update calculators for all cell types
+                    res = Parallel(n_jobs=n_jobs)(
+                        delayed(_update_r_calculator)(
+                            sample_cov=sample_cov,
+                            path=cell_type_chromosome_beds[f"{cell_type}_{chrom}"],
+                            cell_type=cell_type,
+                            r_calculator=r_calculators[cell_type],
+                            include_indices=include_indices,
+                            consensus_indices=consensus_overlap_indices,
+                        )
+                        for cell_type in cell_type_paths.keys()
                     )
-                    for cell_type in cell_type_paths.keys()
-                )
 
                 for r in res:
                     (cell_type, r_calculator, _) = r
