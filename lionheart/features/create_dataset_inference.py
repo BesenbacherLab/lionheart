@@ -112,11 +112,29 @@ class DatasetOutputPaths:
         )
 
 
-def _load_from_sparse_array(path: pathlib.Path) -> np.ndarray:
+def _load_from_sparse_array(
+    path: pathlib.Path, indices: Optional[np.ndarray] = None
+) -> np.ndarray:
     """
     Load a scipy.sparse array and convert to a dense, flat numpy array.
     """
-    return np.asarray(scipy.sparse.load_npz(path).todense(), dtype=np.float64).flatten()
+    # Load sparse array and (potentially) change to fast row-slicing mode
+    s = scipy.sparse.load_npz(path).tocsr()
+    # Subset to get only the specified indices
+    # By doing this while sparse, we should reduce the memory consumption
+    # of the dense array
+    if indices is not None:
+        # Check shape is as expected to ensure we
+        # subset correctly!
+        if not (s.shape[1] == 1 and s.shape[0] > 1):
+            raise ValueError(
+                f"Sparse array had unexpected shape: {s.shape}. Expected (>1, 1)."
+            )
+        s = s[indices, :]
+    # Convert to a float64 dense array and ravel (flatten)
+    # We perform the type casting while sparse (should be cheaper)
+    # Note: ravel() is like flatten() but a view instead of a copy
+    return s.astype(np.float64, copy=False).toarray().ravel()
 
 
 def _load_bins_and_exclude(
@@ -148,10 +166,7 @@ def _update_r_calculator(
 ):
     assert sum([cell_type_cov is None, path is None]) == 1
     if path is not None:
-        cell_type_cov = _load_from_sparse_array(path)
-
-    if include_indices is not None:
-        cell_type_cov = cell_type_cov[include_indices]
+        cell_type_cov = _load_from_sparse_array(path=path, indices=include_indices)
 
     if consensus_indices is not None:
         cell_type_cov = np.delete(cell_type_cov, consensus_indices)
@@ -316,24 +331,39 @@ def create_dataset_for_inference(
 
     with timer.time_step(indent=4, name_prefix="load_and_add"):
         for chrom in chroms_ordered:
-            with timer.time_step(indent=8, name_prefix=f"{chrom}"):
+            with timer.time_step(indent=4, name_prefix=f"{chrom}"):
                 messenger(f"{chrom}:", add_indent=-2)
+
+                # Load reference knowledge about the bins
+                (include_indices, sample_gc) = _load_bins_and_exclude(
+                    bins_path=chrom_bins_paths[chrom],
+                    exclude=exclude_bins_by_chrom[chrom],
+                )
+
+                messenger(
+                    "Loaded indices for bins to use. "
+                    f"Proceeding with {len(include_indices)} bins."
+                )
 
                 # Load coverages
                 # Even when GC-corrected coverages are passed
                 # we need this to find the average overlapping insert sizes below
+                messenger("Loading coverages")
                 with timer.time_step(
-                    indent=12,
+                    indent=4,
                     name_prefix=f"load_coverages_{chrom}",
                 ):
-                    sample_cov = _load_from_sparse_array(chrom_coverage_paths[chrom])
+                    sample_cov = _load_from_sparse_array(
+                        chrom_coverage_paths[chrom],
+                        indices=include_indices,
+                    )
 
                     messenger(
-                        f"Loaded coverages. Raw non-zero bin statistics: "
+                        "Non-zero bin statistics: "
                         f"min={np.round(sample_cov[sample_cov > 0].min(), decimals=3)}, "
                         f"max={np.round(sample_cov.max(), decimals=3)}, "
                         f"mean={np.round(sample_cov[sample_cov > 0].mean(), decimals=3)}",
-                        indent=8,
+                        indent=4,
                     )
 
                 # Save the non-corrected raw integer counts
@@ -343,12 +373,14 @@ def create_dataset_for_inference(
                 # Load insert sizes
                 sample_insert_sizes = None
                 if chrom_insert_size_paths is not None:
+                    messenger("Loading and averaging insert sizes")
                     with timer.time_step(
-                        indent=12,
+                        indent=4,
                         name_prefix=f"load_insert_sizes_{chrom}",
                     ):
                         sample_insert_sizes = _load_from_sparse_array(
-                            chrom_insert_size_paths[chrom]
+                            chrom_insert_size_paths[chrom],
+                            indices=include_indices,
                         )
 
                         # Convert from sums to means
@@ -356,36 +388,21 @@ def create_dataset_for_inference(
                         sample_insert_sizes[sample_cov > 0] /= sample_cov[
                             sample_cov > 0
                         ]
+
                         messenger(
-                            f"Loaded and averaged insert sizes. Raw non-zero bin statistics: "
+                            "Non-zero bin statistics: "
                             f"min={np.round(sample_insert_sizes[sample_insert_sizes > 0].min(), decimals=3)}, "
                             f"max={np.round(sample_insert_sizes.max(), decimals=3)}, "
                             f"mean={np.round(sample_insert_sizes[sample_insert_sizes > 0].mean(), decimals=3)}",
-                            indent=8,
+                            indent=4,
                         )
 
-                # Load reference knowledge about the bins
-                (include_indices, sample_gc) = _load_bins_and_exclude(
-                    bins_path=chrom_bins_paths[chrom],
-                    exclude=exclude_bins_by_chrom[chrom],
-                )
-
-                messenger(
-                    "Loaded bins to use and removed exclude bins. "
-                    f"Proceeding with {len(include_indices)} bins.",
-                    indent=8,
-                )
-
                 # Load consensus overlap mask separately
+                messenger("Loading consensus site overlaps")
                 consensus_overlap = _load_from_sparse_array(
-                    consensus_chromosome_files[chrom]
+                    consensus_chromosome_files[chrom],
+                    indices=include_indices,
                 )
-
-                # Get included indices only
-                sample_cov = sample_cov[include_indices]
-                sample_cov_raw_counts = sample_cov_raw_counts[include_indices]
-                sample_insert_sizes = sample_insert_sizes[include_indices]
-                consensus_overlap = consensus_overlap[include_indices]
 
                 # Bins are every 10 from 0->, so start points
                 # are just the include indices times 10
