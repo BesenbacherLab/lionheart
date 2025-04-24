@@ -9,9 +9,12 @@ import logging
 import pathlib
 import json
 from dataclasses import dataclass
+import warnings
 import pandas as pd
 import numpy as np
 from utipy import Messenger, StepTimer, IOPaths, mk_dir, rm_dir
+import concurrent
+import concurrent.futures
 
 from lionheart.utils.bam_utils import check_autosomes_in_bam
 from lionheart.utils.bed_ops import (
@@ -49,6 +52,7 @@ class MosdepthPaths:
 def run_mosdepth(
     in_file: pathlib.Path,
     out_dir: pathlib.Path,
+    chrom_to_files_out: Dict[str, pathlib.Path],
     insert_size_mode: bool,
     chrom_to_num_chrom_bins: Dict[str, int],
     n_jobs: int,
@@ -57,13 +61,7 @@ def run_mosdepth(
     clean_intermediates: bool = True,
     messenger: Optional[Callable] = Messenger(verbose=False, indent=0, msg_fn=print),
 ) -> Dict[str, pathlib.Path]:
-    if n_jobs < 0:
-        n_jobs = 4
-    n_jobs = min(4, n_jobs)
-
-    coverage_type = "coverage"
-    if insert_size_mode:
-        coverage_type = "insert_sizes"
+    coverage_type = "insert_sizes" if insert_size_mode else "coverage"
 
     coverage_out_file = pathlib.Path(out_dir) / f"{coverage_type}.regions.bed"
 
@@ -131,18 +129,12 @@ def run_mosdepth(
             f"Please try again and report if it keeps happening."
         )
 
-    coverage_splits_path = out_dir / f"sparse_{coverage_type}_by_chromosome"
+    # Ensure output directory exists
     mk_dir(
-        path=coverage_splits_path,
-        arg_name=f"sparse_{coverage_type}_by_chromosome",
+        path=chrom_to_files_out["chr1"].parent,
+        arg_name=chrom_to_files_out["chr1"].parent.name,
         raise_on_exists=False,
     )
-
-    # Paths to chromosome-wise sparse coverage array files
-    chrom_sparse_array_files = {
-        f"chr{chrom}": coverage_splits_path / f"chr{chrom}.npz"
-        for chrom in range(1, 23)
-    }
 
     # Clean up intermediate file
     coverage_out_file.unlink()
@@ -151,7 +143,7 @@ def run_mosdepth(
     messenger("Convert chromosome-wise nonzero coverages to sparse arrays")
     total_nonzeros, _ = convert_nonzeros_to_sparse_arrays(
         chrom_to_nonzero_files=chrom_nonzero_files,
-        chrom_out_files=chrom_sparse_array_files,
+        chrom_out_files=chrom_to_files_out,
         chrom_to_num_chrom_bins=chrom_to_num_chrom_bins,
     )
     messenger(f"Got {total_nonzeros} bins with nonzero coverage", indent=2)
@@ -165,8 +157,6 @@ def run_mosdepth(
             raise_missing=True,
             messenger=messenger,
         )
-
-    return chrom_sparse_array_files
 
 
 def convert_nonzeros_to_sparse_arrays(
@@ -203,6 +193,33 @@ def standardize_sample(x):
     x -= center
     x /= scaling_factor
     return x, center, scaling_factor
+
+
+def run_parallel_tasks(task_list, worker, max_workers, messenger, extra_verbose):
+    """
+    Run tasks in parallel using the provided worker function with keyword arguments.
+
+    Parameters
+    ----------
+    task_list : list of dict
+        A list of dictionaries where each dictionary contains keyword arguments for the worker.
+    worker : function
+        The worker function to run, which should accept keyword arguments.
+    max_workers : int, default 4
+        Maximum number of parallel worker threads.
+    """
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Submit each task using keyword arguments.
+        futures = {executor.submit(worker, **task): task for task in task_list}
+        for future in concurrent.futures.as_completed(futures):
+            task = futures[future]
+            try:
+                future.result()
+                if extra_verbose:
+                    messenger(f"Task with arguments {task} completed successfully.")
+            except Exception as exc:
+                messenger(f"Task with arguments {task} failed with exception: {exc}")
+                raise
 
 
 def setup_parser(parser):
@@ -456,34 +473,65 @@ def main(args):
             ld_lib_path=paths.get_path(name="ld_library", raise_on_fail=False),
         )
 
-    messenger("Start: Extracting coverage with mosdepth")
-    with timer.time_step(indent=4, name_prefix="mosdepth_cov"):
-        with messenger.indentation(add_indent=4):
-            coverage_by_chrom_paths = run_mosdepth(
-                in_file=paths["bam_file"],
-                out_dir=paths["coverage_dir"],
-                length_limits=FRAGMENT_LENGTH_LIMITS,
-                chrom_to_num_chrom_bins=chrom_to_num_rows,
-                n_jobs=args.n_jobs,
-                mosdepth_paths=mosdepth_paths,
-                insert_size_mode=False,
-                clean_intermediates=not args.keep_intermediates,
-                messenger=messenger,
+    messenger(
+        "Start: Extracting coverage and average overlapping insert sizes with mosdepth"
+    )
+    with timer.time_step(indent=4, name_prefix="mosdepth"):
+        # Calculate whether to parallelize and how many threads to use
+        # per mosdepth call (pref. 4 threads + 1 additional core)
+        mosdepth_threads = 4 if args.n_jobs >= 10 else int((args.n_jobs - 2) / 2)
+        max_workers = 1 if mosdepth_threads < 2 else 2
+        if max_workers == 1:
+            messenger(
+                "`--n_jobs < 6`: Not enough cores to run the two mosdepth calls in parallel. "
+                "Running sequentially. Increase `--n_jobs` to 10+ for a big speedup.",
+                indent=4,
+                add_msg_fn=warnings.warn,
             )
 
-    messenger("Start: Extracting average overlapping insert sizes with mosdepth")
-    with timer.time_step(indent=4, name_prefix="mosdepth_iss"):
+        # Output paths to sparse coverage files per chromosome
+        coverage_by_chrom_paths = {
+            f"chr{chrom}": paths["coverage_dir"]
+            / "sparse_coverage_by_chromosome"
+            / f"chr{chrom}.npz"
+            for chrom in range(1, 23)
+        }
+
+        # Output paths to overlapping sparse insert size files per chromosome
+        insert_sizes_by_chrom_paths = {
+            f"chr{chrom}": paths["coverage_dir"]
+            / "sparse_insert_sizes_by_chromosome"
+            / f"chr{chrom}.npz"
+            for chrom in range(1, 23)
+        }
+
         with messenger.indentation(add_indent=4):
-            insert_sizes_by_chrom_paths = run_mosdepth(
-                in_file=paths["bam_file"],
-                out_dir=paths["coverage_dir"],
-                length_limits=FRAGMENT_LENGTH_LIMITS,
-                chrom_to_num_chrom_bins=chrom_to_num_rows,
-                n_jobs=args.n_jobs,
-                mosdepth_paths=mosdepth_paths,
-                insert_size_mode=True,
-                clean_intermediates=not args.keep_intermediates,
+            # Call mosdepth twice for coverage and ISS extraction, respectively
+            # Using ThreadPoolExecutor to process files concurrently
+            mosdepth_kwargs = [
+                {
+                    "in_file": paths["bam_file"],
+                    "out_dir": paths["coverage_dir"],
+                    # Paths to chromosome-wise sparse coverage array files
+                    "chrom_to_files_out": coverage_by_chrom_paths
+                    if coverage_type == "coverage"
+                    else insert_sizes_by_chrom_paths,
+                    "length_limits": FRAGMENT_LENGTH_LIMITS,
+                    "chrom_to_num_chrom_bins": chrom_to_num_rows,
+                    "n_jobs": mosdepth_threads,
+                    "mosdepth_paths": mosdepth_paths,
+                    "insert_size_mode": coverage_type == "insert_sizes",
+                    "clean_intermediates": not args.keep_intermediates,
+                    "messenger": messenger,
+                }
+                for coverage_type in ["coverage", "insert_sizes"]
+            ]
+            run_parallel_tasks(
+                task_list=mosdepth_kwargs,
+                worker=run_mosdepth,
+                max_workers=max_workers,
                 messenger=messenger,
+                extra_verbose=args.extra_verbose,
             )
 
     messenger("Start: Calculating features")
