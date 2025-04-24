@@ -91,7 +91,9 @@ def run_mosdepth(
     call_subprocess(mosdepth_call, "`mosdepth` failed")
 
     messenger(f"{coverage_type}: Unzipping output temporarily")
-    call_subprocess(f"unpigz -f {coverage_out_file}.gz", "`unpigz -f` failed")
+    call_subprocess(
+        f"unpigz -p {n_jobs} -f {coverage_out_file}.gz", "`unpigz -f` failed"
+    )
 
     # Get number of lines (bins) in output
     coverage_num_lines = get_file_num_lines(in_file=coverage_out_file)
