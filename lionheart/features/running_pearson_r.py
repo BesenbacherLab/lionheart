@@ -136,8 +136,10 @@ class RunningPearsonR:
         self, x: np.ndarray, y: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, int]:
         # Ensure x and y are ndarrays
-        x = np.asarray(x)
-        y = np.asarray(y)
+        if not isinstance(x, np.ndarray):
+            x = np.asarray(x)
+        if not isinstance(y, np.ndarray):
+            y = np.asarray(y)
 
         # Remove elements that are NaN in either array
         if self.ignore_nans:
@@ -151,8 +153,8 @@ class RunningPearsonR:
         if n != len(y):
             raise ValueError("x and y must have the same length.")
 
-        # dtype is the data type for the calculations.  This expression ensures
-        # that the data type is at least 64 bit floating point.  It might have
+        # dtype is the data type for the calculations. This expression ensures
+        # that the data type is at least 64 bit floating point. It might have
         # more precision if the input is, for example, np.longdouble.
         dtype = type(1.0 + x[0] + y[0])
         if self.dtype is None:

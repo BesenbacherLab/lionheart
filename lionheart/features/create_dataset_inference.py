@@ -113,7 +113,7 @@ class DatasetOutputPaths:
 
 
 def _load_from_sparse_array(
-    path: pathlib.Path, indices: Optional[np.ndarray] = None
+    path: pathlib.Path, indices: Optional[np.ndarray] = None, dtype=np.float64
 ) -> np.ndarray:
     """
     Load a scipy.sparse array and convert to a dense, flat numpy array.
@@ -134,7 +134,7 @@ def _load_from_sparse_array(
     # Convert to a float64 dense array and ravel (flatten)
     # We perform the type casting while sparse (should be cheaper)
     # Note: ravel() is like flatten() but a view instead of a copy
-    return s.astype(np.float64, copy=False).toarray().ravel()
+    return s.astype(dtype, copy=False).toarray().ravel()
 
 
 def _load_bins_and_exclude(
@@ -166,7 +166,11 @@ def _update_r_calculator(
 ):
     assert sum([cell_type_cov is None, path is None]) == 1
     if path is not None:
-        cell_type_cov = _load_from_sparse_array(path=path, indices=include_indices)
+        cell_type_cov = _load_from_sparse_array(
+            path=path,
+            indices=include_indices,
+            dtype=np.float32,
+        )
 
     if consensus_indices is not None:
         cell_type_cov = np.delete(cell_type_cov, consensus_indices)
@@ -402,6 +406,7 @@ def create_dataset_for_inference(
                 consensus_overlap = _load_from_sparse_array(
                     consensus_chromosome_files[chrom],
                     indices=include_indices,
+                    dtype=np.float32,
                 )
 
                 # Bins are every 10 from 0->, so start points
