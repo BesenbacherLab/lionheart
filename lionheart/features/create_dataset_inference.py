@@ -453,9 +453,11 @@ def create_dataset_for_inference(
                     gc_correction_factors_collection[chrom] = {}
 
                     # Chromosome level correction factor
+                    messenger("GC correction")
                     messenger(
                         "Calculating GC correction factors for chromosome "
                         f"({len(sample_gc)} bins) ",
+                        add_indent=4,
                     )
                     (
                         gc_bin_midpoints,
@@ -469,6 +471,7 @@ def create_dataset_for_inference(
                     # Apply chromosome-level GC correction to entire chromosome
                     messenger(
                         "Correcting GC bias with chromosome-level correction factor",
+                        add_indent=4,
                     )
                     sample_cov = correct_bias(
                         coverages=sample_cov,
@@ -499,9 +502,11 @@ def create_dataset_for_inference(
                     insert_size_optimal_params_collection[chrom] = {}
 
                     # Chromosome level correction factor
+                    messenger("Average overlapping insert size corrections")
                     messenger(
                         "Calculating insert size correction factors for chromosome "
                         f"({len(sample_insert_sizes)} bins) ",
+                        add_indent=4,
                     )
                     insert_size_out = calculate_insert_size_correction_factors(
                         coverages=(
@@ -555,6 +560,7 @@ def create_dataset_for_inference(
                     messenger(
                         "Reducing insert size bias with chromosome-level noise, "
                         "skewness and mean-shift correction factors",
+                        add_indent=4,
                     )
 
                     # Correct the noise
