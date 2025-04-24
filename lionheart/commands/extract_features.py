@@ -531,7 +531,7 @@ def main(args):
                 worker=run_mosdepth,
                 max_workers=max_workers,
                 messenger=messenger,
-                extra_verbose=args.extra_verbose,
+                extra_verbose=False,
             )
 
     messenger("Start: Calculating features")
