@@ -107,6 +107,9 @@ for track_type, track_dir in tracks_dirs.items():
         tracks_dir=track_dir,
         meta_data_file=meta_data_files[track_type],
         chrom_sizes_file=chrom_sizes_file,
+        rows_per_chrom_pre_exclusion_file=genome_binning_out_files[
+            "rows_per_chrom_pre_exclusion"
+        ],
         track_type=track_type,
         memory=f"{track_memory}g",
         cores=num_cores,

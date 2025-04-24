@@ -76,6 +76,17 @@ def main():
         ),
     )
     parser.add_argument(
+        "--chrom_num_bins_file",
+        required=True,
+        type=str,
+        help=(
+            "Path to file with number of bins per chromosome pre-exclusion."
+            "Should contain two columns with 1) the name of the chromosome, and "
+            "2) the number of bins in the chromosome (before any exclusions). "
+            "Must be tab-separated and have no header."
+        ),
+    )
+    parser.add_argument(
         "--bin_size",
         type=int,
         default=10,
@@ -121,6 +132,7 @@ def main():
         in_files={
             "coordinates_file": args.coordinates_file,
             "chrom_sizes_file": args.chrom_sizes_file,
+            "chrom_num_bins_file": args.chrom_num_bins_file,
             "meta_data_file": args.meta_data_file,
         },
         in_dirs={
@@ -206,7 +218,20 @@ def main():
     paths.mk_output_dirs(collection="tmp_dirs")
     paths.mk_output_dirs(collection="out_dirs")
 
-    # Load meta data
+    # Get the number of bins per chromosome prior to any exclusions
+    # (So what comes out of mosdepth)
+    chrom_to_num_original_bins: Dict[str, int] = (
+        pd.read_csv(
+            paths["chrom_num_bins_file"],
+            header=None,
+            sep="\t",
+            names=["chromosome", "num_intervals"],
+        )
+        .set_index("chromosome")["num_intervals"]
+        .to_dict()
+    )
+
+    # Flatten each track file individually
 
     def make_flattened_path(paths, sample_id):
         return paths["tmp_flattened_dir"] / (sample_id + ".bed")
@@ -340,23 +365,6 @@ def main():
 
     messenger("Start: Converting overlap percentages to sparse arrays")
     with timer.time_step(indent=2):
-        messenger("Reading bin indices", indent=2)
-        with timer.time_step(indent=4):
-            # Read in bin indices to get the number of bins per chromosome
-            bin_indices_df = load_indices_file(
-                coordinates_file=paths["coordinates_file"]
-            )
-        messenger("Count total bins per chromosome", indent=2)
-        with timer.time_step(indent=4):
-            # Pre-split the bin indices once
-            chrom_to_num_chrom_bins = {
-                chrom: len(group)
-                for chrom, group in bin_indices_df.groupby("chromosome", sort=False)
-            }
-
-        del bin_indices_df
-        gc.collect()
-
         num_positive_overlaps = {}
 
         chrom_cell_out_path_dicts = {}
@@ -369,7 +377,7 @@ def main():
             {
                 "initial_sparse_overlaps_dir": make_overlap_dir_path(paths, cell_type),
                 "chrom_out_files": chrom_cell_out_path_dicts[cell_type],
-                "chrom_to_num_chrom_bins": chrom_to_num_chrom_bins,
+                "chrom_to_num_chrom_bins": chrom_to_num_original_bins,
                 "num_positive_overlaps": num_positive_overlaps,
                 "bin_size": args.bin_size,
                 "cell_type": cell_type,

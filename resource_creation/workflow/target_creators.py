@@ -72,6 +72,7 @@ def bin_genome(
         "gc_bin_edges": out_dir / "gc_contents_bin_edges.npy",
         "iss_bin_edges": out_dir / "insert_size_bin_edges.npy",
         "coordinates": out_dir / "bin_coordinates.bed",
+        "rows_per_chrom_pre_exclusion": out_dir / "rows_per_chrom_pre_exclusion.txt",
     }
 
     expected_output_files = list(out_files.values()) + list(chrom_bin_files.values())
@@ -110,6 +111,7 @@ def bin_chromatin_tracks(
     tracks_dir: Union[str, pathlib.Path],
     meta_data_file: Union[str, pathlib.Path],
     chrom_sizes_file: Union[str, pathlib.Path],
+    rows_per_chrom_pre_exclusion_file: Union[str, pathlib.Path],
     track_type: str,
     bin_size: int = 10,
     walltime: str = "23:00:00",
@@ -143,7 +145,12 @@ def bin_chromatin_tracks(
 
     track_files = list(tracks_dir.glob("*.bed"))
 
-    input_files = [meta_data_file, chrom_sizes_file, coordinates_file] + track_files
+    input_files = [
+        meta_data_file,
+        chrom_sizes_file,
+        coordinates_file,
+        rows_per_chrom_pre_exclusion_file,
+    ] + track_files
 
     out_files = {
         "binned_chrom_cell_type_paths": out_dir
@@ -164,7 +171,7 @@ def bin_chromatin_tracks(
         )
         << log_context(
             f"""
-        python {scripts_dir / "bin_chromatin_tracks.py"} --coordinates_file {coordinates_file} --tracks_dir {tracks_dir} --out_dir {out_dir} --meta_data_file {meta_data_file} --chrom_sizes_file {chrom_sizes_file} --bin_size {bin_size} --num_jobs {cores}
+        python {scripts_dir / "bin_chromatin_tracks.py"} --coordinates_file {coordinates_file} --tracks_dir {tracks_dir} --out_dir {out_dir} --meta_data_file {meta_data_file} --chrom_sizes_file {chrom_sizes_file} --chrom_num_bins_file {rows_per_chrom_pre_exclusion_file} --bin_size {bin_size} --num_jobs {cores}
         """
         )
     )
