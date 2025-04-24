@@ -330,9 +330,9 @@ def create_dataset_for_inference(
 
                     messenger(
                         f"Loaded coverages. Raw non-zero bin statistics: "
-                        f"min={sample_cov[sample_cov > 0].min()}, "
-                        f"max={sample_cov.max()}, "
-                        f"mean={sample_cov[sample_cov > 0].mean()}",
+                        f"min={np.round(sample_cov[sample_cov > 0].min(), decimals=3)}, "
+                        f"max={np.round(sample_cov.max(), decimals=3)}, "
+                        f"mean={np.round(sample_cov[sample_cov > 0].mean(), decimals=3)}",
                         indent=8,
                     )
 
@@ -358,9 +358,9 @@ def create_dataset_for_inference(
                         ]
                         messenger(
                             f"Loaded and averaged insert sizes. Raw non-zero bin statistics: "
-                            f"min={sample_insert_sizes[sample_insert_sizes > 0].min()}, "
-                            f"max={sample_insert_sizes.max()}, "
-                            f"mean={sample_insert_sizes[sample_insert_sizes > 0].mean()}",
+                            f"min={np.round(sample_insert_sizes[sample_insert_sizes > 0].min(), decimals=3)}, "
+                            f"max={np.round(sample_insert_sizes.max(), decimals=3)}, "
+                            f"mean={np.round(sample_insert_sizes[sample_insert_sizes > 0].mean(), decimals=3)}",
                             indent=8,
                         )
 
