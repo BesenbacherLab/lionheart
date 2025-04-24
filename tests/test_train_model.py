@@ -53,9 +53,9 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     # Check prediction
     with open(tmp_path / output_subdir / "training_info.json") as f:
@@ -69,7 +69,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         "Package Versions": {
             "lionheart": "0.1.0",
             "generalize": "0.1.0",
-            "joblib": "1.2.0",
+            "joblib": "1.4.2",
             "sklearn": "1.0.2",
             "Min. Required lionheart": "N/A",
         },
@@ -150,9 +150,9 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     # Check prediction
     with open(tmp_path / output_subdir / "training_info.json") as f:
@@ -166,7 +166,7 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         "Package Versions": {
             "lionheart": "0.1.0",
             "generalize": "0.1.0",
-            "joblib": "1.2.0",
+            "joblib": "1.4.2",
             "sklearn": "1.0.2",
             "Min. Required lionheart": "N/A",
         },

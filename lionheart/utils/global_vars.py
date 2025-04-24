@@ -13,7 +13,7 @@ assert all([(m.split("_"[0] in ["detect", "subtype"]) for m in INCLUDED_MODELS)]
 ENABLE_SUBTYPING = False
 
 # Check before dump or load
-JOBLIB_VERSION = "1.2.0"
+JOBLIB_VERSION = "1.4.2"
 
 REPO_URL = "https://github.com/besenbacherlab/lionheart"
 

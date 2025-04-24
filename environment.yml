@@ -10,7 +10,7 @@ dependencies:
   - gawk
   - gwf=2.0.5
   - htslib=1.15.1
-  - joblib=1.2.0
+  - joblib=1.4.2
   - numpy=1.26.4
   - pandas=1.5.3
   - pip=24.0
