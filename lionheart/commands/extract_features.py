@@ -87,16 +87,16 @@ def run_mosdepth(
             str(in_file),
         ]
     )
-    messenger("Calling mosdepth")
+    messenger(f"{coverage_type}: Calling mosdepth")
     call_subprocess(mosdepth_call, "`mosdepth` failed")
 
-    messenger("Unzipping output temporarily")
+    messenger(f"{coverage_type}: Unzipping output temporarily")
     call_subprocess(f"unpigz -f {coverage_out_file}.gz", "`unpigz -f` failed")
 
     # Get number of lines (bins) in output
     coverage_num_lines = get_file_num_lines(in_file=coverage_out_file)
 
-    messenger("Splitting output by chromosome")
+    messenger(f"{coverage_type}: Splitting output by chromosome")
     df_splits_path = out_dir / f"df_{coverage_type}_by_chromosome"
     mk_dir(
         path=df_splits_path,
@@ -113,7 +113,7 @@ def run_mosdepth(
         f"chr{chrom}": df_splits_path / f"chr{chrom}.txt" for chrom in range(1, 23)
     }
 
-    messenger("Checking that the splitting did not fail silently")
+    messenger(f"{coverage_type}: Checking that the splitting did not fail silently")
 
     split_num_rows = pd.read_csv(
         df_splits_path / "total_rows.txt",
@@ -123,7 +123,7 @@ def run_mosdepth(
     )
     if split_num_rows["num_rows"].sum() != coverage_num_lines:
         raise RuntimeError(
-            "Splitting coverage file by chromosome failed. "
+            f"{coverage_type}: Splitting {coverage_type} file by chromosome failed. "
             f"Original file had ({coverage_num_lines}) bins, but "
             f"the total number of bins checked during splitting was {split_num_rows['num_rows'].sum()}."
             f"Please try again and report if it keeps happening."
@@ -140,17 +140,21 @@ def run_mosdepth(
     coverage_out_file.unlink()
 
     # Save coverage as sparse arrays
-    messenger("Convert chromosome-wise nonzero coverages to sparse arrays")
+    messenger(
+        f"{coverage_type}: Converting chromosome-wise nonzero coverages to sparse arrays"
+    )
     total_nonzeros, _ = convert_nonzeros_to_sparse_arrays(
         chrom_to_nonzero_files=chrom_nonzero_files,
         chrom_out_files=chrom_to_files_out,
         chrom_to_num_chrom_bins=chrom_to_num_chrom_bins,
     )
-    messenger(f"Got {total_nonzeros} bins with nonzero coverage", indent=2)
+    messenger(
+        f"{coverage_type}: Got {total_nonzeros} bins with nonzero coverage", indent=2
+    )
 
     # Clean up intermediate files
     if clean_intermediates:
-        messenger("Clean up intermediate files")
+        messenger(f"{coverage_type}: Cleaning up intermediate files")
         rm_dir(
             path=df_splits_path,
             arg_name="df_splits_path",
