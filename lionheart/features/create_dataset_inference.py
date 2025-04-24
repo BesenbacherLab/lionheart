@@ -132,7 +132,7 @@ def _load_bins_and_exclude(
         df = df[~df["idx"].isin(exclude)].reset_index(drop=True)
     return (
         df["idx"].to_numpy().astype(np.int64),
-        df["gc"].to_numpy().astype(np.float64),
+        df["GC"].to_numpy().astype(np.float64),
     )
 
 
