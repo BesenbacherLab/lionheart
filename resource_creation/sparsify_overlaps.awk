@@ -1,9 +1,8 @@
 #!/usr/bin/mawk -f
 # This script saves the (non-duplicate) file indices and values of non-zero overlaps
 # given a data frame of (chromosome, bin index, overlap)
-# Consequtive duplicates are summed
-# The new index (zero-indexed) is restarted per chromosome
-# The non-zero index and values are saved in chromosome-wise files
+# Consequtive index-duplicates are summed
+# The non-zero indices and values are saved in chromosome-wise files
 # allowing the construction of sparse arrays without mapping 
 # the non-zero values onto the original data frame (expensive)
 # NOTE: make script executable: chmod +x sparsify_overlaps.awk
@@ -30,37 +29,32 @@ BEGIN {
     # If this is the first line (NR == 1), initialize
     if (NR == 1) {
         prevChrom  = currChr
-        groupChrom = currChr
         groupBin   = currBin
         groupSum   = currOverlap
-        groupIndex = 0
         next
     }
 
     # If chromosome changed, finalize old group
     if (currChr != prevChrom) {
         if (groupSum != 0) {
-            print groupIndex, groupSum >> (outdir "/" prevChrom ".sparsed.txt")
+            print groupBin, groupSum >> (outdir "/" prevChrom ".sparsed.txt")
         }
         close(outdir "/" prevChrom ".sparsed.txt")
 
-        # reset for new chromosome
-        groupIndex = 0
-        groupChrom = currChr
+        # Reset for new chromosome
         groupBin   = currBin
         groupSum   = currOverlap
         prevChrom  = currChr
     } else {
-        # same chromosome
+        # Same chromosome
         if (currBin == groupBin) {
             # duplicate bin => add overlap
             groupSum += currOverlap
         } else {
-            # new bin => finalize old bin group if nonzero
+            # New bin => finalize old bin group if nonzero
             if (groupSum != 0) {
-                print groupIndex, groupSum >> (outdir "/" currChr ".sparsed.txt")
+                print groupBin, groupSum >> (outdir "/" currChr ".sparsed.txt")
             }
-            groupIndex++
             groupBin  = currBin
             groupSum  = currOverlap
         }
@@ -68,9 +62,9 @@ BEGIN {
 }
 
 END {
-    # finalize last group
+    # Finalize last group
     if (groupSum != 0) {
-        print groupIndex, groupSum >> (outdir "/" prevChrom ".sparsed.txt")
+        print groupBin, groupSum >> (outdir "/" prevChrom ".sparsed.txt")
     }
     close(outdir "/" prevChrom ".sparsed.txt")
 }
