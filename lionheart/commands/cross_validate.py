@@ -348,7 +348,7 @@ def main(args):
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell type features
         inner_metric="balanced_accuracy",
         refit=True,
         num_jobs=args.num_jobs,
