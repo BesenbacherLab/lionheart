@@ -33,6 +33,9 @@ Todos
 - Ensure Control is the negative label and Cancer is the positive label!
 """
 
+# Disable font manager debugging messages
+logging.getLogger("matplotlib.font_manager").disabled = True
+
 
 def setup_parser(parser):
     parser.add_argument(
