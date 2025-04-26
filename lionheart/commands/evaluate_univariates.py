@@ -13,6 +13,9 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
 from lionheart.utils.global_vars import LABELS_TO_USE
 
+# Disable font manager debugging messages
+logging.getLogger("matplotlib.font_manager").disabled = True
+
 
 def setup_parser(parser):
     parser.add_argument(
@@ -59,7 +62,7 @@ def setup_parser(parser):
         type=str,
         required=True,
         help=(
-            "Path to directory to store the cross-validation results at. "
+            "Path to directory to store the univariate evaluations results at. "
             "\nA `log` directory will be placed in the same directory."
         ),
     )
@@ -80,7 +83,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--use_included_features",
         action="store_true",
-        help="Whether to use the included features in the cross-validation."
+        help="Whether to use the included features in the univariate evaluations."
         "\nWhen specified, the --resources_dir must also be specified. "
         "\nWhen NOT specified, only the manually specified datasets are used.",
     )
