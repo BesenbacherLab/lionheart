@@ -311,6 +311,7 @@ def main(args):
         transformers_fn,
         dataset_paths,
         train_only,
+        _,
         meta_data_paths,
         feature_name_to_feature_group_path,
     ) = prepare_modeling_command(

@@ -108,6 +108,19 @@ def setup_parser(parser):
         "\nto the training data, so flag it as 'train-only'.",
     )
     parser.add_argument(
+        "--merge_datasets",
+        type=str,
+        nargs="*",
+        help="List of dataset groups that should be merged into a single dataset. "
+        "Given as `NewName(D1,D2,D3)`. "
+        "Only relevant when `dataset_paths` has >1 paths. "
+        "Names must match those in `dataset_names` which must also be specified. \n\n"
+        "Example: `--merge_datasets BestDataset(D1,D2) WorstDataset(D3,D4,D5)` "
+        "would create 2 datasets where D1 and D2 make up the first, and D3-5 make up the second. "
+        "Datasets not mentioned are not affected. \n\n"
+        "Note: Be careful about spaces in the dataset names or make sure to quote each string. ",
+    )
+    parser.add_argument(
         "--aggregate_by_subjects",
         action="store_true",
         help="Whether to aggregate <i>predictions</i> per subject before evaluations. "
@@ -192,6 +205,7 @@ def main(args):
         _,
         dataset_paths,
         train_only,
+        merge_datasets,
         meta_data_paths,
         feature_name_to_feature_group_path,
     ) = prepare_modeling_command(
@@ -211,6 +225,7 @@ def main(args):
         labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         train_only_datasets=train_only,
+        merge_datasets=merge_datasets,
         k=args.k,
         standardize_cols=True,
         standardize_rows=True,
