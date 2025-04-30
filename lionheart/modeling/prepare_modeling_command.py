@@ -80,9 +80,14 @@ def prepare_modeling_command(
                     "A dataset index in `--train_only` was greater "
                     f"than the number of specified datasets: {idx}"
                 )
-        train_only = [
-            f"new_dataset_{train_only_idx}" for train_only_idx in args.train_only
-        ]
+        if args.dataset_names is not None:
+            train_only = [
+                args.dataset_names[train_only_idx] for train_only_idx in args.train_only
+            ]
+        else:
+            train_only = [
+                f"new_dataset_{train_only_idx}" for train_only_idx in args.train_only
+            ]
 
     # Add included features
     if args.use_included_features:
