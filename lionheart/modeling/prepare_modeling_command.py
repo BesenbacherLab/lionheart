@@ -20,7 +20,8 @@ def prepare_modeling_command(
 
     if len(args.meta_data_paths) != len(args.dataset_paths):
         raise ValueError(
-            "`--meta_data_paths` and `--dataset_paths` did not "
+            f"`--meta_data_paths` ({len(args.meta_data_paths)}) and "
+            f"`--dataset_paths` ({len(args.dataset_paths)}) did not "
             "have the same number of paths."
         )
     if len(args.dataset_paths) == 0 and not args.use_included_features:
