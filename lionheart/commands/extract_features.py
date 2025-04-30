@@ -31,7 +31,8 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples, Guide
 
 # NOTE: Ensure ISS bin edges file fits with this!
-FRAGMENT_LENGTH_LIMITS = (100, 220)
+# NOTE: ISS bins are 3bp large, hence the 219
+FRAGMENT_LENGTH_LIMITS = (120, 219)
 
 
 @dataclass
@@ -56,7 +57,7 @@ def run_mosdepth(
     insert_size_mode: bool,
     chrom_to_num_chrom_bins: Dict[str, int],
     n_jobs: int,
-    length_limits: Tuple[int, int] = (100, 220),
+    length_limits: Tuple[int, int],
     mosdepth_paths: Optional[MosdepthPaths] = None,
     clean_intermediates: bool = True,
     messenger: Optional[Callable] = Messenger(verbose=False, indent=0, msg_fn=print),
