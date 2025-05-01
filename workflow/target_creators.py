@@ -24,8 +24,8 @@ def extract_features(
     out_dir: Union[str, pathlib.Path],
     mosdepth_path: Optional[Union[str, pathlib.Path]],
     ld_library_path: Optional[Union[str, pathlib.Path]],
-    walltime: str = "12:00:00",
-    memory: str = "60g",
+    walltime: str = "4:00:00",
+    memory: str = "25g",
     cores: int = 10,
 ) -> None:
     """
@@ -58,15 +58,14 @@ def extract_features(
         Supply something like '/home/<username>/anaconda3/envs/<env_name>/lib/'.
     walltime
         A string specifying the available time for the target.
-        For large samples, this might need to be increased.
         Tip: Run for a single sample (e.g., the largest)
         first, to ensure the assigned time is enough.
     memory
         The memory (RAM) available to the target.
+        The max. memory usage in our cohorts was 20gb but many samples used less.
     cores
         The number of cores available to the target.
-        Parallelization is used during feature calculation
-        across the many cell type masks.
+        We recommend 10 or more cores.
     """
     bam_file = pathlib.Path(bam_file).resolve()
     resources_dir = pathlib.Path(resources_dir).resolve()
