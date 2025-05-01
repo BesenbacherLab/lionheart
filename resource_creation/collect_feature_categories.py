@@ -155,3 +155,7 @@ def main():
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
+
+
+if __name__ == "__main__":
+    main()
