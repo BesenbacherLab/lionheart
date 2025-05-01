@@ -56,9 +56,11 @@ def main():
             "and `--meta_data_files` (with the same order)."
         )
 
+    out_dir = pathlib.Path(args.out_dir).parent
+
     # Prepare logging messenger
     setup_logging(
-        dir=str(pathlib.Path(args.out_dir) / "logs"),
+        dir=str(out_dir / "logs"),
         fname_prefix="annotate_feature_categories-",
     )
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
@@ -73,7 +75,6 @@ def main():
     timer.stamp()
 
     # Create paths container with checks
-    out_dir = pathlib.Path(args.out_dir).parent
 
     index_files = {
         f"index_{i}": file for i, file in enumerate(args.index_to_cell_type_files)
