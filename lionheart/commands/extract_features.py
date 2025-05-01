@@ -31,8 +31,7 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples, Guide
 
 # NOTE: Ensure ISS bin edges file fits with this!
-# NOTE: ISS bins are 3bp large, hence the 219
-FRAGMENT_LENGTH_LIMITS = (120, 219)
+FRAGMENT_LENGTH_LIMITS = (100, 220)
 
 
 @dataclass
