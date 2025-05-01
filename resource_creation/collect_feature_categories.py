@@ -151,8 +151,9 @@ def main():
 
         # Set consensus values
         current_data.loc[
-            current_data["cell_type"] == "consensus", ["category", "seq_type"]
-        ] = ["Consensus", current_data.loc[0, "seq_type"]]
+            current_data["cell_type"] == "consensus",
+            ["category", "seq_type", "biosample_type"],
+        ] = ["Consensus", current_data.loc[0, "seq_type"], "consensus"]
         mask = current_data["cell_type"] == "consensus"
         current_data.loc[mask] = current_data.loc[mask].fillna(False)
 
