@@ -106,17 +106,21 @@ def main():
             {"annotated_biosample_name": "cell_type"}, inplace=True, axis=1
         )
         # Remove sample ID and unwanted columns
-        category_data = category_data.loc[
-            :,
-            [
-                "cell_type",
-                "category",
-                "seq_type",
-                "biosample_type",
-                "cancer_derived",
-                "embryo_derived",
-            ],
-        ].drop_duplicates()
+        category_data = (
+            category_data.loc[
+                :,
+                [
+                    "cell_type",
+                    "category",
+                    "seq_type",
+                    "biosample_type",
+                    "cancer_derived",
+                    "embryo_derived",
+                ],
+            ]
+            .drop_duplicates()
+            .reset_index(drop=True)
+        )
 
         messenger(
             f"Indices shape: {idx_data.shape} ; Groupings shape: {category_data.shape}",
@@ -125,7 +129,7 @@ def main():
 
         # Join to get the category info per cell type
         current_data = (
-            idx_data.join(category_data, how="left", on="cell_type")
+            idx_data.merge(category_data, how="left", on="cell_type")
             .loc[
                 :,
                 [
@@ -141,8 +145,14 @@ def main():
             .sort_values("idx")  # Should be already but worth the sanity check
         )
 
+        # Update idx
         current_data["idx"] = current_data["idx"] + (max_idx + 1)
         max_idx = int(current_data["idx"].max())
+
+        # Set consensus values
+        current_data.loc[
+            current_data["cell_type"] == "consensus", ["category", "seq_type"]
+        ] = ["Consensus", current_data.loc[0, "seq_type"]]
 
         messenger(
             f"Min idx: {current_data.idx.min()} ; Max idx: {current_data.idx.max()}",
