@@ -56,7 +56,7 @@ def main():
             "and `--meta_data_files` (with the same order)."
         )
 
-    out_dir = pathlib.Path(args.out_dir).parent
+    out_dir = pathlib.Path(args.out_file).parent
 
     # Prepare logging messenger
     setup_logging(
