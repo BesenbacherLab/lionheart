@@ -22,20 +22,24 @@ def main():
     parser.add_argument(
         "--index_to_cell_type_files",
         required=True,
+        nargs="*",
         type=str,
-        help="Path to `.csv` files with array index per cell type. "
+        help="Paths to `.csv` files with array index per cell type. "
         "Must have the columns: {'idx', 'cell_type'}. "
-        "Columns should be comma-separated.",
+        "Columns should be comma-separated. "
+        "Paths should be space-separated.",
     )
     parser.add_argument(
         "--meta_data_files",
         required=True,
+        nargs="*",
         type=str,
-        help="Path to `.tsv` file with category meta data for the chromatin tracks. "
+        help="Paths to `.tsv` file with category meta data for the chromatin tracks. "
         "Must have the columns: {'annotated_biosample_name', 'category', 'seq_type', "
         "'biosample_type', 'cancer_derived', 'embryo_derived'}, and match "
         "the respective `--index_to_cell_type_files` file. "
-        "Columns should be tab-separated.",
+        "Columns should be tab-separated."
+        "Paths should be space-separated.",
     )
     parser.add_argument(
         "--out_file",
