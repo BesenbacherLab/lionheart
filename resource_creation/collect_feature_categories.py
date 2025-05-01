@@ -153,6 +153,8 @@ def main():
         current_data.loc[
             current_data["cell_type"] == "consensus", ["category", "seq_type"]
         ] = ["Consensus", current_data.loc[0, "seq_type"]]
+        mask = current_data["cell_type"] == "consensus"
+        current_data.loc[mask] = current_data.loc[mask].fillna(False)
 
         messenger(
             f"Min idx: {current_data.idx.min()} ; Max idx: {current_data.idx.max()}",
