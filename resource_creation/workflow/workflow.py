@@ -9,6 +9,7 @@ import utipy as ut
 from resource_creation.workflow.target_creators import (
     bin_chromatin_tracks,
     bin_genome,
+    collect_and_annotate_features_with_category_info,
     collect_outliers_across_datasets,
     collect_outliers_for_dataset,
     copy_index_map,
@@ -98,6 +99,7 @@ genome_binning_out_files = bin_genome(
 )
 
 track_memory = 100
+all_index_maps = []
 for track_type, track_dir in tracks_dirs.items():
     chromatin_out_files = bin_chromatin_tracks(
         gwf=gwf,
@@ -116,13 +118,22 @@ for track_type, track_dir in tracks_dirs.items():
     )
 
     # Copy the `idx --> cell_type` map to outer directory
-    copy_index_map(
-        gwf=gwf,
-        chromatin_out_files=chromatin_out_files,
-        track_type=track_type,
-        new_resources_dir=new_resources_dir,
+    all_index_maps.append(
+        copy_index_map(
+            gwf=gwf,
+            chromatin_out_files=chromatin_out_files,
+            track_type=track_type,
+            new_resources_dir=new_resources_dir,
+        )
     )
 
+collect_and_annotate_features_with_category_info(
+    gwf=gwf,
+    scripts_dir=scripts_dir,
+    out_file=new_resources_dir / "feature_names_and_grouping.csv",
+    idx_to_cell_type_files=all_index_maps,
+    cell_type_to_category_files=list(meta_data_files.values()),
+)
 
 #####################
 # Outlier Detection #

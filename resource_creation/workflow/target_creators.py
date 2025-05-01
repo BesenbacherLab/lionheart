@@ -184,7 +184,7 @@ def copy_index_map(
     chromatin_out_files: Dict[str, pathlib.Path],
     track_type: str,
     new_resources_dir: pathlib.Path,
-):
+) -> pathlib.Path:
     # Copy the index -> cell_type files to outer directory
     old_idx_to_cell_type_file = chromatin_out_files["idx_to_cell_type"]
     # E.g., 'path/ATAC.idx_to_cell_type.csv
@@ -207,6 +207,8 @@ def copy_index_map(
         """
         )
     )
+
+    return new_idx_to_cell_type_file
 
 
 def find_outlier_candidates(
@@ -427,6 +429,54 @@ def collect_outliers_across_datasets(
     )
 
     return output_files
+
+
+def collect_and_annotate_features_with_category_info(
+    gwf: Workflow,
+    scripts_dir: Union[str, pathlib.Path],
+    out_file: Union[str, pathlib.Path],
+    idx_to_cell_type_files: List[Union[str, pathlib.Path]],
+    cell_type_to_category_files: List[Union[str, pathlib.Path]],
+    walltime: str = "01:00:00",
+    memory: str = "3g",
+    cores: int = 1,
+):
+    """
+    Create target for annotating the chromatin cell types with category information
+    and collecting across chromatin seq-types (ATAC and DNase).
+    This can be used to extract the category etc. per cell type feature.
+
+    Parameters
+    ----------
+    gwf
+        A `gwf` workflow to create targets for.
+    out_file
+        File path to save output at.
+    walltime
+        A string specifying the available time for the target.
+        For large samples, this might need to be increased.
+    memory
+        The memory (RAM) available to the target.
+    cores
+        The number of cores available to the target.
+    """
+    scripts_dir = pathlib.Path(scripts_dir).resolve()
+
+    (
+        gwf.target(
+            legalize_target_name("lionheart_collect_annotate_cell_types"),
+            inputs=to_strings(idx_to_cell_type_files + cell_type_to_category_files),
+            outputs=to_strings([out_file]),
+            walltime=walltime,
+            memory=memory,
+            cores=cores,
+        )
+        << log_context(
+            f"""
+        python {scripts_dir / "collect_feature_categories.py"} --index_to_cell_type_files {" ".join(to_strings(idx_to_cell_type_files))} --meta_data_files {" ".join(to_strings(cell_type_to_category_files))} --out_file {out_file}
+        """
+        )
+    )
 
 
 def legalize_target_name(target_name):

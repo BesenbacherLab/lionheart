@@ -61,7 +61,7 @@ def main():
         required=True,
         type=str,
         help="Path to `.tsv` file with meta data for the chromatin tracks. "
-        "Must have the column: {'sample_id', 'annotated_biosample_name'}, "
+        "Must have the columns: {'sample_id', 'annotated_biosample_name'}, "
         "where the 'sample_id' matches the file name (`<sample_id>.bed.gz`) "
         "in the `--tracks_dir` directory.",
     )
