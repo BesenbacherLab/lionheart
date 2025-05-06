@@ -394,7 +394,6 @@ def prepare_modeling(
                 # Extract the actual labels to use and
                 # a map of label collapsings
                 # as well as the positive label (class index) after collapsings
-                messenger(labels_to_use)
                 all_labels_to_use, collapse_map, positive_label = parse_labels_to_use(
                     labels_to_use=labels_to_use, unique_labels=list(np.unique(labels))
                 )
