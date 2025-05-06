@@ -182,6 +182,13 @@ def run_nested_cross_validation(
                 "Overwriting `merge_datasets` for leave-one-class-out cross-validation",
                 add_msg_fn=warnings.warn,
             )
+        messenger(
+            (
+                ["All(" + ",".join(dataset_paths.keys()) + ")"]
+                if isinstance(dataset_paths, dict)
+                else None
+            )
+        )
         merge_datasets = parse_merge_datasets(
             merge_datasets=(
                 ["All(" + ",".join(dataset_paths.keys()) + ")"]
