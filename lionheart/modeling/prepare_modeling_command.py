@@ -4,7 +4,10 @@ from sklearn.linear_model import LogisticRegression
 from utipy import Messenger, IOPaths
 from typing import List, Optional, Dict
 
-from lionheart.modeling.transformers import prepare_transformers_fn
+from lionheart.modeling.transformers import (
+    prepare_benchmark_transformers_fn,
+    prepare_transformers_fn,
+)
 from lionheart.modeling.model_dict import create_model_dict
 
 
@@ -91,6 +94,11 @@ def prepare_modeling_command(
 
     # Add included features
     if args.use_included_features:
+        if args.feature_type != "LIONHEART":
+            raise ValueError(
+                "When `--feature_type` is specified as a benchmark, "
+                "`--use_included_features` cannot be enabled."
+            )
         shared_features_dir = paths["resources_dir"] / "shared_features"
         shared_features_paths = pd.read_csv(shared_features_dir / "dataset_paths.csv")
 
@@ -156,12 +164,20 @@ def prepare_modeling_command(
 
     transformers_fn = None
     if prep_transformers:
-        transformers_fn = prepare_transformers_fn(
-            pca_target_variance=args.pca_target_variance,
-            min_var_thresh=[0.0],
-            scale_rows=["mean", "std"],
-            standardize=True,
-        )
+        if args.feature_type == "LIONHEART":
+            transformers_fn = prepare_transformers_fn(
+                pca_target_variance=args.pca_target_variance,
+                min_var_thresh=[0.0],
+                scale_rows=["mean", "std"],
+                standardize=True,
+            )
+        else:
+            transformers_fn = prepare_benchmark_transformers_fn(
+                feature_type=args.feature_type,
+                pca_target_variance=args.pca_target_variance,
+                min_var_thresh=[0.0],
+                standardize=True,
+            )
 
     return (
         model_dict,
@@ -278,7 +294,7 @@ def parse_merge_datasets(
     merge_datasets
         List of strings with dataset collapsings.
         Given as 'new_dataset(dataset1,dataset2,dataset3)'.
-        That is, a new name and the paranthesis-wrapped, comma-separated labels.
+        That is, a new name and the parenthesis-wrapped, comma-separated labels.
 
     Returns
     -------
@@ -314,7 +330,7 @@ def parse_merge_datasets(
                 dataset_name.strip() for dataset_name in datasets_in_group
             ]
             assert len(datasets_in_group) > 0, (
-                f"Found no comma-separated dataset names within the parantheses: {group}."
+                f"Found no comma-separated dataset names within the parentheses: {group}."
             )
             collapse_map[group_name] = datasets_in_group
 

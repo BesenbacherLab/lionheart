@@ -62,7 +62,11 @@ def prepare_modeling(
     ...
 
     """
-    if "classification" in task and labels_to_use is None:
+    if (
+        "classification" in task
+        and task != "leave_one_class_out_binary_classification"
+        and labels_to_use is None
+    ):
         # Better to be explicit (`labels_to_use` also specifies positive class)
         raise ValueError("`labels_to_use` must be specified in classification tasks.")
     assert labels_to_use is None or (
@@ -310,17 +314,40 @@ def prepare_modeling(
         else:
             groups = None
 
+        if (
+            task == "leave_one_class_out_binary_classification"
+            and labels_to_use is None
+        ):
+            # Create labels_to_use for `--loco`
+            _unique_labels = [
+                str(lab).lower()
+                for lab in np.unique(labels)
+                if lab.lower() != "exclude"
+            ]
+            if "control" not in _unique_labels:
+                raise ValueError(
+                    "no 'control' label found. Found these labels: "
+                    f"{', '.join(_unique_labels)}"
+                )
+            labels_to_use = [
+                f"{i}_{lab.title()}({lab})"
+                for i, lab in enumerate(
+                    ["control"] + [ul for ul in _unique_labels if ul != "control"]
+                )
+            ]
+
         # Check labels *pre-collapse*
         num_labels = len(np.unique(labels))
         # Save to enable check for collapsings
         num_labels_pre_collapse = num_labels
         with messenger.indentation(add_indent=2):
             collapse_string = (
-                " (without collapsing)" if labels_to_use is not None else ""
+                " (without collapsing and exclusion)"
+                if labels_to_use is not None
+                else ""
             )
             messenger(
-                f"Number of total labels{collapse_string}: "
-                f"{num_labels_pre_collapse}"
+                f"Number of total labels{collapse_string}: {num_labels_pre_collapse}"
             )
 
     # Create a "dataset"-like array with the names of the datasets

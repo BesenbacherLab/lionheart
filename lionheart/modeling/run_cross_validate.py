@@ -1,10 +1,14 @@
 import pathlib
 from typing import Callable, List, Optional, Tuple, Union, Dict
+import warnings
+import random
+import contextlib
 import pandas as pd
 import numpy as np
 from utipy import StepTimer, Messenger, check_messenger, random_alphanumeric
 from generalize import Evaluator, nested_cross_validate
 
+from lionheart.modeling.prepare_modeling_command import parse_merge_datasets
 from lionheart.plotting.plot_inner_scores import plot_inner_scores
 from lionheart.modeling.prepare_modeling import prepare_modeling
 
@@ -25,6 +29,7 @@ def run_nested_cross_validation(
     feature_sets: Optional[List[int]] = None,  # None for 2D
     feature_indices: Optional[List[Union[Tuple[int, int], int]]] = None,
     train_only_datasets: Optional[List[str]] = None,
+    train_only_labels: Optional[List[str]] = None,
     merge_datasets: Optional[Dict[str, List[str]]] = None,
     k_outer: int = 10,
     k_inner: Optional[int] = 10,
@@ -62,7 +67,14 @@ def run_nested_cross_validation(
         {sample id, target, group (optional)}.
     task : str
         Which task to cross-validate. One of:
-            {'binary_classification', 'multiclass_classification', 'regression'}.
+            {'binary_classification', 'multiclass_classification', 'regression',
+            'leave_one_class_out_binary_classification'}.
+        'leave_one_class_out_binary_classification':
+            Cross-validate binary classification on multiclass data where each positive multiclass label
+            is held out with a proportionate number of negative samples. So the model is binary
+            but multiclasses are the outer splits. All datasets are pooled to one dataset.
+            Sampled negative samples for the splits are thus from the global pool of negative samples,
+            not from the specific dataset.
     model_dict: dict
         A dictionary containing the partial model function, boolean is_skorch (if using Skorch),
         the grid of hyperparameters, and any additional parameters for the model.
@@ -72,7 +84,7 @@ def run_nested_cross_validation(
         should be specified (separated by a whitespace). When more than two labels are specified,
         multiclass classification is used. When no labels are specified, all labels are used.
         Combine multiple labels to a single label/group (e.g., cancer <- colon,rectal,prostate)
-        by giving a name and the paranthesis-wrapped, comma-separated labels. E.g.
+        by giving a name and the parenthesis-wrapped, comma-separated labels. E.g.
         'cancer(colon,rectal,prostate)'.
     feature_sets: Optional[List[int]], default=None
         List of feature sets to use (only for 3D datasets). Default is to use all available feature sets.
@@ -85,6 +97,9 @@ def run_nested_cross_validation(
         Note: For datasets mentioned in `merge_datasets`, all datasets
         in a group should have the same `train_only` status. I.e. either
         all be listed or not listed in `train_only_datasets`.
+    train_only_labels: Optional[List[str]], default=None
+        List of cancer types to use for training only.
+        NOTE: Only used when `task=="leave_one_class_out_binary_classification"`.
     merge_datasets:  Optional[Dict[str, List[str]]], default=None
         Dict mapping collapsed dataset name to a list with names of the dataset members.
         List of named dataset groups that should be merged to a single dataset.
@@ -157,6 +172,31 @@ def run_nested_cross_validation(
     messenger = check_messenger(messenger)
     messenger("Preparing to run nested cross-validation")
 
+    if task == "leave_one_class_out_binary_classification":
+        if k_inner is None or k_inner < 1:
+            raise ValueError(
+                f"`--loco`: `k_inner` cannot be `None` and must be positive: Got {k_inner}."
+            )
+        if merge_datasets is not None:
+            messenger(
+                "Overwriting `merge_datasets` for leave-one-class-out cross-validation.",
+                add_msg_fn=warnings.warn,
+            )
+        merge_datasets = (
+            parse_merge_datasets(
+                merge_datasets=(
+                    ["All(" + ",".join(dataset_paths.keys()) + ")"]
+                    if isinstance(dataset_paths, dict)
+                    else None
+                ),
+            ),
+        )
+    elif train_only_labels is not None:
+        raise ValueError(
+            "`train_only_labels` can only be specified when "
+            "`task == 'leave_one_class_out_binary_classification'`."
+        )
+
     # Init timestamp handler
     # When using the messenger as msg_fn, messages are indented properly
     if timer is None:
@@ -173,12 +213,15 @@ def run_nested_cross_validation(
         out_path=out_path,
         meta_data_paths=meta_data_paths,
         feature_name_to_feature_group_path=feature_name_to_feature_group_path,
-        task=task,
+        task="multiclass_classification"
+        if task == "leave_one_class_out_binary_classification"
+        else task,
         model_dict=model_dict,
         labels_to_use=labels_to_use,
         feature_sets=feature_sets,
         feature_indices=feature_indices,
         train_only_datasets=train_only_datasets,
+        train_only_labels=train_only_labels,
         merge_datasets=merge_datasets,
         aggregate_by_groups=aggregate_by_groups,
         weight_loss_by_groups=weight_loss_by_groups,
@@ -221,6 +264,37 @@ def run_nested_cross_validation(
     if callable(transformers):
         transformers, model_dict = transformers(model_dict=model_dict)
 
+    labels = prepared_modeling_dict["labels"]
+    outer_splits = prepared_modeling_dict["split"]
+    y_labels = prepared_modeling_dict["new_label_idx_to_new_label"]
+    positive_label = prepared_modeling_dict["new_positive_label"]
+    weight_per_split = prepared_modeling_dict["weight_per_dataset"]
+    if task == "leave_one_class_out_binary_classification":
+        # Update labels to binary labels
+        # and create outer split by the multiclass labels
+        # with same proportions of negative samples
+        # (relative to all positive or negative samples respectively)
+        # NOTE: `outer_splits` is a dict of splits
+        labels, outer_splits, y_labels = _update_labels_for_leave_one_class_out(
+            multiclass_labels=prepared_modeling_dict["labels"],
+            label_idx_to_label=prepared_modeling_dict["new_label_idx_to_new_label"],
+            negative_label="Control",
+            positive_label_name="Cancer",
+            reps=reps,
+            train_only_labels=None,
+        )
+        positive_label = 1
+        weight_per_split = False
+        task = "binary_classification"
+        k_outer = None
+
+        # Show fold sizes
+        messenger("Fold sizes (different sampling of controls per repetition):\n")
+        for split_name, split in outer_splits.items():
+            messenger(
+                f"{split_name}: {dict(zip(*np.unique(split, return_counts=True)))}"
+            )
+
     # As we need to remove the temporary directories again
     # even when the code fails or is interrupted
     # we put everything in an try/except
@@ -239,20 +313,20 @@ def run_nested_cross_validation(
 
             cv_out = nested_cross_validate(
                 x=prepared_modeling_dict["dataset"],
-                y=prepared_modeling_dict["labels"],
+                y=labels,
                 model=prepared_modeling_dict["model"],
                 grid=model_dict["grid"],
                 groups=prepared_modeling_dict["groups"],
-                positive=prepared_modeling_dict["new_positive_label"],
-                y_labels=prepared_modeling_dict["new_label_idx_to_new_label"],
+                positive=positive_label,
+                y_labels=y_labels,
                 k_outer=k_outer,
                 k_inner=k_inner,
-                outer_split=prepared_modeling_dict["split"],
-                eval_by_split=prepared_modeling_dict["split"] is not None,
+                outer_split=outer_splits,
+                eval_by_split=outer_splits is not None,
                 aggregate_by_groups=prepared_modeling_dict["aggregate_by_groups"],
                 weight_loss_by_groups=prepared_modeling_dict["weight_loss_by_groups"],
                 weight_loss_by_class=prepared_modeling_dict["weight_loss_by_class"],
-                weight_per_split=prepared_modeling_dict["weight_per_dataset"],
+                weight_per_split=weight_per_split,
                 tmp_path=paths["tmp_path"],
                 inner_metric=inner_metric,
                 refit=refit,
@@ -374,3 +448,157 @@ def run_nested_cross_validation(
 
     # Remove temporary directories
     paths.rm_tmp_dirs(raise_on_fail=False, messenger=messenger)
+
+
+# TODO: Add unit tests
+def _update_labels_for_leave_one_class_out(
+    multiclass_labels: np.ndarray,
+    label_idx_to_label: Dict[int, str],
+    negative_label: str,
+    positive_label_name: str,
+    reps: int,
+    train_only_labels: Optional[List[str]],
+):
+    #### Update labels to binary labels ####
+    multiclass_label_to_label_idx = {
+        lab: idx for idx, lab in label_idx_to_label.items()
+    }
+    binary_labels = np.array(
+        [
+            int(lab != multiclass_label_to_label_idx[negative_label])
+            for lab in multiclass_labels
+        ]
+    )
+    binary_new_label_idx_to_new_label = {0: negative_label, 1: positive_label_name}
+
+    #### Create label splits ####
+    label_to_label_counts = dict(zip(*np.unique(multiclass_labels, return_counts=True)))
+    positive_label_counts = {
+        lab: counts
+        for lab, counts in label_to_label_counts.items()
+        if lab != multiclass_label_to_label_idx[negative_label]
+        and (
+            train_only_labels is None
+            or label_idx_to_label[lab] not in train_only_labels
+        )
+    }
+    num_positives = sum(positive_label_counts.values())
+    assert num_positives > 0, "Found no samples with the positive label"
+
+    positive_label_proportions = {
+        lab: count / num_positives for lab, count in positive_label_counts.items()
+    }
+    negative_indices = _get_indices_of(
+        multiclass_labels, multiclass_label_to_label_idx[negative_label]
+    )
+    assert len(negative_indices) > 0, "Found no samples with the negative label"
+
+    outer_split = {}
+    for rep in range(reps):
+        # Split indices of negative samples by the proportions of the positive labels
+        negative_sample_split = _split_indices(
+            indices=negative_indices,  # TODO: Currently includes `train_only_datasets` indices
+            proportions=positive_label_proportions,
+            seed=rep,  # TODO: It would be better to run each repetition with a separate split seed
+            copy=True,
+        )
+        assert len(negative_sample_split.keys()) == len(
+            positive_label_proportions.keys()
+        )
+
+        label_to_indices = {
+            "split__" + label_idx_to_label[lab]: indices
+            + list(_get_indices_of(multiclass_labels, lab))
+            for lab, indices in negative_sample_split.items()
+        }
+
+        if train_only_labels is not None:
+            # Add indices for train-only labels
+            label_to_indices.update(
+                {
+                    "train_only(" + "split__" + lab + ")": list(
+                        _get_indices_of(
+                            multiclass_labels, multiclass_label_to_label_idx[lab]
+                        )
+                    )
+                    for lab in train_only_labels
+                }
+            )
+
+        # Invert mapping of labels and indices
+        index_to_label = {
+            idx: lab for lab, indices in label_to_indices.items() for idx in indices
+        }
+        outer_split[f"sampling_{rep}"] = [
+            index_to_label[i] for i in range(len(binary_labels))
+        ]
+
+    return binary_labels, outer_split, binary_new_label_idx_to_new_label
+
+
+def _get_indices_of(labels, lab):
+    return np.nonzero(np.asarray(labels) == lab)[0]
+
+
+def _split_indices(
+    indices, proportions: Dict[str, float], seed: int = 1, copy=True
+) -> Dict[str, List[int]]:
+    """
+    For splitting indices of samples from the negative class
+    by a dict of proportions.
+
+    *Naïve* greedy splitter of indices into groups based on specified proportions.
+
+    NOTE: Given *enough indices*, the following could be a simpler implementation:
+    (Note: it may not draw from all classes with small datasets though!)
+    ```
+    np.random.choice(
+        list(proportions.keys()),
+        size=len(indices),
+        replace=True,
+        p=list(proportions.values())
+    )
+    ```
+    """
+    if copy:
+        indices = indices.copy()
+        proportions = proportions.copy()
+
+    # Shuffle indices
+    with _temp_numpy_seed(seed):
+        np.random.shuffle(indices)
+
+    num_indices = len(indices)
+
+    # Randomize order of proportions dict
+    proportions_tuple = list(proportions.items())
+    rng = random.Random(seed)
+    rng.shuffle(proportions_tuple)
+
+    # Split indices somewhat greedily
+    splits = {}
+    for key, proportion in proportions_tuple:
+        elements_left = len(indices)
+        current_num = int(np.floor(num_indices * proportion))
+        if current_num > elements_left:
+            current_num = elements_left
+        splits[key], indices = list(indices[:current_num]), indices[current_num:]
+    if len(indices) > 0:
+        splits[key] = splits[key] + list(indices)
+
+    return splits
+
+
+@contextlib.contextmanager
+def _temp_numpy_seed(seed: Optional[int]):
+    """
+    Set temporary `numpy` seed or (when `seed=None`)
+    use it to reset random state when exiting context.
+    """
+    state = np.random.get_state()
+    if seed is not None:
+        np.random.seed(seed)
+    try:
+        yield
+    finally:
+        np.random.set_state(state)

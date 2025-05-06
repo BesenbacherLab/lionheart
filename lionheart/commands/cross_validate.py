@@ -5,7 +5,9 @@ Script that cross-validates with specified features / cohorts..
 
 import logging
 import pathlib
+import warnings
 from utipy import Messenger, StepTimer, IOPaths
+from generalize.model.cross_validate import make_simplest_model_refit_strategy
 
 from lionheart.modeling.prepare_modeling_command import prepare_modeling_command
 from lionheart.modeling.run_cross_validate import run_nested_cross_validation
@@ -55,7 +57,9 @@ def setup_parser(parser):
         help="Path(s) to csv file(s) where:"
         "\n  1) the first column contains the <b>sample IDs</b>"
         "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
-        "\n  3) the third column contains the <b>cancer type</b> "
+        "\n  3) the third column contains the <b>cancer type</b>. Only used for leave-one-cancer-type-out (`--loco`) cross-validation. "
+        "Any strings other than 'control' and 'exclude' is considered a cancer type (i.e., the `cancer status` column is ignored in `--loco`). "
+        "Use the same name for a given cancer type across all datasets. "
         + (
             (
                 "for subtyping (see --subtype)"
@@ -66,10 +70,10 @@ def setup_parser(parser):
                 "\n       'head and neck squamous cell carcinoma', 'nasopharyngeal carcinoma',"
                 "\n       'exclude'</i>} (Must match exactly (case-insensitive) when using included features!) "
                 "\n     or a custom cancer type."
-                "\n     <b>NOTE</b>: When not running subtyping, any character value is fine."
+                "\n     <b>NOTE</b>: When not running subtyping or `--loco`, any character value is fine."
             )
             if False  # ENABLE_SUBTYPING
-            else "[NOTE: Not currently used so can be any string value!]."
+            else "[NOTE: Only used when `--loco` is specified. Otherwise, it can be any string value!]."
         )
         + "\n  4) the (optional) fourth column contains the <b>subject ID</b> "
         "(for when subjects have more than one sample)"
@@ -180,6 +184,29 @@ def setup_parser(parser):
         "\nThe predicted probabilities are averaged per subject."
         "\nOnly the evaluations are affected by this. "
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
+    )
+    parser.add_argument(
+        "--feature_type",
+        type=str,
+        default="LIONHEART",
+        choices=["LIONHEART", "bin_depths", "lengths", "length_ratios"],
+        help="The feature type (for benchmarking). "
+        "One of {'LIONHEART', 'bin_depths', 'lengths', 'length_ratios'}.",
+    )
+    parser.add_argument(
+        "--loco",
+        action="store_true",
+        help="Whether to run leave-one-class-out cross-validation. "
+        "\nAll datasets will be merged and each class (cancer type) "
+        "becomes a fold along with a proportional number of sampled controls. "
+        "The model still predicts 'cancer vs. control'."
+        "\nNote: This does NOT represent cross-dataset generalization!",
+    )
+    parser.add_argument(
+        "--loco_train_only_classes",
+        type=str,
+        nargs="*",
+        help="Names of cancer types that should only be used for training (`--loco` only).",
     )
     parser.add_argument(
         "--num_jobs",
@@ -348,15 +375,47 @@ def main(args):
             "to optimize hyperparameters for cross-dataset generalization. "
         )
 
+    refit = (
+        make_simplest_model_refit_strategy(
+            main_var=("model__C", "minimize"),
+            score_name="balanced_accuracy",
+            other_vars=[("pca__target_variance", "minimize")],
+            messenger=messenger,
+        )
+        if args.k_inner is not None or args.loco
+        else True
+    )
+
+    labels_to_use = LABELS_TO_USE
+    # --loco checks
+    if args.loco:
+        loco_checks(args, messenger)
+        labels_to_use = None
+
+    expected_shapes = {
+        "LIONHEART": {1: 10, 2: 898},  # 10 feature sets, 898 cell type features
+        "length_ratios": {1: 2689},
+        "bin_depths": {1: 2689},
+        "lengths": {1: 321},
+    }
+    feature_sets = {
+        "LIONHEART": [0],
+        "length_ratios": None,
+        "bin_depths": None,
+        "lengths": None,
+    }
+
     run_nested_cross_validation(
         dataset_paths=dataset_paths,
         out_path=paths["out_path"],
         meta_data_paths=meta_data_paths,
         feature_name_to_feature_group_path=feature_name_to_feature_group_path,
-        task="binary_classification",
+        task="binary_classification"
+        if not args.loco
+        else "leave_one_class_out_binary_classification",
         model_dict=model_dict,
-        labels_to_use=LABELS_TO_USE,
-        feature_sets=[0],
+        labels_to_use=labels_to_use,
+        feature_sets=feature_sets,
         train_only_datasets=train_only,
         merge_datasets=merge_datasets,
         k_outer=args.k_outer,
@@ -365,9 +424,9 @@ def main(args):
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell type features
+        expected_shape=expected_shapes[args.feature_type],
         inner_metric="balanced_accuracy",
-        refit=True,
+        refit=refit,
         num_jobs=args.num_jobs,
         seed=args.seed,
         messenger=messenger,
@@ -375,3 +434,16 @@ def main(args):
 
     timer.stamp()
     messenger(f"Finished. Took: {timer.get_total_time()}")
+
+
+def loco_checks(args, messenger):
+    if args.train_only:
+        raise NotImplementedError(
+            "`--train_only` datasets is not currently supported in leave-one-class-out (`--loco`) cross-validation."
+        )
+    if args.merge_datasets:
+        messenger(
+            "`--merge_datasets` is ignored in leave-one-class-out cross-validation, "
+            "as all datasets are merged to one.",
+            add_msg_fn=warnings.warn,
+        )
