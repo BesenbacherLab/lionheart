@@ -506,7 +506,7 @@ def prepare_modeling(
     # for plotting cell type contributions
     try:
         feature_name_to_feature_group = pd.read_csv(
-            paths["feature_name_to_feature_group_path"]
+            paths["feature_name_to_feature_group_path"], sep="\t"
         )
         feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
         # ATAC or DNase
