@@ -182,13 +182,6 @@ def run_nested_cross_validation(
                 "Overwriting `merge_datasets` for leave-one-class-out cross-validation",
                 add_msg_fn=warnings.warn,
             )
-        messenger(
-            (
-                ["All(" + ",".join(dataset_paths.keys()) + ")"]
-                if isinstance(dataset_paths, dict)
-                else None
-            )
-        )
         merge_datasets = parse_merge_datasets(
             merge_datasets=(
                 ["All(" + ",".join(dataset_paths.keys()) + ")"]
@@ -196,6 +189,7 @@ def run_nested_cross_validation(
                 else None
             )
         )
+
     elif train_only_labels is not None:
         raise ValueError(
             "`train_only_labels` can only be specified when "
@@ -212,7 +206,7 @@ def run_nested_cross_validation(
 
     # Create paths container with checks
     out_path = pathlib.Path(out_path)
-    messenger(merge_datasets)
+
     prepared_modeling_dict = prepare_modeling(
         dataset_paths=dataset_paths,
         out_path=out_path,
