@@ -23,9 +23,11 @@ Install the main package:
 
 ```
 # Create and activate conda environment
-$ conda config --set channel_priority true
+$ conda config --set channel_priority flexible
 $ conda env create -f https://raw.githubusercontent.com/BesenbacherLab/lionheart/refs/heads/main/environment.yml
 $ conda activate lionheart
+# Try installing mawk (we use awk/gawk as backup if it's unavailable)
+$ conda install -c bioconda mawk || echo "mawk not available on this platform — skipping"
 
 # Install package from PyPI
 $ pip install lionheart
