@@ -1,11 +1,50 @@
 # Changelog
 
-## 1.1.*
+## 2.0.*
 
+This update contains **major changes**. To use it, please reinstall the conda environment, the lionheart package, and the custom mosdepth version, and download the newest resources from zenodo.
+
+### Highlights
+
+ - The number of cell types was increased from 408 unique (487 cell type features) to XX unique (XX cell type features). [TODO!!!]
+   - Note: The previous features are not compatible with the new model.
+ - Features from an additional dataset from Budhraja et al. 2023 was used for training the shared model.
+ - Adds `resource_creation` directory with scripts and workflows for creating the resources for LIONHEART. Most users will never need to use these but they are added for transparency and reproducibility and to enable users to extend LIONHEART with their own cell types, etc.
+ - Significant decreases in the RAM and time usage of the feature extraction tool. Across our cohorts, the max. memory peak usage was ~20gb but many samples used less.
+ 
+
+### `lionheart extract_features`
+
+ - For the two mosdepth calls, we see large reductions in RAM (from ~50gb to < 6gb) and time usage. The two calls are now run in parallel saving even more time. We recommend specifying at least 10 cores (`--n_jobs 10`).
+   - Note: The feature extraction still requires more RAM than this. [TODO!!!]
+ - Mosdepth is now called using the `--fragment-mode` feature to ensure the entire fragment (i.e. template length) is counted.
+ - Adds check of chromosome names in BAM file header. Requires the "chrXX" naming convention and the presence of all autosomes (chr1-chr22).
+ - Optimizations of internal `normalize_megabins()`.
+
+
+### `lionheart cross_validate`
+
+ - Adds `--merge_datasets` for specifying datasets that should be considered as one in the leave-one-dataset-out cross-validation.
+ - Adds `--feature_type` for running on the benchmark features.
+ - Adds `--loco` for running leave-one-cancer-type-out cross-validation.
+ - Adds `--loco_train_only_classes` for specifying train-only classes in `--loco` mode.
+ - When `k_inner` is not `None` and in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
+
+
+### Dependencies
+
+Please reinstall the conda environment and the custom mosdepth version and redownload the resources.
+
+ - Version bump to `joblib==1.4.2`.
  - Adds `pigz` as dependency for faster (de)compression.
  - Adds `gawk` and `mawk` as dependencies.
  - Adds `samtools` as dependency to allow check of BAM files before running.
  - Adds `lionheart --version` command to CLI.
+
+
+### Minor changes
+
+ - Disables matplotlib font manager logger where relevant. This reduces irrelevant logging messages.
 
 ## 1.1.5
 
