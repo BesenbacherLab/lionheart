@@ -205,7 +205,7 @@ def run_nested_cross_validation(
 
     # Create paths container with checks
     out_path = pathlib.Path(out_path)
-    print(merge_datasets)
+    messenger(merge_datasets)
     prepared_modeling_dict = prepare_modeling(
         dataset_paths=dataset_paths,
         out_path=out_path,
