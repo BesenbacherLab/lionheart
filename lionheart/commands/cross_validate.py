@@ -368,7 +368,7 @@ def main(args):
         messenger=messenger,
     )
 
-    if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4:
+    if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4 and not args.loco:
         args.k_inner = None
         messenger(
             "Overriding --k_inner: Inner loop will use leave-one-dataset-out cross-validation "
