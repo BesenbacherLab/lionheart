@@ -175,21 +175,19 @@ def run_nested_cross_validation(
     if task == "leave_one_class_out_binary_classification":
         if k_inner is None or k_inner < 1:
             raise ValueError(
-                f"`--loco`: `k_inner` cannot be `None` and must be positive: Got {k_inner}."
+                f"`--loco`: `k_inner` cannot be `None` and must be positive: Got {k_inner}"
             )
         if merge_datasets is not None:
             messenger(
-                "Overwriting `merge_datasets` for leave-one-class-out cross-validation.",
+                "Overwriting `merge_datasets` for leave-one-class-out cross-validation",
                 add_msg_fn=warnings.warn,
             )
-        merge_datasets = (
-            parse_merge_datasets(
-                merge_datasets=(
-                    ["All(" + ",".join(dataset_paths.keys()) + ")"]
-                    if isinstance(dataset_paths, dict)
-                    else None
-                ),
-            ),
+        merge_datasets = parse_merge_datasets(
+            merge_datasets=(
+                ["All(" + ",".join(dataset_paths.keys()) + ")"]
+                if isinstance(dataset_paths, dict)
+                else None
+            )
         )
     elif train_only_labels is not None:
         raise ValueError(
