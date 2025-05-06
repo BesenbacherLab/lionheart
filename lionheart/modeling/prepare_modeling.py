@@ -279,7 +279,9 @@ def prepare_modeling(
                 _label_to_sample_ids,
             ) = read_meta_data(
                 paths[dataset_info["meta_data_path_name"]],
-                task=task,
+                task=task
+                if task != "leave_one_class_out_binary_classification"
+                else "multiclass_classification",
                 targets_as_str="classification" in task,
                 name=dataset_name if dataset_name != "unnamed" else None,
                 messenger=messenger,

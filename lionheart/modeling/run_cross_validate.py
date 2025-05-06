@@ -213,9 +213,7 @@ def run_nested_cross_validation(
         out_path=out_path,
         meta_data_paths=meta_data_paths,
         feature_name_to_feature_group_path=feature_name_to_feature_group_path,
-        task="multiclass_classification"
-        if task == "leave_one_class_out_binary_classification"
-        else task,
+        task=task,
         model_dict=model_dict,
         labels_to_use=labels_to_use,
         feature_sets=feature_sets,
