@@ -415,7 +415,7 @@ def main(args):
         else "leave_one_class_out_binary_classification",
         model_dict=model_dict,
         labels_to_use=labels_to_use,
-        feature_sets=feature_sets,
+        feature_sets=feature_sets[args.feature_type],
         train_only_datasets=train_only,
         merge_datasets=merge_datasets,
         k_outer=args.k_outer,
