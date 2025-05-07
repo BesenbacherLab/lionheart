@@ -25,6 +25,7 @@ This update contains **major changes**. To use it, please reinstall the conda en
 ### `lionheart cross_validate`
 
  - Adds `--merge_datasets` for specifying datasets that should be considered as one in the leave-one-dataset-out cross-validation.
+ - Adds `--reps` argument for specifying number of repetitions.
  - Adds `LH_ADVANCED` environment variable for **advanced options**
    - Adds `--feature_type` for running on the benchmark features.
    - Adds `--feature_categories` for specifying cell types categories to include / exclude from the model after scaling.

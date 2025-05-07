@@ -193,6 +193,12 @@ def setup_parser(parser, show_advanced: bool):
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
     parser.add_argument(
+        "--reps",
+        type=int,
+        default=1,
+        help="Number of repetitions.",
+    )
+    parser.add_argument(
         "--num_jobs",
         type=int,
         default=1,
@@ -449,6 +455,7 @@ def main(args):
         merge_datasets=merge_datasets,
         k_outer=args.k_outer,
         k_inner=args.k_inner,
+        reps=args.reps,
         transformers=transformers_fn,
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_loss_by_groups=True,
