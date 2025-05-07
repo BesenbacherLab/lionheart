@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Optional, Tuple, List
 from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.base import BaseEstimator
@@ -10,6 +10,7 @@ def prepare_transformers_fn(
     pca_target_variance: List[float],
     min_var_thresh: List[float] = [0.0],
     scale_rows: List[str] = ["mean", "std"],
+    post_scale_feature_indices: Optional[List[int]] = None,
     standardize: bool = True,
     add_dim_transformer_wrappers: bool = False,
 ):
@@ -56,6 +57,21 @@ def prepare_transformers_fn(
                 kwargs=kwargs,
             )
             del kwargs
+
+        # NOTE: Cannot have selection based on min_var_thresh or max_corr_thresh
+        # prior to this
+        if post_scale_feature_indices is not None:
+            if min_var_thresh:
+                raise ValueError(
+                    "Cannot perform `post_scale_feature_indices` selection when "
+                    "`--min_var_thresh` is specified."
+                )
+            designer.add_step(
+                name="select_features_post_scaling",
+                transformer="feature_selector",
+                add_dim_transformer_wrapper=True,
+                kwargs={"feature_indices": post_scale_feature_indices},
+            )
 
         if pca_target_variance:
             if len(pca_target_variance) != 1:

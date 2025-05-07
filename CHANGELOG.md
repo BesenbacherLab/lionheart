@@ -25,10 +25,12 @@ This update contains **major changes**. To use it, please reinstall the conda en
 ### `lionheart cross_validate`
 
  - Adds `--merge_datasets` for specifying datasets that should be considered as one in the leave-one-dataset-out cross-validation.
- - Adds `--feature_type` for running on the benchmark features.
- - Adds `--loco` for running leave-one-cancer-type-out cross-validation.
- - Adds `--loco_train_only_classes` for specifying train-only classes in `--loco` mode.
- - When `k_inner` is not `None` and in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
+ - Adds `LH_ADVANCED` environment variable for **advanced options**
+   - Adds `--feature_type` for running on the benchmark features.
+   - Adds `--feature_categories` for specifying cell types categories to include / exclude from the model after scaling.
+   - Adds `--loco` for running leave-one-cancer-type-out cross-validation.
+   - Adds `--loco_train_only_classes` for specifying train-only classes in `--loco` mode.
+   - When `k_inner` is not `None` and in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
 
 
 ### Dependencies

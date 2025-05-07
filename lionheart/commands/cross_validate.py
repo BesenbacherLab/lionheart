@@ -39,7 +39,7 @@ Todos
 logging.getLogger("matplotlib.font_manager").disabled = True
 
 
-def setup_parser(parser):
+def setup_parser(parser, show_advanced: bool):
     parser.add_argument(
         "--dataset_paths",
         type=str,
@@ -57,9 +57,16 @@ def setup_parser(parser):
         help="Path(s) to csv file(s) where:"
         "\n  1) the first column contains the <b>sample IDs</b>"
         "\n  2) the second column contains the <b>cancer status</b>\n      One of: {<i>'control', 'cancer', 'exclude'</i>}"
-        "\n  3) the third column contains the <b>cancer type</b>. Only used for leave-one-cancer-type-out (`--loco`) cross-validation. "
-        "Any strings other than 'control' and 'exclude' is considered a cancer type (i.e., the `cancer status` column is ignored in `--loco`). "
-        "Use the same name for a given cancer type across all datasets. "
+        "\n  3) the third column contains the <b>cancer type</b>. "
+        + (
+            (
+                "Only used for leave-one-cancer-type-out (`--loco`) cross-validation. "
+                "\n      Any strings other than 'control' and 'exclude' is considered a cancer type (i.e., the `cancer status` column is ignored in `--loco`). "
+                "\n      Use the same name for a given cancer type across all datasets. "
+            )
+            if show_advanced
+            else "This is only used in advanced modes.\n      For the binary cancer vs. control classification, any string will do (not used)."
+        )
         + (
             (
                 "for subtyping (see --subtype)"
@@ -73,7 +80,7 @@ def setup_parser(parser):
                 "\n     <b>NOTE</b>: When not running subtyping or `--loco`, any character value is fine."
             )
             if False  # ENABLE_SUBTYPING
-            else "[NOTE: Only used when `--loco` is specified. Otherwise, it can be any string value!]."
+            else ""
         )
         + "\n  4) the (optional) fourth column contains the <b>subject ID</b> "
         "(for when subjects have more than one sample)"
@@ -151,11 +158,11 @@ def setup_parser(parser):
         nargs="*",
         help="List of dataset groups that should be merged into a single dataset. "
         "Given as `NewName(D1,D2,D3)`. "
-        "Only relevant when `dataset_paths` has >1 paths. "
-        "Names must match those in `dataset_names` which must also be specified. \n\n"
+        "\nOnly relevant when `dataset_paths` has >1 paths. "
+        "\nNames must match those in `dataset_names` which must also be specified. \n\n"
         "Example: `--merge_datasets BestDataset(D1,D2) WorstDataset(D3,D4,D5)` "
         "would create 2 datasets where D1 and D2 make up the first, and D3-5 make up the second. "
-        "Datasets not mentioned are not affected. \n\n"
+        "\nDatasets not mentioned are not affected. \n\n"
         "Note: Be careful about spaces in the dataset names or make sure to quote each string. ",
     )
     parser.add_argument(
@@ -186,29 +193,6 @@ def setup_parser(parser):
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
     parser.add_argument(
-        "--feature_type",
-        type=str,
-        default="LIONHEART",
-        choices=["LIONHEART", "bin_depths", "lengths", "length_ratios"],
-        help="The feature type (for benchmarking). "
-        "One of {'LIONHEART', 'bin_depths', 'lengths', 'length_ratios'}.",
-    )
-    parser.add_argument(
-        "--loco",
-        action="store_true",
-        help="Whether to run leave-one-class-out cross-validation. "
-        "\nAll datasets will be merged and each class (cancer type) "
-        "becomes a fold along with a proportional number of sampled controls. "
-        "The model still predicts 'cancer vs. control'."
-        "\nNote: This does NOT represent cross-dataset generalization!",
-    )
-    parser.add_argument(
-        "--loco_train_only_classes",
-        type=str,
-        nargs="*",
-        help="Names of cancer types that should only be used for training (`--loco` only).",
-    )
-    parser.add_argument(
         "--num_jobs",
         type=int,
         default=1,
@@ -220,6 +204,51 @@ def setup_parser(parser):
         default=1,
         help="Random state supplied to `sklearn.linear_model.LogisticRegression`.",
     )
+    if show_advanced:
+        adv = parser.add_argument_group("Advanced options")
+        adv.add_argument(
+            "--feature_categories",
+            type=str,
+            nargs="*",
+            help="Cell type category to use / exclude. See the categories in "
+            "`<resources_dir>/feature_names_and_grouping.csv`. "
+            "\nSpecify either a set of categories to use (e.g. `'Blood/Immune'`) "
+            "or a set of categories to exclude (e.g. `'-Blood/Immune'`)",
+        )
+        adv.add_argument(
+            "--feature_type",
+            type=str,
+            default="LIONHEART",
+            choices=["LIONHEART", "bin_depths", "lengths", "length_ratios"],
+            help="The feature type (for benchmarking). "
+            "One of {'LIONHEART', 'bin_depths', 'lengths', 'length_ratios'}. "
+            "\nNote that many options only work with LIONHEART scores.",
+        )
+        adv.add_argument(
+            "--loco",
+            action="store_true",
+            help="Whether to run leave-one-class-out cross-validation. "
+            "\nAll datasets will be merged and each class (cancer type) "
+            "becomes a fold along with a proportional number of sampled controls. "
+            "\nThe model still predicts 'cancer vs. control'."
+            "\nNote: This does NOT represent cross-dataset generalization!",
+        )
+        adv.add_argument(
+            "--loco_train_only_classes",
+            type=str,
+            nargs="*",
+            help="Names of cancer types that should only be used for training (`--loco` only).",
+        )
+    else:
+        # Declare defaults for advanced options so the args
+        # can be used without existence checks
+        parser.set_defaults(
+            feature_type="LIONHEART",
+            feature_categories=[],
+            loco=False,
+            loco_train_only_classes=False,
+        )
+
     parser.set_defaults(func=main)
 
 

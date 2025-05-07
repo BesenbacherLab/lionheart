@@ -165,13 +165,23 @@ def prepare_modeling_command(
     transformers_fn = None
     if prep_transformers:
         if args.feature_type == "LIONHEART":
+            include_indices = None
+            if args.feature_categories:
+                include_indices = get_category_indices(
+                    args, feature_name_to_feature_group_path
+                )
             transformers_fn = prepare_transformers_fn(
                 pca_target_variance=args.pca_target_variance,
                 min_var_thresh=[0.0],
                 scale_rows=["mean", "std"],
                 standardize=True,
+                post_scale_feature_indices=include_indices,
             )
         else:
+            if args.feature_categories:
+                raise ValueError(
+                    "`--feature_categories` selection only works with `--feature_type LIONHEART`"
+                )
             transformers_fn = prepare_benchmark_transformers_fn(
                 feature_type=args.feature_type,
                 pca_target_variance=args.pca_target_variance,
@@ -188,6 +198,48 @@ def prepare_modeling_command(
         meta_data_paths,
         feature_name_to_feature_group_path,
     )
+
+
+def get_category_indices(args, feature_name_to_feature_group_path) -> List[int]:
+    """
+    Get indices of categories to include in the analysis.
+    """
+    category_signs = [cat[0] == "-" for cat in args.feature_categories]
+    if not all(x == category_signs[0] for x in category_signs):
+        raise ValueError(
+            "`--feature_categories`: All listed categories must have "
+            "the same sign ('-' or no '-' prefix)."
+        )
+    exclude = category_signs[0]
+
+    # Load feature to category mapping
+    feature_idx_name_category = pd.read_csv(
+        feature_name_to_feature_group_path, sep="\t"
+    ).iloc[:, :3]
+    feature_idx_name_category.columns = ["idx", "cell_type", "category"]
+    feature_idx_name_category["category"] = [
+        str(cat).lower() for cat in feature_idx_name_category["category"]
+    ]
+    user_categories = [
+        cat[1:].lower() if exclude else cat.lower() for cat in args.feature_categories
+    ]
+    unique_categories = feature_idx_name_category.category.unique()
+    unknown_categories = set(user_categories).difference(set(unique_categories))
+    if unknown_categories:
+        raise ValueError(
+            "One or more specified `--feature_categories` was not recognized: "
+            f"{', '.join(list(unknown_categories))}"
+        )
+    if exclude:
+        # Return indices where the category should not be excluded
+        return feature_idx_name_category.loc[
+            ~feature_idx_name_category.category.isin(user_categories)
+        ].idx.to_list()
+
+    # Return indices in the specified categories
+    return feature_idx_name_category.loc[
+        feature_idx_name_category.category.isin(user_categories)
+    ].idx.to_list()
 
 
 def prepare_validation_command(

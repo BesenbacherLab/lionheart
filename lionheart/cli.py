@@ -1,4 +1,5 @@
 import argparse
+import os
 from lionheart.commands import (
     collect_samples,
     customize_thresholds,
@@ -26,6 +27,9 @@ except ImportError:
 
 
 def main():
+    # 1. Check the env var (you could also default to False if missing)
+    show_advanced = os.getenv("LH_ADVANCED", "").lower() in ("1", "true", "yes")
+
     parser = argparse.ArgumentParser(
         description=f"""\n\n                                                                               
 {LION_ASCII}                                        
@@ -133,12 +137,14 @@ Easily <b>train</b> a new model on your own data or perform <b>cross-validation<
             "\nAllows seeing the effect on generalization of adding your own data to the training. "
             "\n\nNote: The settings are optimized for use with the included features and optional "
             "additional datasets. They may not be optimal for more custom designs."
+            "\n\nAdvanced options: Enable advanced options by setting the `LH_ADVANCED=1` environment variable "
+            "(e.g. `LH_ADVANCED=1 lionheart cross_validate --help´)."
         ),
         formatter_class=parser.formatter_class,
         epilog=cross_validate.EPILOG,
     )
     # Delegate the argument setup to the respective command module
-    cross_validate.setup_parser(parser_cv)
+    cross_validate.setup_parser(parser_cv, show_advanced)
 
     # Command 6
     parser_tm = subparsers.add_parser(
