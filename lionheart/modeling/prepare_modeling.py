@@ -316,37 +316,35 @@ def prepare_modeling(
         else:
             groups = None
 
+        unique_labels = [str(lab).lower() for lab in np.unique(labels)]
+        unique_labels_without_exclude = [
+            lab for lab in unique_labels if lab != "exclude"
+        ]
+
         if (
             task == "leave_one_class_out_binary_classification"
             and labels_to_use is None
         ):
-            # Create labels_to_use for `--loco`
-            _unique_labels = [
-                str(lab).lower()
-                for lab in np.unique(labels)
-                if lab.lower() != "exclude"
-            ]
-            if "control" not in _unique_labels:
+            if "control" not in unique_labels_without_exclude:
                 raise ValueError(
                     "no 'control' label found. Found these labels: "
-                    f"{', '.join(_unique_labels)}"
+                    f"{', '.join(unique_labels_without_exclude)}"
                 )
             labels_to_use = [
                 f"{i}_{lab.title()}({lab})"
                 for i, lab in enumerate(
-                    ["control"] + [ul for ul in _unique_labels if ul != "control"]
+                    ["control"]
+                    + [ul for ul in unique_labels_without_exclude if ul != "control"]
                 )
             ]
 
         # Check labels *pre-collapse*
-        num_labels = len(np.unique(labels))
+        num_labels = len(unique_labels_without_exclude)
         # Save to enable check for collapsings
         num_labels_pre_collapse = num_labels
         with messenger.indentation(add_indent=2):
             collapse_string = (
-                " (without collapsing and exclusion)"
-                if labels_to_use is not None
-                else ""
+                " (before collapsing)" if labels_to_use is not None else ""
             )
             messenger(
                 f"Number of total labels{collapse_string}: {num_labels_pre_collapse}"
