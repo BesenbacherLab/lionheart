@@ -293,7 +293,7 @@ def main():
             ],
             out_file=paths["consensus_intervals_file"],
             genome_file=paths["chrom_sizes_file"],
-            min_coverage=0.85, # TODO!!! Set back to 0.9 if not better!
+            min_coverage=0.9,
         )
 
     def make_subtracted_path(paths, cell_type):
