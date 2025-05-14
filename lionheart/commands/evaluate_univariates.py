@@ -16,6 +16,7 @@ from lionheart.utils.global_vars import LABELS_TO_USE
 # Disable font manager debugging messages
 logging.getLogger("matplotlib.font_manager").disabled = True
 
+# TODO: Document outputs (see cross_validate)
 
 def setup_parser(parser):
     parser.add_argument(
@@ -24,7 +25,7 @@ def setup_parser(parser):
         nargs="*",
         default=[],
         help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used.",
     )
     parser.add_argument(
@@ -97,7 +98,7 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--train_only",
-        type=str,
+        type=int,
         nargs="*",
         help="Indices of specified datasets that should only be used for training."
         "\n0-indexed so in the range 0->(num_datasets-1)."
@@ -231,7 +232,7 @@ def main(args):
         standardize_rows=True,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell types
         aggregate_by_groups=args.aggregate_by_subjects,
         bonferroni_correct=True,
         num_jobs=args.num_jobs,
