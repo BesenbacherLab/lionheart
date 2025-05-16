@@ -20,6 +20,7 @@ This update contains **major changes**. To use it, please reinstall the conda en
  - Mosdepth is now called using the `--fragment-mode` feature to ensure the entire fragment (i.e. template length) is counted.
  - Adds check of chromosome names in BAM file header. Requires the "chrXX" naming convention and the presence of all autosomes (chr1-chr22).
  - Optimizations of internal `normalize_megabins()`.
+ - The coverage statistics in `coverage_stats.json` are now calculated from the raw coverage values prior to corrections.
 
 
 ### `lionheart cross_validate`

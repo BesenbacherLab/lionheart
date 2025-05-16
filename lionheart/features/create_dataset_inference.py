@@ -370,6 +370,9 @@ def create_dataset_for_inference(
                         add_indent=4,
                     )
 
+                # Update coverage variance before corrections
+                stats_calculator.add_data(x=sample_cov)
+
                 # Save the non-corrected raw integer counts
                 # Needed when calculating insert size correction model
                 sample_cov_raw_counts = sample_cov.copy()
@@ -642,9 +645,6 @@ def create_dataset_for_inference(
                     megabin_offset_combination_averages_collection[chrom] = (
                         megabin_offset_combination_averages
                     )
-
-                # Update coverage variance
-                stats_calculator.add_data(x=sample_cov)
 
                 # Extract indices of the bins that overlap with consensus sites
                 # NOTE: These are the indices post the include_indices subsetting
