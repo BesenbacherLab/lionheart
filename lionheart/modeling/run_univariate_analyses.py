@@ -219,10 +219,10 @@ def run_univariate_analyses(
         )
 
     # Add ATAC / DNase indicator
-    evaluation["Seq"] = prepared_modeling_dict["feature_seq"][
+    evaluation["Seq Type"] = prepared_modeling_dict["feature_seq"][
         evaluation["array_index"].tolist()
     ]
-    move_column_inplace(evaluation, col="Seq", pos=2)
+    move_column_inplace(evaluation, col="Seq Type", pos=2)
 
     # Remove feature set column
     # It's always the LIONHEART scores we evaluate

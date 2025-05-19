@@ -509,9 +509,11 @@ def prepare_modeling(
             paths["feature_name_to_feature_group_path"], sep="\t"
         )
         feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+        # Category
+        feature_group_names = feature_name_to_feature_group.iloc[:, 2].astype("string")
         # ATAC or DNase
-        feature_seq = feature_name_to_feature_group.iloc[:, 2].astype("string")
-        feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+        feature_seq = feature_name_to_feature_group.iloc[:, 3].astype("string")
+
     except ValueError as e:
         if (
             "feature_name_to_feature_group_path was not a known key in any of the path collections"
