@@ -186,6 +186,14 @@ def run_univariate_analyses(
     # Show overview of the paths
     messenger(paths)
 
+    alternative_names = [
+        f"{cat}___{seqt}"
+        for cat, seqt in zip(
+            prepared_modeling_dict["feature_group_names"],
+            prepared_modeling_dict["feature_seq"],
+        )
+    ]
+
     messenger("Start: Evaluating univariate models")
     with timer.time_step(indent=2, message="Running univariate modeling took:"):
         evaluation, readme_string = evaluate_univariate_models(
@@ -194,7 +202,7 @@ def run_univariate_analyses(
             groups=prepared_modeling_dict["groups"],
             task="classification" if "classification" in task.lower() else "regression",
             names=prepared_modeling_dict["feature_names"],
-            alternative_names=prepared_modeling_dict["feature_group_names"],
+            alternative_names=alternative_names,
             feature_sets=None,  # Already selected by `prepare_modeling()`
             feature_set_prefix=feature_set_prefix,
             alpha=alpha,
@@ -218,10 +226,14 @@ def run_univariate_analyses(
             messenger=messenger,
         )
 
-    # Add ATAC / DNase indicator
-    evaluation["Seq Type"] = prepared_modeling_dict["feature_seq"][
-        evaluation["array_index"].tolist()
-    ]
+    # Split cell group and seq type
+    (cell_groups, seq_types) = zip(
+        *[cg.split("___") for cg in evaluation["Cell Group"]]
+    )
+    # (Over)write columns
+    evaluation["Cell Group"] = cell_groups
+    evaluation["Seq Type"] = seq_types
+    move_column_inplace(evaluation, col="Cell Group", pos=1)
     move_column_inplace(evaluation, col="Seq Type", pos=2)
 
     # Remove feature set column
