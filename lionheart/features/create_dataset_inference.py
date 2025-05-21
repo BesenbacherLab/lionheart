@@ -150,7 +150,10 @@ def _load_bins_and_exclude(
         df = df[~df["idx"].isin(exclude)].reset_index(drop=True)
     return (
         df["idx"].to_numpy().astype(np.int64),
-        df["GC"].to_numpy().astype(np.float64),
+        np.round(
+            df["GC"].to_numpy().astype(np.float64),
+            decimals=2,
+        ),  # NOTE: Rounding required or some bins become NaN!!
     )
 
 
@@ -266,6 +269,7 @@ def create_dataset_for_inference(
         messenger("Failed to load insert size correction bin edges.")
         raise
 
+    exclude_bins_by_chrom = {}
     if exclude_paths:
         messenger(f"Loading exclude indices from {len(exclude_paths)} file(s)")
         exclude_dicts = []
@@ -277,7 +281,6 @@ def create_dataset_for_inference(
                 messenger(f"Failed to load exclusion indices from: {path}")
                 raise
 
-        exclude_bins_by_chrom = {}
         for chrom in chroms_ordered:
             excl_arrays = [
                 excl_dict[chrom]
@@ -341,7 +344,7 @@ def create_dataset_for_inference(
                 # Load reference knowledge about the bins
                 (include_indices, sample_gc) = _load_bins_and_exclude(
                     bins_path=chrom_bins_paths[chrom],
-                    exclude=exclude_bins_by_chrom[chrom],
+                    exclude=exclude_bins_by_chrom.get(chrom, None),
                 )
 
                 messenger(
