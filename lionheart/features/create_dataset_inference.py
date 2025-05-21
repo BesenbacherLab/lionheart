@@ -113,7 +113,10 @@ class DatasetOutputPaths:
 
 
 def _load_from_sparse_array(
-    path: pathlib.Path, indices: Optional[np.ndarray] = None, dtype=np.float64
+    path: pathlib.Path,
+    indices: Optional[np.ndarray] = None,
+    decimals=2,
+    dtype=np.float64,
 ) -> np.ndarray:
     """
     Load a scipy.sparse array and convert to a dense, flat numpy array.
@@ -134,7 +137,11 @@ def _load_from_sparse_array(
     # Convert to a float64 dense array and ravel (flatten)
     # We perform the type casting while sparse (should be cheaper)
     # Note: ravel() is like flatten() but a view instead of a copy
-    return s.astype(dtype, copy=False).toarray().ravel()
+    x = s.astype(dtype, copy=False).toarray().ravel()
+    # Round to N decimals to avoid rounding errors
+    if decimals >= 0:
+        x = np.round(x, decimals=decimals)
+    return x
 
 
 def _load_bins_and_exclude(
@@ -173,6 +180,8 @@ def _update_r_calculator(
             path=path,
             indices=include_indices,
             dtype=np.float32,
+            # Remove rounding error
+            decimals=2,
         )
 
     if consensus_indices is not None:
@@ -363,6 +372,8 @@ def create_dataset_for_inference(
                     sample_cov = _load_from_sparse_array(
                         chrom_coverage_paths[chrom],
                         indices=include_indices,
+                        # Avoid rounding errors (e.g., when converting sample_insert_sizes to means)
+                        decimals=2,
                     )
 
                     messenger(
@@ -391,6 +402,9 @@ def create_dataset_for_inference(
                         sample_insert_sizes = _load_from_sparse_array(
                             chrom_insert_size_paths[chrom],
                             indices=include_indices,
+                            # For 10bp bins sum of average position-overlap sizes,
+                            # rounding to 1 decimals should cover the real values
+                            decimals=1,
                         )
 
                         # Convert from sums to means
@@ -398,6 +412,10 @@ def create_dataset_for_inference(
                         sample_insert_sizes[sample_cov > 0] /= sample_cov[
                             sample_cov > 0
                         ]
+
+                        # Extra check to avoid rounding errors affecting bin-assigment
+                        # Allow extra precision so only removing rounding errors
+                        sample_insert_sizes = np.round(sample_insert_sizes, decimals=7)
 
                         messenger(
                             "Non-zero bin statistics: "
@@ -413,6 +431,8 @@ def create_dataset_for_inference(
                     consensus_chromosome_files[chrom],
                     indices=include_indices,
                     dtype=np.float32,
+                    # Avoid rounding errors making 0s non-zeros (we filter on that!)
+                    decimals=2,
                 )
 
                 # Bins are every 10 from 0->, so start points
