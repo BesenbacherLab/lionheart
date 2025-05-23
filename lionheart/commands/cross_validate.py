@@ -218,8 +218,8 @@ def setup_parser(parser, show_advanced: bool):
             nargs="*",
             help="Cell type category to use / exclude. See the categories in "
             "`<resources_dir>/feature_names_and_grouping.csv`. "
-            "\nSpecify either a set of categories to use (e.g. `--feature_categories='Blood/Immune'`) "
-            "or a set of categories to exclude (e.g. `--feature_categories='-Blood/Immune'`). "
+            "\nSpecify either a set of categories to use (e.g. `--feature_categories=Blood/Immune`) "
+            "or a set of categories to exclude (e.g. `--feature_categories=-Blood/Immune`). "
             "When excluding, be sure to use `=-` so the value is not interpreted as an argument.",
         )
         adv.add_argument(
