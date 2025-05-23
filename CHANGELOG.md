@@ -21,6 +21,7 @@ This update contains **major changes**. To use it, please reinstall the conda en
  - Adds check of chromosome names in BAM file header. Requires the "chrXX" naming convention and the presence of all autosomes (chr1-chr22).
  - Optimizations of internal `normalize_megabins()`.
  - The coverage statistics in `coverage_stats.json` are now calculated from the raw coverage values prior to corrections.
+ - Handles rounding errors in loaded arrays by rounding to array-wise meaningful decimal points.
 
 
 ### `lionheart cross_validate`
@@ -32,7 +33,7 @@ This update contains **major changes**. To use it, please reinstall the conda en
    - Adds `--feature_categories` for specifying cell types categories to include / exclude from the model after scaling.
    - Adds `--loco` for running leave-one-cancer-type-out cross-validation.
    - Adds `--loco_train_only_classes` for specifying train-only classes in `--loco` mode.
-   - When `k_inner` is not `None` and in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
+   - When `k_inner` is not `None` or it's in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
 
 
 ### Dependencies
