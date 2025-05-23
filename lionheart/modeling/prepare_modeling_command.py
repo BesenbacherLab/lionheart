@@ -172,7 +172,7 @@ def prepare_modeling_command(
                 )
             transformers_fn = prepare_transformers_fn(
                 pca_target_variance=args.pca_target_variance,
-                min_var_thresh=[0.0] if not args.feature_categories else [0],
+                min_var_thresh=[0.0] if not args.feature_categories else [],
                 scale_rows=["mean", "std"],
                 standardize=True,
                 post_scale_feature_indices=include_indices,
