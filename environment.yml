@@ -27,3 +27,4 @@ dependencies:
     - utipy==1.0.5
     - poetry==1.8.2
     - generalize
+    - pyarrow
