@@ -74,15 +74,20 @@ def extract_features(
     # Note: We also need the chromatin masks and consensus bins
     # But adding too many files to gwf can make it slow
     # due to excessive IO when testing for file changes
+    # So these are just a few representative input files
     input_files = [
         bam_file,
-        resources_dir / "whole_genome.mappable.binned_10bp.bed.gz",
-        resources_dir / "whole_genome.mappable.binned_10bp.gc_contents_bin_edges.npy",
-        resources_dir / "whole_genome.mappable.binned_10bp.insert_size_bin_edges.npy",
+        resources_dir / "bin_indices_by_chromosome" / "chr1.parquet",
+        resources_dir
+        / "chromatin_masks"
+        / "ATAC"
+        / "sparse_overlaps_by_chromosome"
+        / "b_cell__pc"
+        / "chr1.npz",
         resources_dir / "ATAC.idx_to_cell_type.csv",
         resources_dir / "DNase.idx_to_cell_type.csv",
-        resources_dir / "exclude_bins" / "outlier_indices.npz",
-        resources_dir / "exclude_bins" / "zero_coverage_indices.npz",
+        resources_dir / "outliers" / "outlier_indices.npz",
+        resources_dir / "outliers" / "zero_coverage_indices.npz",
     ]
 
     expected_output_files = [
