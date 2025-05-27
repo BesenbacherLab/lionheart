@@ -24,12 +24,10 @@ def check_autosomes_in_bam(
             "awk",
             "-F'\t'",
             "'" + '$1=="@SQ"{ name=substr($2,4); '
-            "if(name !~ /^chr/){ "
-            '  print "ERROR: sequence name has no chr prefix" > "/dev/stderr"; '
-            "  exit 1 "
+            "if(name ~ /^chr/){ "
+            "  idx = substr(name,4) + 0; "
+            "  if(idx>=1 && idx<=22){ autos[idx]=1 } "
             "} "
-            "idx = substr(name,4) + 0; "
-            "if(idx>=1 && idx<=22){ autos[idx]=1 } "
             "} "
             "END{ "
             "for(i=1;i<=22;i++){ "
