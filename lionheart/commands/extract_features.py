@@ -79,6 +79,7 @@ def run_mosdepth(
             f"{n_jobs}",
             "--mapq",
             "20",
+            "--fragment-mode",
             f"--min-frag-len {length_limits[0]}",
             f"--max-frag-len {length_limits[1]}"
             + (" --insert-size-mode" if insert_size_mode else ""),
