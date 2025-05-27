@@ -347,7 +347,7 @@ def create_dataset_for_inference(
 
     with timer.time_step(indent=4, name_prefix="load_and_add"):
         for chrom in chroms_ordered:
-            with timer.time_step(name_prefix=f"{chrom}", add_indent=-4):
+            with timer.time_step(name_prefix=f"{chrom}", indent=0):
                 messenger(f"{chrom}:", add_indent=-2)
 
                 # Load reference knowledge about the bins
