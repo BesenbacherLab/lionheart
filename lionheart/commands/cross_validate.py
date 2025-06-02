@@ -404,6 +404,7 @@ def main(args):
         messenger=messenger,
     )
 
+    # TODO: Take merge_datasets into account here?
     if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4 and not args.loco:
         args.k_inner = None
         messenger(

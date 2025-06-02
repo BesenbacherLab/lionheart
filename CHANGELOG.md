@@ -35,6 +35,11 @@ This update contains **major changes**. To use it, please reinstall the conda en
    - When `k_inner` is not `None` or it's in `--loco` mode, refitting uses `generalize::make_simplest_model_refit_strategy()` to find the simplest model wrt. the LASSO C and PCA explained variance hyperparameters.
 
 
+### `lionheart train_model`
+
+ - Adds `--merge_datasets` for specifying datasets that should be considered as one in the leave-one-dataset-out cross-validation during hyperparameter tuning.
+
+
 ### Dependencies
 
 Please reinstall the conda environment and the custom mosdepth version and redownload the resources.
@@ -42,13 +47,15 @@ Please reinstall the conda environment and the custom mosdepth version and redow
  - Version bump to `joblib==1.4.2`.
  - Adds `pigz` as dependency for faster (de)compression.
  - Adds `gawk` and `mawk` as dependencies.
+ - Adds `pyarrow` as dependency.
  - Adds `samtools` as dependency to allow check of BAM files before running.
- - Adds `lionheart --version` command to CLI.
 
 
 ### Minor changes
 
  - Disables matplotlib font manager logger where relevant. This reduces irrelevant logging messages.
+ - Adds `lionheart --version` command to CLI.
+
 
 ## 1.1.5
 
@@ -56,9 +63,11 @@ Please reinstall the conda environment and the custom mosdepth version and redow
 
 **Future note**: An *upcoming* version will contain completely recomputed resource files with changed bin-coordinates to reduce RAM usage of the `mosdepth` coverage extraction. At the same time, we will be updating the exclusion bin index files to fix a small discrepency between the shared features and the features extracted with the current `lionheart` version. Stay tuned for updates in the coming month(s).
 
+
 ## 1.1.4
 
  - Adds project URLs to package to list them on the `pypi` site.
+
 
 ## 1.1.2
 
@@ -66,9 +75,11 @@ Please reinstall the conda environment and the custom mosdepth version and redow
  - Improvements to installation guide in repository README.
  - Workflow example improvements.
 
+
 ## 1.1.1
 
  - Improves CLI documentation for some commands (in `--help` pages).
+
 
 ## 1.1.0
 
@@ -91,10 +102,12 @@ Also:
  - Bumps `generalize` dependency requirement to `0.2.1`.
  - Bumps `utipy` dependency requirement to `1.0.3`.
 
+
 ## 1.0.2
 
  - Fixes bug when training model on a single dataset.
  - Adds tests for a subset of the CLI tools.
+
 
 ## 1.0.1
 

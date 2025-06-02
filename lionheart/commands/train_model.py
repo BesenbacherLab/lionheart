@@ -173,6 +173,20 @@ def setup_parser(parser):
         "\nto the training data, so flag it as 'train-only'.",
     )
     parser.add_argument(
+        "--merge_datasets",
+        type=str,
+        nargs="*",
+        help="List of dataset groups that should be merged into a single dataset "
+        "during cross-validation in hyperparameter tuning. "
+        "Given as `NewName(D1,D2,D3)`. "
+        "\nOnly relevant when `dataset_paths` has >1 paths. "
+        "\nNames must match those in `dataset_names` which must also be specified. \n\n"
+        "Example: `--merge_datasets BestDataset(D1,D2) WorstDataset(D3,D4,D5)` "
+        "would create 2 datasets where D1 and D2 make up the first, and D3-5 make up the second. "
+        "\nDatasets not mentioned are not affected. \n\n"
+        "Note: Be careful about spaces in the dataset names or make sure to quote each string. ",
+    )
+    parser.add_argument(
         "--pca_target_variance",
         type=float,
         default=PCA_TARGET_VARIANCE_OPTIONS,
@@ -311,7 +325,7 @@ def main(args):
         transformers_fn,
         dataset_paths,
         train_only,
-        _,
+        merge_datasets,
         meta_data_paths,
         feature_name_to_feature_group_path,
     ) = prepare_modeling_command(
@@ -339,20 +353,21 @@ def main(args):
         train_only_datasets=train_only,
         merge_datasets={"Combined Data": list(dataset_paths.keys())}
         if args.subtype
-        else None,
+        else merge_datasets,
         k=args.k,
         transformers=transformers_fn,
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell type features
         refit_fn=make_simplest_model_refit_strategy(
             main_var=("model__C", "minimize"),
             score_name="balanced_accuracy",
             other_vars=[("pca__target_variance", "minimize")],
             messenger=messenger,
         )
-        if args.subtype
+        # TODO: Take merge_datasets into account here?
+        if args.subtype or len(args.dataset_paths) - len(args.train_only) < 2
         else None,
         num_jobs=args.num_jobs,
         seed=args.seed,
