@@ -366,6 +366,9 @@ def main(args):
     out_path = pathlib.Path(args.out_dir)
     resources_dir = pathlib.Path(args.resources_dir)
 
+    # Set the feature type (for simplicity)
+    args.feature_type = "LIONHEART"
+
     # Prepare logging messenger
     setup_logging(dir=str(out_path / "logs"), fname_prefix="cross-validate-model-")
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
