@@ -374,7 +374,7 @@ def main(args):
             messenger=messenger,
         )
         # TODO: Take merge_datasets into account here?
-        if args.subtype or len(args.dataset_paths) - len(args.train_only) < 2
+        if args.subtype or (len(args.dataset_paths) - len(args.train_only)) < 2
         else None,
         num_jobs=args.num_jobs,
         seed=args.seed,
