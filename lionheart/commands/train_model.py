@@ -19,8 +19,8 @@ from lionheart.utils.global_vars import (
     LABELS_TO_USE,
     LASSO_C_OPTIONS,
     LASSO_C_OPTIONS_STRING,
-    PCA_TARGET_VARIANCE_OPTIONS,
-    PCA_TARGET_VARIANCE_OPTIONS_STRING,
+    PCA_TARGET_VARIANCE_FM_OPTIONS,
+    PCA_TARGET_VARIANCE_FM_OPTIONS_STRING,
 )
 from lionheart.utils.cli_utils import Examples
 from lionheart import __version__ as lionheart_version
@@ -189,12 +189,12 @@ def setup_parser(parser):
     parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=PCA_TARGET_VARIANCE_OPTIONS,
+        default=PCA_TARGET_VARIANCE_FM_OPTIONS,
         nargs="*",
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
         "\nWhen multiple targets are provided, they are used in grid search."
-        "\nDefaults to: " + PCA_TARGET_VARIANCE_OPTIONS_STRING,
+        "\nDefaults to: " + PCA_TARGET_VARIANCE_FM_OPTIONS_STRING,
     )
     parser.add_argument(
         "--lasso_c",
