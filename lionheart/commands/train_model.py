@@ -161,7 +161,7 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--train_only",
-        type=str,
+        type=int,
         nargs="*",
         help="Indices of specified datasets that should only be used for training"
         "during cross-validation\nfor hyperparameter tuning.\n0-indexed so in the range 0->(num_datasets-1)."
