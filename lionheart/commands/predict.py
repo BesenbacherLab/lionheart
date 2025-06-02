@@ -325,7 +325,7 @@ def main(args):
     assert_shape(
         features,
         expected_n_dims=2,
-        expected_dim_sizes={0: 10, 1: 489},
+        expected_dim_sizes={0: 10, 1: 898},
         x_name="Loaded features",
     )
 
