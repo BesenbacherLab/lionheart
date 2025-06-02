@@ -279,6 +279,9 @@ def main(args):
     if not ENABLE_SUBTYPING:
         args.subtype = False
 
+    # Set the feature type (for simplicity)
+    args.feature_type = "LIONHEART"
+
     # Start by checking version of joblib
     if joblib.__version__ != JOBLIB_VERSION:
         raise RuntimeError(
