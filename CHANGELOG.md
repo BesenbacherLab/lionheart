@@ -1,8 +1,8 @@
 # Changelog
 
-## 2.0.*
+## 2.0.0
 
-This update contains **major changes**. To use it, please reinstall the conda environment, the lionheart package, and the custom mosdepth version, and download the newest resources from zenodo.
+**NOTE!** This update contains **major changes**. To use it, please reinstall the conda environment, the lionheart package, and the custom mosdepth version, and download the newest resources from zenodo.
 
 ### Highlights
 
