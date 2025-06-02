@@ -231,6 +231,13 @@ def setup_parser(parser):
         help="Optionally set a minimally required LIONHEART version for this model instance.\n"
         "`lionheart predict_sample` will check for this version and fail if the LIONHEART installation is outdated.",
     )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
+    )
     parser.set_defaults(func=main)
 
 
@@ -278,9 +285,6 @@ EPILOG = examples.construct()
 def main(args):
     if not ENABLE_SUBTYPING:
         args.subtype = False
-
-    # Set the feature type (for simplicity)
-    args.feature_type = "LIONHEART"
 
     # Start by checking version of joblib
     if joblib.__version__ != JOBLIB_VERSION:
