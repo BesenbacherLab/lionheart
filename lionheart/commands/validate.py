@@ -28,7 +28,7 @@ def setup_parser(parser):
         "--dataset_path",
         type=str,
         help="Path to `feature_dataset.npy` file containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used. "
         "\nNOTE: To validate on the included validation dataset, set --use_included_validation instead. "
         "Only one dataset can be validated on at a time.",
@@ -295,7 +295,7 @@ def main(args):
         labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         aggregate_by_groups=args.aggregate_by_subjects,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell types
         mk_plots_dir=False,
         timer=timer,
         messenger=messenger,

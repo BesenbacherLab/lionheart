@@ -321,7 +321,7 @@ def main(args):
         raise
 
     # Check shape of sample dataset
-    # 10 feature sets, 489 cell types
+    # 10 feature sets, 898 cell types
     assert_shape(
         features,
         expected_n_dims=2,

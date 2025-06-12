@@ -13,7 +13,7 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
 
     scores = np.expand_dims(np.array(lionheart_features), 0)
     scores = np.concatenate([scores for _ in range(10)], axis=0)
-    assert scores.shape == (10, 489)
+    assert scores.shape == (10, 898)
     np.save(sample_dir / "dataset" / "feature_dataset.npy", scores)
 
     command_args = [
@@ -56,7 +56,7 @@ def test_predict_with_custom_model_and_roc(
 
     scores = np.expand_dims(np.array(lionheart_features), 0)
     scores = np.concatenate([scores for _ in range(10)], axis=0)
-    assert scores.shape == (10, 489)
+    assert scores.shape == (10, 898)
     np.save(sample_dir / "dataset" / "feature_dataset.npy", scores)
 
     ## Create custom ROC curve:

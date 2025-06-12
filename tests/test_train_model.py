@@ -80,7 +80,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
             "New Label to New Label Index": {"Control": 0, "Cancer": 1},
         },
         "Data": {
-            "Shape": [586, 489],
+            "Shape": [586, 898],
             "Target counts": {"0": 282, "1": 304},
             "Datasets": {
                 "Names": [
@@ -177,7 +177,7 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
             "New Label to New Label Index": {"Control": 0, "Cancer": 1},
         },
         "Data": {
-            "Shape": [474, 489],
+            "Shape": [474, 898],
             "Target counts": {"0": 244, "1": 230},
             "Datasets": {
                 "Names": [

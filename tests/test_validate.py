@@ -16,7 +16,7 @@ def test_validate_model_custom_dataset(
     scores = np.concatenate([scores for _ in range(10)], axis=0)
     scores = np.expand_dims(np.array(scores), 0)
     scores = np.concatenate([scores for _ in range(10)], axis=0)
-    assert scores.shape == (10, 10, 489)
+    assert scores.shape == (10, 10, 898)
     np.save(tmp_path / "dataset" / "feature_dataset.npy", scores)
 
     meta = pd.DataFrame(
@@ -165,7 +165,7 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
 
 #     scores = np.expand_dims(np.array(lionheart_features), 0)
 #     scores = np.concatenate([scores for _ in range(10)], axis=0)
-#     assert scores.shape == (10, 489)
+#     assert scores.shape == (10, 898)
 #     np.save(sample_dir / "dataset" / "feature_dataset.npy", scores)
 
 #     ## Create custom ROC curve:

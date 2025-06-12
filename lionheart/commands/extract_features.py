@@ -300,7 +300,7 @@ DESCRIPTION = """EXTRACT FEATURES from a BAM file.
 epilog_guide = Guide()
 epilog_guide.add_title("OUTPUT:")
 epilog_guide.add_description(
-    """feature_dataset.npy : `numpy.ndarray` with shape (10, 489)
+    """feature_dataset.npy : `numpy.ndarray` with shape (10, 898)
     This array contains the main features. 
     There are 10 feature sets of which we only use the first (index=0).
     We included the other feature sets to allow experimentation.
