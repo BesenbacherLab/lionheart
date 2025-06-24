@@ -15,7 +15,7 @@ from lionheart.modeling.prepare_modeling import prepare_modeling
 # TODO: Rename labels to targets (Make it clear when these are class indices / strings!)
 # TODO: Make this work with regression
 # TODO: Implement non-nested cross-validation.
-
+# TODO: Add requirements for dataset shape in dataset_paths arg
 
 def run_nested_cross_validation(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
@@ -57,7 +57,6 @@ def run_nested_cross_validation(
         Paths to one or more datasets. When multiple datasets are specified (and they are
         not merged to 1 dataset), leave-one-dataset-out cross-validation is performed.
         When multiple datasets, pass as a dict mapping dataset name -> dataset path.
-        TODO: Add requirements for dataset shape.
     out_path: Union[str, pathlib.Path]
         Path to the directory where the results will be saved.
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path]

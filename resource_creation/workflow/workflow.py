@@ -41,8 +41,6 @@ samples = {
 mosdepth_path = "/home/<username>/mosdepth/mosdepth"
 ld_library_path = "/home/<username>/anaconda3/envs/lionheart/lib/"
 
-# TODO: Perhaps base on resource dir with genome files etc.? Can be added to zenodo
-
 # Path to needed files
 # We used the BAM file downloaded from: https://zenodo.org/records/13909979
 mini_bam = "path/to/bam_file.bam"

@@ -282,7 +282,6 @@ def main():
     np.save(paths["gc_bin_edges_file"], gc_bin_edges)
 
     messenger("Start: Creating insert size bin edges")
-    # TODO: Update start/stop before merging with main!!
     iss_bin_edges = _create_insert_size_bin_edges(
         start=100,
         stop=220,
