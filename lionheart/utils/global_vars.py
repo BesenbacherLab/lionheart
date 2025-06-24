@@ -1,6 +1,6 @@
 # NOTE: Remember to set the newest model first in the list!
 INCLUDED_MODELS = [
-    "detect_cancer__001__25_11_24",
+    "detect_cancer__002__24_06_25",
 ]
 
 # Validate model names
