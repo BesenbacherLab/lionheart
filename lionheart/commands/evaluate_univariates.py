@@ -141,6 +141,13 @@ def setup_parser(parser):
         default=1,
         help="Random state supplied to `sklearn.linear_model.LogisticRegression`.",
     )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
+    )
     parser.set_defaults(func=main)
 
 
