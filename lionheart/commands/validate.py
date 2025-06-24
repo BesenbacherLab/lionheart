@@ -148,6 +148,13 @@ def setup_parser(parser):
         "\nThe predicted probabilities are averaged per subject."
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
+    )
     parser.set_defaults(func=main)
 
 
@@ -194,7 +201,7 @@ examples.add_example(
     description="Validate your model on included validation dataset:",
     example="""--out_dir path/to/model_validation
 --resources_dir path/to/resource/directory
---model_dir path/to/new_model
+--custom_model_dir path/to/new_model
 --use_included_validation
 """,
 )
