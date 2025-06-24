@@ -3,7 +3,15 @@ Extracts chromatin track overlaps for each cell type and the coordinates file.
 
 Steps:
 
- - ...
+ - Flatten individual raw narrow-peak BED files
+ - Merge intervals per cell type
+ - Extract consensus intervals
+ - Subtract consensus intervals from all cell types
+ - Count overlaps with 10bp bins per cell type
+ - Convert to sparse arrays with overlap percentages
+ - Compute stats, index -> cell type maps, etc.
+ - Clean up temporary files
+
 """
 
 import gc
