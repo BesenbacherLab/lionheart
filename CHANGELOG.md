@@ -6,7 +6,7 @@
 
 ### Highlights
 
- - The number of cell types was increased from 408 unique (487 cell type features) to XX unique (XX cell type features). [TODO!!!]
+ - The number of cell types was increased from 408 unique (487 cell type features) to 700 unique (898 cell type features).
    - Note: The previous features are not compatible with the new model.
  - Features from an additional dataset from Budhraja et al. 2023 was used for training the shared model.
  - Adds `resource_creation` directory with scripts and workflows for creating the resources for LIONHEART. Most users will never need to use these but they are added for transparency and reproducibility and to enable users to extend LIONHEART with their own cell types, etc.
@@ -16,7 +16,7 @@
 ### `lionheart extract_features`
 
  - For the two mosdepth calls, we see large reductions in RAM (from ~50gb to < 6gb) and time usage. The two calls are now run in parallel saving even more time. We recommend specifying at least 10 cores (`--n_jobs 10`).
-   - Note: The feature extraction still requires more RAM than this. [TODO!!!]
+   - Note: The feature extraction still requires more RAM than this. We recommend ~25gb.
  - Adds check of chromosome names in BAM file header. Requires the "chrXX" naming convention and the presence of all autosomes (chr1-chr22).
  - Optimizations of internal `normalize_megabins()`.
  - The coverage statistics in `coverage_stats.json` are now calculated from the raw coverage values prior to corrections.
