@@ -14,6 +14,7 @@ The code was developed and implemented by [@ludvigolsen](https://github.com/Ludv
 
 If you experience an issue, please [report it](https://github.com/BesenbacherLab/lionheart/issues).
 
+**NOTE: Upgrading to version `2.0.0` requires full reinstallation of the environment and package. Remember to download the new resources from Zenodo.**
 
 ## Installation
 
@@ -76,8 +77,8 @@ $ find mosdepth_installation/pkgs/ -name "mosdepth*"
 
 Download and unzip the required resources.
 ```
-$ wget https://zenodo.org/records/14215762/files/inference_resources_v002.tar.gz
-$ tar -xvzf inference_resources_v002.tar.gz 
+$ wget https://zenodo.org/records/15747531/files/inference_resources_v003.tar.gz
+$ tar -xvzf inference_resources_v003.tar.gz 
 ```
 
 ## Main commands
