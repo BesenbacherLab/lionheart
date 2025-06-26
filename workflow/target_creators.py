@@ -24,8 +24,8 @@ def extract_features(
     out_dir: Union[str, pathlib.Path],
     mosdepth_path: Optional[Union[str, pathlib.Path]],
     ld_library_path: Optional[Union[str, pathlib.Path]],
-    walltime: str = "12:00:00",
-    memory: str = "60g",
+    walltime: str = "4:00:00",
+    memory: str = "25g",
     cores: int = 10,
 ) -> None:
     """
@@ -58,15 +58,14 @@ def extract_features(
         Supply something like '/home/<username>/anaconda3/envs/<env_name>/lib/'.
     walltime
         A string specifying the available time for the target.
-        For large samples, this might need to be increased.
         Tip: Run for a single sample (e.g., the largest)
         first, to ensure the assigned time is enough.
     memory
         The memory (RAM) available to the target.
+        The max. memory usage in our cohorts was 20gb but many samples used less.
     cores
         The number of cores available to the target.
-        Parallelization is used during feature calculation
-        across the many cell type masks.
+        We recommend 10 or more cores.
     """
     bam_file = pathlib.Path(bam_file).resolve()
     resources_dir = pathlib.Path(resources_dir).resolve()
@@ -75,15 +74,20 @@ def extract_features(
     # Note: We also need the chromatin masks and consensus bins
     # But adding too many files to gwf can make it slow
     # due to excessive IO when testing for file changes
+    # So these are just a few representative input files
     input_files = [
         bam_file,
-        resources_dir / "whole_genome.mappable.binned_10bp.bed.gz",
-        resources_dir / "whole_genome.mappable.binned_10bp.gc_contents_bin_edges.npy",
-        resources_dir / "whole_genome.mappable.binned_10bp.insert_size_bin_edges.npy",
+        resources_dir / "bin_indices_by_chromosome" / "chr1.parquet",
+        resources_dir
+        / "chromatin_masks"
+        / "ATAC"
+        / "sparse_overlaps_by_chromosome"
+        / "b_cell__pc"
+        / "chr1.npz",
         resources_dir / "ATAC.idx_to_cell_type.csv",
-        resources_dir / "DHS.idx_to_cell_type.csv",
-        resources_dir / "exclude_bins" / "outlier_indices.npz",
-        resources_dir / "exclude_bins" / "zero_coverage_bins_indices.npz",
+        resources_dir / "DNase.idx_to_cell_type.csv",
+        resources_dir / "outliers" / "outlier_indices.npz",
+        resources_dir / "outliers" / "zero_coverage_indices.npz",
     ]
 
     expected_output_files = [
@@ -221,7 +225,7 @@ def predict_sample(
         )
         << log_context(
             f"""
-        lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {' '.join(thresholds)} --identifier {sample_id}
+        lionheart predict_sample --sample_dir {sample_dir} --resources_dir {resources_dir} --out_dir {out_dir} --thresholds {" ".join(thresholds)} --identifier {sample_id}
         """
         )
     )

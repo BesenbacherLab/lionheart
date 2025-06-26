@@ -1,12 +1,10 @@
-
 from numbers import Number
 from typing import Dict, Tuple
 import numpy as np
 from scipy import special
 
 
-class RunningPearsonR():
-
+class RunningPearsonR:
     def __init__(self, ignore_nans: bool = True) -> None:
         """
         Calculates Pearson R from multiple subsets of data.
@@ -15,7 +13,7 @@ class RunningPearsonR():
 
         Also calculates the cosine similarity.
 
-        NOTE: No effort has been made with regards to 
+        NOTE: No effort has been made with regards to
         numerical stability.
 
         Based on:
@@ -26,7 +24,7 @@ class RunningPearsonR():
         Parameters
         ----------
         ignore_nans : bool
-            Whether to remove elements that are NaN in either array 
+            Whether to remove elements that are NaN in either array
             prior to calculation of sums.
         """
         self.ignore_nans = ignore_nans
@@ -49,7 +47,7 @@ class RunningPearsonR():
             "x_squared_sum": self.x_squared_sum,
             "y_sum": self.y_sum,
             "y_squared_sum": self.y_squared_sum,
-            "xy_sum": self.xy_sum
+            "xy_sum": self.xy_sum,
         }
 
     def add_data(self, x: np.ndarray, y: np.ndarray) -> None:
@@ -73,7 +71,7 @@ class RunningPearsonR():
         """
         Calculates the Pearson R with the current data statistics.
 
-        NOTE: Recalculated on every call, so consider saving 
+        NOTE: Recalculated on every call, so consider saving
         output to variable.
 
         Returns
@@ -85,13 +83,14 @@ class RunningPearsonR():
         """
         if self.n < 2:
             raise ValueError(
-                'At least two elements are required to calculate pearson_r. '
-                'Please add more data.'
+                "At least two elements are required to calculate pearson_r. "
+                "Please add more data."
             )
 
-        numerator = (self.n * self.xy_sum - self.x_sum * self.y_sum)
-        denominator = np.sqrt(self.n * self.x_squared_sum - self.x_sum**2) * \
-            np.sqrt(self.n * self.y_squared_sum - self.y_sum**2)
+        numerator = self.n * self.xy_sum - self.x_sum * self.y_sum
+        denominator = np.sqrt(self.n * self.x_squared_sum - self.x_sum**2) * np.sqrt(
+            self.n * self.y_squared_sum - self.y_sum**2
+        )
         r = numerator / denominator
 
         # Presumably, if abs(r) > 1, then it is only some small artifact of
@@ -120,8 +119,8 @@ class RunningPearsonR():
         """
         if self.n < 2:
             raise ValueError(
-                'At least two elements are required to calculate cosine_similarity. '
-                'Please add more data.'
+                "At least two elements are required to calculate cosine_similarity. "
+                "Please add more data."
             )
 
         denominator = np.sqrt(self.x_squared_sum) * np.sqrt(self.y_squared_sum)
@@ -133,25 +132,29 @@ class RunningPearsonR():
 
         return float(cos_sim)
 
-    def _check_data(self, x: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, np.ndarray, int]:
-
+    def _check_data(
+        self, x: np.ndarray, y: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray, int]:
         # Ensure x and y are ndarrays
-        x = np.asarray(x)
-        y = np.asarray(y)
+        if not isinstance(x, np.ndarray):
+            x = np.asarray(x)
+        if not isinstance(y, np.ndarray):
+            y = np.asarray(y)
 
         # Remove elements that are NaN in either array
         if self.ignore_nans:
-            not_nan_mask = (np.isnan(x).astype(np.int32) +
-                            np.isnan(y).astype(np.int32)) == 0
+            not_nan_mask = (
+                np.isnan(x).astype(np.int32) + np.isnan(y).astype(np.int32)
+            ) == 0
             x = x[not_nan_mask]
             y = y[not_nan_mask]
 
         n = len(x)
         if n != len(y):
-            raise ValueError('x and y must have the same length.')
+            raise ValueError("x and y must have the same length.")
 
-        # dtype is the data type for the calculations.  This expression ensures
-        # that the data type is at least 64 bit floating point.  It might have
+        # dtype is the data type for the calculations. This expression ensures
+        # that the data type is at least 64 bit floating point. It might have
         # more precision if the input is, for example, np.longdouble.
         dtype = type(1.0 + x[0] + y[0])
         if self.dtype is None:

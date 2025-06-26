@@ -28,7 +28,7 @@ def setup_parser(parser):
         "--dataset_path",
         type=str,
         help="Path to `feature_dataset.npy` file containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used. "
         "\nNOTE: To validate on the included validation dataset, set --use_included_validation instead. "
         "Only one dataset can be validated on at a time.",
@@ -148,6 +148,13 @@ def setup_parser(parser):
         "\nThe predicted probabilities are averaged per subject."
         "\n<u><b>Ignored</b></u> when no subject IDs are present in the meta data.",
     )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
+    )
     parser.set_defaults(func=main)
 
 
@@ -194,7 +201,7 @@ examples.add_example(
     description="Validate your model on included validation dataset:",
     example="""--out_dir path/to/model_validation
 --resources_dir path/to/resource/directory
---model_dir path/to/new_model
+--custom_model_dir path/to/new_model
 --use_included_validation
 """,
 )
@@ -284,7 +291,7 @@ def main(args):
     )
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     prepared_modeling_dict = prepare_modeling(
         dataset_paths=dataset_paths,
@@ -295,7 +302,7 @@ def main(args):
         labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         aggregate_by_groups=args.aggregate_by_subjects,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell types
         mk_plots_dir=False,
         timer=timer,
         messenger=messenger,

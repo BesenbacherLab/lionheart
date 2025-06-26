@@ -5,16 +5,18 @@ import numpy as np
 from scipy.stats import poisson
 
 
-class PoissonPMF:
+class Poisson:
     def __init__(
         self, handle_negatives: str = "raise", max_num_negatives: Optional[int] = None
     ) -> None:
         """
-        Poisson probability mass function.
+        Calculate Poisson probabilities for nonnegative integers.
 
-        Wrapper for `scipy.stats.poisson`. See its `.pmf()` method.
+        Get the probability mass function (PMF) and the cumulative distribution function (CDF).
 
-        See `ZIPoissonPMF` for handling zero-inflated data.
+        Wrapper for `scipy.stats.poisson`. See its `.pmf()` and `.cdf()` methods.
+
+        See `ZIPoisson` for handling zero-inflated data.
 
         Parameters
         ----------
@@ -45,7 +47,7 @@ class PoissonPMF:
         max_num_negatives: Optional[int] = None,
     ):
         """
-        Create new `PoissonPMF` model with existing parameters.
+        Create new `Poisson` model with existing parameters.
 
         Parameters
         ----------
@@ -54,15 +56,16 @@ class PoissonPMF:
         mu
             Mean of the data points.
         handle_negatives, max_num_negatives
-            See `PoissonPMF.__init__()`.
+            See `Poisson.__init__()`.
 
         Returns
         -------
-        `PoissonPMF`
+        `Poisson`
             Poisson with the specified values.
         """
-        m = PoissonPMF(
-            handle_negatives=handle_negatives, max_num_negatives=max_num_negatives
+        m = Poisson(
+            handle_negatives=handle_negatives,
+            max_num_negatives=max_num_negatives,
         )
         m.n = n
         m.mu = mu
@@ -80,7 +83,7 @@ class PoissonPMF:
         pos : int
             A non-negative integer to set the current position to.
         """
-        if not isinstance(pos, int) and pos >= 0:
+        if not isinstance(pos, int) or pos < 0:
             raise TypeError("`pos` must be a non-negative integer.")
         self._iter_n = pos
 
@@ -94,14 +97,13 @@ class PoissonPMF:
         Tip: Use `.set_iter_pos()` to set a starting position
         after calling `iter()`.
         """
-        if self.n == 0:
-            raise RuntimeError(f"{self.__class__.__name__}: `.fit()` not called.")
+        self._check_is_fit()
         self._iter_n = 0
         return self
 
-    def __next__(self) -> Tuple[int, float]:
+    def __next__(self) -> Tuple[int, float, float]:
         """
-        Get next integer and its probability.
+        Get next integer, its PMF probability, and it CDF probability.
 
         Returns
         -------
@@ -109,12 +111,18 @@ class PoissonPMF:
             int
                 k
             float
-                probability of k
+                PMF: probability of seeing k
+            float
+                CDF: probability of seeing <= k
+
         """
-        if self.n == 0:
-            raise RuntimeError(f"{self.__class__.__name__}: `.fit()` not called.")
+        self._check_is_fit()
         self._iter_n += 1
-        return self._iter_n - 1, self.pmf(self._iter_n - 1)
+        return (
+            self._iter_n - 1,
+            self.pmf_one(self._iter_n - 1),
+            self.cdf_one(self._iter_n - 1),
+        )
 
     def _reset(self):
         """
@@ -186,6 +194,9 @@ class PoissonPMF:
         return self
 
     def _str_negative_numbers(self, x):
+        """
+        Format negative numbers message.
+        """
         negative_indices = np.argwhere(x < 0)
         example_negs = x[x < 0].flatten()[:5]
         dots = ", ..." if len(example_negs) < 5 else ""
@@ -203,7 +214,43 @@ class PoissonPMF:
         new_n = len(x)
         self.mu = (old_mu * old_n + new_mu * new_n) / (old_n + new_n)
 
-    def pmf(self, ks: Union[List[int], np.ndarray, range, int]) -> List[float]:
+    def pmf_one(self, k: int) -> float:
+        """
+        Probability Mass Function of a single value.
+
+        Identical to `.pmf(ks=[k])[0]`.
+
+        Parameters
+        ----------
+        k : int
+            Must be non-negative.
+
+        Returns
+        -------
+        float
+            Probability of `k`.
+        """
+        return float(self.pmf(ks=[k])[0])
+
+    def cdf_one(self, k: int) -> float:
+        """
+        Cumulative Distribution Function of a single value.
+
+        Identical to `.cdf(ks=[k])[0]`.
+
+        Parameters
+        ----------
+        k : int
+            Must be non-negative.
+
+        Returns
+        -------
+        float
+            CDF probability of `k`.
+        """
+        return float(self.cdf(ks=[k])[0])
+
+    def pmf(self, ks: Union[List[int], np.ndarray, range, int]) -> np.ndarray:
         """
         Probability Mass Function.
 
@@ -212,14 +259,38 @@ class PoissonPMF:
         Parameters
         ----------
         ks : int, range or list of ints
+            Must be non-negative.
 
         Returns
         -------
         `numpy.ndarray` with floats
             Probability for each value in `ks`.
         """
+        self._check_is_fit()
         ks = self._check_ks(ks=ks)
         return np.asarray(poisson.pmf(ks, mu=self.mu))
+
+    def cdf(self, ks: Union[List[int], np.ndarray, range, int]) -> np.ndarray:
+        """
+        Cumulative Distribution Function.
+
+        Get probability of <= k for one or more values.
+
+        Use `1 - cdf` to get the tail probability p(X > k) for outlier detection.
+
+        Parameters
+        ----------
+        ks : int, range or list of ints
+            Must be non-negative.
+
+        Returns
+        -------
+        `numpy.ndarray` with floats
+            CDF probability for each value in `ks`.
+        """
+        self._check_is_fit()
+        ks = self._check_ks(ks)
+        return np.asarray(poisson.cdf(ks, mu=self.mu))
 
     def _check_ks(self, ks):
         """
@@ -229,21 +300,42 @@ class PoissonPMF:
             ks = list(ks)
         if isinstance(ks, Number):
             ks = [ks]
-        if isinstance(ks, np.ndarray):
-            assert ks.ndim == 1
+        ks = np.asarray(ks, dtype=int)
+        if ks.ndim != 1 or np.any(ks < 0):
+            raise ValueError(
+                "`ks` must be scalar or 1-D list/array and "
+                "contain non-negative integers."
+            )
         return ks
 
+    def _check_is_fit(self):
+        """
+        Check whether the class has been fitted.
+        """
+        if self.n == 0:
+            raise RuntimeError(f"{self.__class__.__name__}: `.fit()` not called.")
 
-class ZIPoissonPMF(PoissonPMF):
+
+class ZIPoisson(Poisson):
     def __init__(
         self, handle_negatives="raise", max_num_negatives: Optional[int] = None
     ) -> None:
         """
-        Zero-inflated Poisson probability mass function.
+        Calculate zero-inflated Poisson probabilities for nonnegative integers.
 
-        p(X == k | k != 0) = p(X != 0) * pmf(k, mean(X))
+        Get the probability mass function (PMF) and the cumulative distribution function (CDF).
 
-        p(X == k | k == 0) = p(X == 0) + p(X != 0) * pmf(k, mean(X))
+
+        Probability mass function:
+
+            P(X = k) = { (1 − p(X > 0)) + p(X > 0) * pmf(k, mean(X))   if k = 0
+                       { p(X > 0) * pmf(k, mean(X))                    if k > 0
+
+
+        Cumulative distribution function:
+
+            p(X <= k) = (1 - p(X > 0)) + p(X > 0) * cdf(k, mean(X))    for k ≥ 0
+
 
         Parameters
         ----------
@@ -276,7 +368,7 @@ class ZIPoissonPMF(PoissonPMF):
         max_num_negatives: Optional[int] = None,
     ):
         """
-        Create new `ZIPoissonPMF` model with existing parameters.
+        Create new `ZIPoisson` model with existing parameters.
 
         Parameters
         ----------
@@ -287,14 +379,14 @@ class ZIPoissonPMF(PoissonPMF):
         n_non_zero
             Number on non-zero data points.
         handle_negatives, max_num_negatives
-            See `ZIPoissonPMF.__init__()`.
+            See `ZIPoisson.__init__()`.
 
         Returns
         -------
-        `ZIPoissonPMF`
+        `ZIPoisson`
             Zero-inflated Poisson with the specified values.
         """
-        m = ZIPoissonPMF(
+        m = ZIPoisson(
             handle_negatives=handle_negatives, max_num_negatives=max_num_negatives
         )
         m.n = n
@@ -327,27 +419,51 @@ class ZIPoissonPMF(PoissonPMF):
         self.non_zeros += np.count_nonzero(x)
         return self
 
-    def pmf(self, ks: Union[List[int], np.ndarray, range, int]) -> List[float]:
+    def pmf(self, ks: Union[List[int], np.ndarray, range, int]) -> np.ndarray:
         """
         Probability Mass Function.
 
-        Get probability of one or more values.
+        Get zero-inflated probability of one or more values.
 
         Parameters
         ----------
         ks : int, range or list of ints
+            Must be non-negative.
 
         Returns
         -------
         `numpy.ndarray` with floats
             Probability for each value in `ks`.
         """
+        self._check_is_fit()
         ks = self._check_ks(ks=ks)
         prob_non_zero = self.non_zeros / self.n
-        poiss_probs = poisson.pmf(ks, mu=self.mu)
-        return np.asarray(
-            [
-                int(k == 0) * (1 - prob_non_zero) + prob_non_zero * p
-                for p, k in zip(poiss_probs, ks)
-            ]
-        )
+        poiss_pmf = np.asarray(poisson.pmf(ks, mu=self.mu))
+        prob_pmf = prob_non_zero * poiss_pmf
+        prob_pmf[ks == 0] += 1.0 - prob_non_zero
+        return prob_pmf
+
+    def cdf(self, ks: Union[List[int], np.ndarray, range, int]) -> np.ndarray:
+        """
+        Cumulative Distribution Function.
+
+        Get zero-inflated probability of <= k for one or more values.
+
+        Use `1 - cdf` to get the tail probability p(X > k) for outlier detection.
+
+        Parameters
+        ----------
+        ks : int, range or list of ints
+            Must be non-negative.
+
+        Returns
+        -------
+        `numpy.ndarray` with floats
+            CDF probability for each value in `ks`.
+        """
+        self._check_is_fit()
+        ks = self._check_ks(ks)
+        prob_non_zero = self.non_zeros / self.n
+        pois_cdf = np.asarray(poisson.cdf(ks, mu=self.mu))
+        prob_cdf = (1 - prob_non_zero) + pois_cdf * prob_non_zero
+        return prob_cdf

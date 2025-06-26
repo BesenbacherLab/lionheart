@@ -23,7 +23,7 @@ def setup_parser(parser):
         nargs="*",
         default=[],
         help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used.",
     )
     parser.add_argument(
@@ -177,7 +177,7 @@ def main(args):
     )
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Show overview of the paths
     messenger(paths)
@@ -190,7 +190,7 @@ def main(args):
         labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         aggregate_by_groups=args.aggregate_by_subjects,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell types
         timer=timer,
         messenger=messenger,
     )

@@ -7,20 +7,24 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - gawk
   - gwf=2.0.5
-  - htslib=1.15.1
-  - joblib=1.2.0
+  - bioconda::htslib
+  - joblib=1.4.2
   - numpy=1.26.4
   - pandas=1.5.3
   - pip=24.0
+  - bioconda::samtools
   - scipy=1.7.3
   - statsmodels=0.14.1
   - seaborn=0.13.2
   - matplotlib=3.9.1
+  - conda-forge::pigz
   - pip:
     - nattrs==0.2.2
     - pytest==7.1.2
     - scikit-learn==1.0.2
-    - utipy==1.0.4
+    - utipy==1.0.5
     - poetry==1.8.2
-    - generalize
+    - generalize=0.2.3
+    - pyarrow

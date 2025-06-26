@@ -1,11 +1,10 @@
-from typing import Optional, Union, Tuple
+from typing import List, Optional, Union, Tuple
 import warnings
 import numpy as np
 import pandas as pd
 
 from utipy import random_alphanumeric
 
-# TODO: Move to fragmento? Seems more general than this project
 
 # TODO Should stride be called offset_size?
 
@@ -65,16 +64,26 @@ def normalize_megabins(
 
     """
 
+    if center is None and scale is None:
+        raise ValueError("At least one of {`center`, `scale`} must be specified.")
     assert center is None or center.lower() in ["mean", "median"]
     assert scale is None or scale.lower() in ["std", "iqr", "mean", "median"]
-    if scale in ["mean", "median"] and center is not None:
+    if scale is not None and scale in ["mean", "median"] and center is not None:
         raise ValueError(
             "When `scale` is either 'mean' or 'median', `center` should be `None`."
         )
-    if scale in ["std", "iqr"] and center is None:
+    if scale is not None and scale in ["std", "iqr"] and center is None:
         warnings.warn(
             f"Megabin scaling by `{scale}` without centering may not be meaningful."
         )
+
+    measures = []
+    if center is not None:
+        center = center.lower()
+        measures.append(center)
+    if scale is not None:
+        scale = scale.lower()
+        measures.append(scale)
 
     # Make sure we don't alter original data frame
     if copy:
@@ -87,29 +96,30 @@ def normalize_megabins(
         stride=stride,
         old_col=old_col,
         truncate_above_quantile=truncate_above_quantile,
+        measures=measures,
         copy=False,
     )
 
     # Create new normalized column
     df.loc[:, new_col] = df[old_col]
     if center is not None:
-        if center.lower() == "mean":
+        if center == "mean":
             # Center column by mean
             df[new_col] -= df_aggregates["mbin_overall_mean"]
-        elif center.lower() == "median":
+        elif center == "median":
             # Center column by median
             df[new_col] -= df_aggregates["mbin_overall_median"]
     if scale is not None:
-        if scale.lower() == "std":
+        if scale == "std":
             # Scale column by standard deviation
             df[new_col] /= df_aggregates["mbin_overall_std"]
-        elif scale.lower() == "iqr":
+        elif scale == "iqr":
             # Scale column by interquartile range
             df[new_col] /= df_aggregates["mbin_overall_iqr"]
-        elif scale.lower() == "mean":
+        elif scale == "mean":
             # Scale column by average value
             df[new_col] /= df_aggregates["mbin_overall_mean"]
-        elif scale.lower() == "median":
+        elif scale == "median":
             # Scale column by interquartile range
             df[new_col] /= df_aggregates["mbin_overall_median"]
 
@@ -126,6 +136,7 @@ def describe_megabins(
     stride: Optional[int] = None,
     old_col: str = "coverage",
     truncate_above_quantile: Optional[float] = None,
+    measures: Optional[List[str]] = None,
     copy: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     # Check stride size
@@ -137,6 +148,9 @@ def describe_megabins(
     # Make sure we don't alter original data frame
     if copy:
         df = df.copy()
+
+    if measures is None:
+        measures = ["mean", "median", "std", "iqr"]
 
     # We need to ensure the row order before and after binning
     # So we add a tmp index
@@ -150,6 +164,7 @@ def describe_megabins(
             _calculate_mbin_parameters_for_chr,
             mbin_size=mbin_size,
             stride=stride,
+            measures=measures,
             truncate_above_quantile=truncate_above_quantile,
             old_col=old_col,
         )
@@ -169,9 +184,10 @@ def describe_megabins(
     # Get created columns with averages
     new_columns = list(set(df_aggregates.columns).difference(set(df.columns)))
     idx_columns = sorted([cname for cname in new_columns if "_idx" in cname])
+
     measure_to_columns = {
         measure: sorted([cname for cname in new_columns if f"_{measure}" in cname])
-        for measure in ["mean", "median", "std", "iqr"]
+        for measure in measures
     }
 
     overall_mbin_aggregate_columns = []
@@ -202,6 +218,7 @@ def _calculate_mbin_parameters_for_chr(
     mbin_size: int,
     stride: int,
     old_col: str,
+    measures: List[str],
     truncate_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
     # Extract range of start coordinates
@@ -223,6 +240,7 @@ def _calculate_mbin_parameters_for_chr(
             max_start_pos=max_start,
             stride_id=striding,
             old_col=old_col,
+            measures=measures,
             truncate_above_quantile=truncate_above_quantile,
         )
 
@@ -236,6 +254,7 @@ def _bin_with_current_stride_start(
     max_start_pos: int,
     stride_id: int,
     old_col: str,
+    measures: List[str],
     truncate_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
     # NOTE: `first_start` can be negative if we
@@ -252,39 +271,44 @@ def _bin_with_current_stride_start(
 
     # Names of created columns
     idx_col_name = f"mbin_{stride_id}_idx"
-    mean_col_name = f"mbin_{stride_id}_mean"
-    median_col_name = f"mbin_{stride_id}_median"
-    std_col_name = f"mbin_{stride_id}_std"
-    iqr_col_name = f"mbin_{stride_id}_iqr"
+    measure_colnames = {measure: f"mbin_{stride_id}_{measure}" for measure in measures}
 
     # Find the megabin each bin (start coordinate) belongs to
     df_for_chr.loc[:, idx_col_name] = np.digitize(df_for_chr["start"], mbin_edges)
 
-    # Calculate average coverage for each megabin
-    mbin_parameters = (
-        df_for_chr.groupby([idx_col_name])
-        .apply(
-            func=_measure_below_quantile,
-            col=old_col,
-            truncate_above_quantile=truncate_above_quantile,
-        )
-        .reset_index(level=idx_col_name)
-        .reset_index(drop=True)
-    )
+    # Prepare a small factory to get a trunc+nan-aware function
+    def _mk(fn):
+        def _f(x):
+            arr = x.to_numpy().astype(float)
+            if truncate_above_quantile is not None:
+                uq = np.nanquantile(arr, truncate_above_quantile)
+                arr[arr > uq] = uq
+            return fn(arr)
 
-    # Add column names
-    mbin_parameters.columns = [
-        idx_col_name,
-        mean_col_name,
-        median_col_name,
-        std_col_name,
-        iqr_col_name,
-    ]
+        return _f
 
-    # Add new columns to the chromosome dataframe
-    df_for_chr = df_for_chr.merge(mbin_parameters, on=idx_col_name, how="left")
+    # Build our agg dict using the nan-versions of common functions
+    agg_dict = {
+        measure_colnames[m]: (old_col, _mk(_measure_to_fn[m])) for m in measures
+    }
+    stats = df_for_chr.groupby(idx_col_name).agg(**agg_dict)
+
+    df_for_chr = df_for_chr.join(stats, on=idx_col_name)
 
     return df_for_chr
+
+
+def naniqr(x: np.ndarray) -> float:
+    q75, q25 = np.nanpercentile(x, [75, 25])
+    return q75 - q25
+
+
+_measure_to_fn = {
+    "mean": np.nanmean,
+    "median": np.nanmedian,
+    "std": np.nanstd,
+    "iqr": naniqr,
+}
 
 
 # TODO: Make zero-inflated mean somehow?
@@ -293,30 +317,3 @@ def _bin_with_current_stride_start(
 # fitting the distribution, as we want the general tendency in the mbin
 # See: Statistical Analysis of Zero-Inflated Nonnegative Continuous Data
 # def zero_inflated_mean(arr, truncate_above_quantile=0.99):
-
-
-def _measure_below_quantile(
-    df: pd.DataFrame, col: str, truncate_above_quantile: Optional[float] = None
-) -> pd.DataFrame:
-    # Get column with coverage
-    arr = df[col].to_numpy()
-
-    # Truncate outliers
-    if truncate_above_quantile is not None:
-        upper_quartile = np.nanquantile(arr, truncate_above_quantile)
-        arr[arr > upper_quartile] = upper_quartile
-
-    return pd.DataFrame(
-        {
-            "Mean": [float(np.nanmean(arr))],
-            "Median": [float(np.nanmedian(arr))],
-            "Std": [float(np.nanstd(arr))],
-            "IQR": [float(naniqr(arr))],
-        },
-        index=[0],
-    )
-
-
-def naniqr(x: np.ndarray) -> float:
-    q75, q25 = np.nanpercentile(x, [75, 25])
-    return q75 - q25

@@ -305,7 +305,7 @@ def main(args):
         paths.set_paths(training_probability_densities_paths, collection="in_files")
 
     # Create output directory
-    paths.mk_output_dirs(collection="out_dirs")
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Show overview of the paths
     messenger(paths)
@@ -321,11 +321,11 @@ def main(args):
         raise
 
     # Check shape of sample dataset
-    # 10 feature sets, 489 cell types
+    # 10 feature sets, 898 cell types
     assert_shape(
         features,
         expected_n_dims=2,
-        expected_dim_sizes={0: 10, 1: 489},
+        expected_dim_sizes={0: 10, 1: 898},
         x_name="Loaded features",
     )
 

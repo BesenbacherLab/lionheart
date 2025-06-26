@@ -62,7 +62,11 @@ def prepare_modeling(
     ...
 
     """
-    if "classification" in task and labels_to_use is None:
+    if (
+        "classification" in task
+        and task != "leave_one_class_out_binary_classification"
+        and labels_to_use is None
+    ):
         # Better to be explicit (`labels_to_use` also specifies positive class)
         raise ValueError("`labels_to_use` must be specified in classification tasks.")
     assert labels_to_use is None or (
@@ -275,7 +279,9 @@ def prepare_modeling(
                 _label_to_sample_ids,
             ) = read_meta_data(
                 paths[dataset_info["meta_data_path_name"]],
-                task=task,
+                task=task
+                if task != "leave_one_class_out_binary_classification"
+                else "multiclass_classification",
                 targets_as_str="classification" in task,
                 name=dataset_name if dataset_name != "unnamed" else None,
                 messenger=messenger,
@@ -310,17 +316,38 @@ def prepare_modeling(
         else:
             groups = None
 
+        unique_labels = [str(lab).lower() for lab in np.unique(labels)]
+        unique_labels_without_exclude = [
+            lab for lab in unique_labels if lab != "exclude"
+        ]
+
+        if (
+            task == "leave_one_class_out_binary_classification"
+            and labels_to_use is None
+        ):
+            if "control" not in unique_labels_without_exclude:
+                raise ValueError(
+                    "no 'control' label found. Found these labels: "
+                    f"{', '.join(unique_labels_without_exclude)}"
+                )
+            labels_to_use = [
+                f"{i}_{lab.title()}({lab})"
+                for i, lab in enumerate(
+                    ["control"]
+                    + [ul for ul in unique_labels_without_exclude if ul != "control"]
+                )
+            ]
+
         # Check labels *pre-collapse*
-        num_labels = len(np.unique(labels))
+        num_labels = len(unique_labels_without_exclude)
         # Save to enable check for collapsings
         num_labels_pre_collapse = num_labels
         with messenger.indentation(add_indent=2):
             collapse_string = (
-                " (without collapsing)" if labels_to_use is not None else ""
+                " (before collapsing)" if labels_to_use is not None else ""
             )
             messenger(
-                f"Number of total labels{collapse_string}: "
-                f"{num_labels_pre_collapse}"
+                f"Number of total labels{collapse_string}: {num_labels_pre_collapse}"
             )
 
     # Create a "dataset"-like array with the names of the datasets
@@ -479,12 +506,14 @@ def prepare_modeling(
     # for plotting cell type contributions
     try:
         feature_name_to_feature_group = pd.read_csv(
-            paths["feature_name_to_feature_group_path"]
+            paths["feature_name_to_feature_group_path"], sep="\t"
         )
         feature_names = feature_name_to_feature_group.iloc[:, 1].astype("string")
+        # Category
+        feature_group_names = feature_name_to_feature_group.iloc[:, 2].astype("string")
         # ATAC or DNase
-        feature_seq = feature_name_to_feature_group.iloc[:, 2].astype("string")
-        feature_group_names = feature_name_to_feature_group.iloc[:, 3].astype("string")
+        feature_seq = feature_name_to_feature_group.iloc[:, 3].astype("string")
+
     except ValueError as e:
         if (
             "feature_name_to_feature_group_path was not a known key in any of the path collections"

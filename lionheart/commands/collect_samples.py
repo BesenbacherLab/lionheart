@@ -254,19 +254,20 @@ def main(args):
 
     out_path = pathlib.Path(args.out_dir)
 
+    # Prepare logging messenger
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="collect_samples-")
+    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
+    messenger(f"Running collection of {collecting_string} for specified samples")
+    messenger.now()
+
     # Create output directory
     paths = IOPaths(
         out_dirs={
             "out_path": out_path,
         }
     )
-    paths.mk_output_dirs(collection="out_dirs")
 
-    # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="collect_samples-")
-    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger(f"Running collection of {collecting_string} for specified samples")
-    messenger.now()
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Init timestamp handler
     # Note: Does not handle nested timing!

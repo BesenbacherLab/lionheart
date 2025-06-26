@@ -38,7 +38,7 @@ def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
 
     print(evals)
 
-    assert len(evals) == 489
+    assert len(evals) == 898
 
     npt.assert_almost_equal(
         evals.loc[:, "AUC"].max(),
@@ -48,7 +48,7 @@ def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
 
     npt.assert_almost_equal(
         evals.loc[0:3, "num_tests"],
-        [489] * 4,
+        [898] * 4,
         decimal=2,
     )
 
@@ -95,7 +95,7 @@ def test_evaluate_univariates_single_shared(run_cli, tmp_path, resource_path):
 
     print(evals)
 
-    assert len(evals) == 489
+    assert len(evals) == 898
 
     npt.assert_almost_equal(
         evals.loc[:, "AUC"].max(),
@@ -105,7 +105,7 @@ def test_evaluate_univariates_single_shared(run_cli, tmp_path, resource_path):
 
     npt.assert_almost_equal(
         evals.loc[0:3, "num_tests"],
-        [489] * 4,
+        [898] * 4,
         decimal=2,
     )
 

@@ -13,6 +13,10 @@ from lionheart.utils.dual_log import setup_logging
 from lionheart.utils.cli_utils import Examples
 from lionheart.utils.global_vars import LABELS_TO_USE
 
+# Disable font manager debugging messages
+logging.getLogger("matplotlib.font_manager").disabled = True
+
+# TODO: Document outputs (see cross_validate)
 
 def setup_parser(parser):
     parser.add_argument(
@@ -21,7 +25,7 @@ def setup_parser(parser):
         nargs="*",
         default=[],
         help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used.",
     )
     parser.add_argument(
@@ -59,7 +63,7 @@ def setup_parser(parser):
         type=str,
         required=True,
         help=(
-            "Path to directory to store the cross-validation results at. "
+            "Path to directory to store the univariate evaluations results at. "
             "\nA `log` directory will be placed in the same directory."
         ),
     )
@@ -80,7 +84,7 @@ def setup_parser(parser):
     parser.add_argument(
         "--use_included_features",
         action="store_true",
-        help="Whether to use the included features in the cross-validation."
+        help="Whether to use the included features in the univariate evaluations."
         "\nWhen specified, the --resources_dir must also be specified. "
         "\nWhen NOT specified, only the manually specified datasets are used.",
     )
@@ -94,7 +98,7 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--train_only",
-        type=str,
+        type=int,
         nargs="*",
         help="Indices of specified datasets that should only be used for training."
         "\n0-indexed so in the range 0->(num_datasets-1)."
@@ -103,6 +107,19 @@ def setup_parser(parser):
         "\nWHEN TO USE: If you have a dataset with only one of the classes (controls or cancer) "
         "\nwe cannot test on the dataset. It may still be a great addition"
         "\nto the training data, so flag it as 'train-only'.",
+    )
+    parser.add_argument(
+        "--merge_datasets",
+        type=str,
+        nargs="*",
+        help="List of dataset groups that should be merged into a single dataset. "
+        "Given as `NewName(D1,D2,D3)`. "
+        "Only relevant when `dataset_paths` has >1 paths. "
+        "Names must match those in `dataset_names` which must also be specified. \n\n"
+        "Example: `--merge_datasets BestDataset(D1,D2) WorstDataset(D3,D4,D5)` "
+        "would create 2 datasets where D1 and D2 make up the first, and D3-5 make up the second. "
+        "Datasets not mentioned are not affected. \n\n"
+        "Note: Be careful about spaces in the dataset names or make sure to quote each string. ",
     )
     parser.add_argument(
         "--aggregate_by_subjects",
@@ -123,6 +140,13 @@ def setup_parser(parser):
         type=int,
         default=1,
         help="Random state supplied to `sklearn.linear_model.LogisticRegression`.",
+    )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
     )
     parser.set_defaults(func=main)
 
@@ -160,6 +184,12 @@ def main(args):
     out_path = pathlib.Path(args.out_dir)
     resources_dir = pathlib.Path(args.resources_dir)
 
+    # Prepare logging messenger
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="evaluate-univariates-")
+    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
+    messenger("Running univariate analysis of model")
+    messenger.now()
+
     # Create output directory
     paths = IOPaths(
         in_dirs={
@@ -169,13 +199,7 @@ def main(args):
             "out_path": out_path,
         },
     )
-    paths.mk_output_dirs(collection="out_dirs")
-
-    # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="evaluate-univariates-")
-    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running univariate analysis of model")
-    messenger.now()
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Init timestamp handler
     # Note: Does not handle nested timing!
@@ -189,6 +213,7 @@ def main(args):
         _,
         dataset_paths,
         train_only,
+        merge_datasets,
         meta_data_paths,
         feature_name_to_feature_group_path,
     ) = prepare_modeling_command(
@@ -208,12 +233,13 @@ def main(args):
         labels_to_use=LABELS_TO_USE,
         feature_sets=[0],
         train_only_datasets=train_only,
+        merge_datasets=merge_datasets,
         k=args.k,
         standardize_cols=True,
         standardize_rows=True,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell types
         aggregate_by_groups=args.aggregate_by_subjects,
         bonferroni_correct=True,
         num_jobs=args.num_jobs,

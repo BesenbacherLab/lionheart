@@ -1,7 +1,6 @@
 from typing import Callable, Dict, List, Optional, Tuple, Union
 import pathlib
 import warnings
-import json
 import joblib
 from joblib import load as joblib_load
 from sklearn import __version__ as sklearn_version
@@ -15,6 +14,7 @@ from lionheart.modeling.prepare_modeling import prepare_modeling
 from lionheart import __version__ as lionheart_version
 from lionheart.utils.utils import load_json
 
+# TODO: Add requirements for dataset shape to dataset_paths arg
 
 def run_customize_thresholds(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
@@ -40,7 +40,6 @@ def run_customize_thresholds(
         Paths to one or more datasets. When multiple datasets are specified (and they are
         not merged to 1 dataset), leave-one-dataset-out cross-validation is performed.
         When multiple datasets, pass as a dict mapping dataset name -> dataset path.
-        TODO: Add requirements for dataset shape.
     out_path: Union[str, pathlib.Path]
         Path to the directory where the results will be saved.
     meta_data_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path]
@@ -55,7 +54,7 @@ def run_customize_thresholds(
         should be specified (separated by a whitespace). When more than two labels are specified,
         multiclass classification is used. When no labels are specified, all labels are used.
         Combine multiple labels to a single label/group (e.g., cancer <- colon,rectal,prostate)
-        by giving a name and the paranthesis-wrapped, comma-separated labels. E.g.
+        by giving a name and the parenthesis-wrapped, comma-separated labels. E.g.
         'cancer(colon,rectal,prostate)'.
     feature_sets: Optional[List[int]], default=None
         List of feature sets to use (only for 3D datasets). Default is to use all available feature sets.

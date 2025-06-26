@@ -2,7 +2,9 @@
 
 LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA.
 
-This software lets you run feature extraction and predict the cancer status of your samples. Further, you can train a model on your own data. 
+This software lets you run feature extraction and predict the cancer status of your samples. Further, you can train a model on your own data.
+
+All you need is a **BAM file** with whole genome sequenced cell-free DNA.
 
 Developed for hg38. See the `remap` directory for the applied remapping pipeline.
 
@@ -12,6 +14,7 @@ The code was developed and implemented by [@ludvigolsen](https://github.com/Ludv
 
 If you experience an issue, please [report it](https://github.com/BesenbacherLab/lionheart/issues).
 
+**NOTE: Upgrading to version `2.0.0` requires full reinstallation of the environment and package. Remember to download the new resources from Zenodo.**
 
 ## Installation
 
@@ -21,9 +24,11 @@ Install the main package:
 
 ```
 # Create and activate conda environment
-$ conda config --set channel_priority true
+$ conda config --set channel_priority flexible
 $ conda env create -f https://raw.githubusercontent.com/BesenbacherLab/lionheart/refs/heads/main/environment.yml
 $ conda activate lionheart
+# Try installing mawk (we use awk/gawk as backup if it's unavailable)
+$ conda install -c bioconda mawk || echo "mawk not available on this platform — skipping"
 
 # Install package from PyPI
 $ pip install lionheart
@@ -72,8 +77,8 @@ $ find mosdepth_installation/pkgs/ -name "mosdepth*"
 
 Download and unzip the required resources.
 ```
-$ wget https://zenodo.org/records/14215762/files/inference_resources_v002.tar.gz
-$ tar -xvzf inference_resources_v002.tar.gz 
+$ wget https://zenodo.org/records/15747531/files/inference_resources_v003.tar.gz
+$ tar -xvzf inference_resources_v003.tar.gz 
 ```
 
 ## Main commands

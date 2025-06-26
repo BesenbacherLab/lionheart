@@ -19,8 +19,8 @@ from lionheart.utils.global_vars import (
     LABELS_TO_USE,
     LASSO_C_OPTIONS,
     LASSO_C_OPTIONS_STRING,
-    PCA_TARGET_VARIANCE_OPTIONS,
-    PCA_TARGET_VARIANCE_OPTIONS_STRING,
+    PCA_TARGET_VARIANCE_FM_OPTIONS,
+    PCA_TARGET_VARIANCE_FM_OPTIONS_STRING,
 )
 from lionheart.utils.cli_utils import Examples
 from lionheart import __version__ as lionheart_version
@@ -48,7 +48,7 @@ def setup_parser(parser):
         nargs="*",
         default=[],
         help="Path(s) to `feature_dataset.npy` file(s) containing the collected features. "
-        "\nExpects shape <i>(?, 10, 489)</i> (i.e., <i># samples, # feature sets, # features</i>). "
+        "\nExpects shape <i>(?, 10, 898)</i> (i.e., <i># samples, # feature sets, # features</i>). "
         "\nOnly the first feature set is used.",
     )
     parser.add_argument(
@@ -161,7 +161,7 @@ def setup_parser(parser):
     )
     parser.add_argument(
         "--train_only",
-        type=str,
+        type=int,
         nargs="*",
         help="Indices of specified datasets that should only be used for training"
         "during cross-validation\nfor hyperparameter tuning.\n0-indexed so in the range 0->(num_datasets-1)."
@@ -173,14 +173,28 @@ def setup_parser(parser):
         "\nto the training data, so flag it as 'train-only'.",
     )
     parser.add_argument(
+        "--merge_datasets",
+        type=str,
+        nargs="*",
+        help="List of dataset groups that should be merged into a single dataset "
+        "during cross-validation in hyperparameter tuning. "
+        "Given as `NewName(D1,D2,D3)`. "
+        "\nOnly relevant when `dataset_paths` has >1 paths. "
+        "\nNames must match those in `dataset_names` which must also be specified. \n\n"
+        "Example: `--merge_datasets BestDataset(D1,D2) WorstDataset(D3,D4,D5)` "
+        "would create 2 datasets where D1 and D2 make up the first, and D3-5 make up the second. "
+        "\nDatasets not mentioned are not affected. \n\n"
+        "Note: Be careful about spaces in the dataset names or make sure to quote each string. ",
+    )
+    parser.add_argument(
         "--pca_target_variance",
         type=float,
-        default=PCA_TARGET_VARIANCE_OPTIONS,
+        default=PCA_TARGET_VARIANCE_FM_OPTIONS,
         nargs="*",
         help="Target(s) for the explained variance of selected principal components."
         "\nUsed to select the most-explaining components."
         "\nWhen multiple targets are provided, they are used in grid search."
-        "\nDefaults to: " + PCA_TARGET_VARIANCE_OPTIONS_STRING,
+        "\nDefaults to: " + PCA_TARGET_VARIANCE_FM_OPTIONS_STRING,
     )
     parser.add_argument(
         "--lasso_c",
@@ -216,6 +230,13 @@ def setup_parser(parser):
         type=str,
         help="Optionally set a minimally required LIONHEART version for this model instance.\n"
         "`lionheart predict_sample` will check for this version and fail if the LIONHEART installation is outdated.",
+    )
+    # Declare defaults for cv-only args to allow sharing preparation function
+    parser.set_defaults(
+        feature_type="LIONHEART",
+        feature_categories=[],
+        loco=False,
+        loco_train_only_classes=False,
     )
     parser.set_defaults(func=main)
 
@@ -282,6 +303,12 @@ def main(args):
     out_path = pathlib.Path(args.out_dir)
     resources_dir = pathlib.Path(args.resources_dir)
 
+    # Prepare logging messenger
+    setup_logging(dir=str(out_path / "logs"), fname_prefix="train_model-")
+    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
+    messenger("Running training of model")
+    messenger.now()
+
     # Create output directory
     paths = IOPaths(
         in_dirs={
@@ -291,13 +318,7 @@ def main(args):
             "out_path": out_path,
         },
     )
-    paths.mk_output_dirs(collection="out_dirs")
-
-    # Prepare logging messenger
-    setup_logging(dir=str(out_path / "logs"), fname_prefix="train_model-")
-    messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
-    messenger("Running training of model")
-    messenger.now()
+    paths.mk_output_dirs(collection="out_dirs", messenger=messenger)
 
     # Init timestamp handler
     # Note: Does not handle nested timing!
@@ -311,6 +332,7 @@ def main(args):
         transformers_fn,
         dataset_paths,
         train_only,
+        merge_datasets,
         meta_data_paths,
         feature_name_to_feature_group_path,
     ) = prepare_modeling_command(
@@ -338,20 +360,21 @@ def main(args):
         train_only_datasets=train_only,
         merge_datasets={"Combined Data": list(dataset_paths.keys())}
         if args.subtype
-        else None,
+        else merge_datasets,
         k=args.k,
         transformers=transformers_fn,
         aggregate_by_groups=args.aggregate_by_subjects,
         weight_loss_by_groups=True,
         weight_per_dataset=True,
-        expected_shape={1: 10, 2: 489},  # 10 feature sets, 489 cell types
+        expected_shape={1: 10, 2: 898},  # 10 feature sets, 898 cell type features
         refit_fn=make_simplest_model_refit_strategy(
             main_var=("model__C", "minimize"),
             score_name="balanced_accuracy",
             other_vars=[("pca__target_variance", "minimize")],
             messenger=messenger,
         )
-        if args.subtype
+        # TODO: Take merge_datasets into account here?
+        if args.subtype or (len(dataset_paths) - len(train_only)) < 2
         else None,
         num_jobs=args.num_jobs,
         seed=args.seed,

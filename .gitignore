@@ -174,3 +174,5 @@ dist/
 lionheart/__pycache__/
 
 TOCHANGE.md
+
+encode_donors/
