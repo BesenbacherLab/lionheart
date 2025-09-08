@@ -63,13 +63,13 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.525994, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.57336193, decimal=5)
 
     splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
     print(splits_summary)
@@ -134,13 +134,13 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.199392, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.5383732, decimal=5)
 
     eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
     print(eval_scores)

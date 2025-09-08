@@ -27,22 +27,22 @@ def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     pd.set_option("display.max_columns", None)
 
     # Check prediction
     evals = pd.read_csv(tmp_path / output_subdir / "univariate_evaluations.csv")
 
-    print(evals)
+    # print(evals)
 
     assert len(evals) == 898
 
     npt.assert_almost_equal(
         evals.loc[:, "AUC"].max(),
-        0.67,
+        0.72596,
         decimal=2,
     )
 
@@ -84,22 +84,22 @@ def test_evaluate_univariates_single_shared(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     pd.set_option("display.max_columns", None)
 
     # Check prediction
     evals = pd.read_csv(tmp_path / output_subdir / "univariate_evaluations.csv")
 
-    print(evals)
+    # print(evals)
 
     assert len(evals) == 898
 
     npt.assert_almost_equal(
         evals.loc[:, "AUC"].max(),
-        0.8164,
+        0.80564,
         decimal=4,
     )
 

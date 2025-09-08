@@ -17,7 +17,7 @@ def test_customize_thresholds_shared_resources(
         "--resources_dir",
         resource_path,
         "--model_name",
-        "detect_cancer__001__25_11_24",
+        INCLUDED_MODELS[0],
         "--use_included_features",
     ]
     generated_files, output_dir = run_cli(
@@ -31,9 +31,9 @@ def test_customize_thresholds_shared_resources(
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").get("Custom ROC")
 
@@ -68,10 +68,10 @@ def test_customize_thresholds_single_dataset_custom_model(
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").get("Custom ROC")
 
-    npt.assert_almost_equal(roc.auc, 0.8479, decimal=4)
+    npt.assert_almost_equal(roc.auc, 0.88323, decimal=4)

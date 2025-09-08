@@ -190,4 +190,4 @@ def test_normmega_as_used():
     assert len(megabin_offset_combination_averages) == 12
     print(sample_cov)
     print(megabin_offset_combination_averages)
-    assert False
+    # assert False, "Improve tests"

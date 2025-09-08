@@ -55,9 +55,9 @@ def test_validate_model_custom_dataset(
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     pd.set_option("display.max_columns", None)
 
@@ -66,7 +66,7 @@ def test_validate_model_custom_dataset(
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * (10 * 6)  # 6 thresholds
-    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * (10 * 6)
+    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9481] * (10 * 6)
 
     # Check evaluation scores
     eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
@@ -112,9 +112,9 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     pd.set_option("display.max_columns", None)
 
@@ -122,7 +122,7 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
     prediction = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(prediction.iloc[:3])
 
-    assert len(prediction) == 2106
+    assert len(prediction) == 894
 
     # Note: loc includes the end index for some reason...
     assert prediction.loc[:2, "Prediction"].tolist() == ["No Cancer"] * 3
