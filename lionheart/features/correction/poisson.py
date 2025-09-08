@@ -22,7 +22,7 @@ class Poisson:
         ----------
         handle_negatives : str
             How to handle negative numbers (e.g., numeric versions of NaN).
-            One of: {"raise", "warn_truncate", "truncate"}.
+            One of: {"raise", "warn_clip", "clip"}.
         max_num_negatives : int or `None`
             How many negative numbers to allow when
             `handle_negatives` is not `"raise"`.
@@ -183,10 +183,10 @@ class Poisson:
                 and np.sum(x < 0) > self.max_num_negatives
             ):
                 raise ValueError(self._str_negative_numbers(x=x))
-            elif self.handle_negatives == "warn_truncate":
+            elif self.handle_negatives == "warn_clip":
                 warnings.warn(self._str_negative_numbers(x=x))
                 x[x < 0] = 0
-            elif self.handle_negatives == "truncate":
+            elif self.handle_negatives == "clip":
                 x[x < 0] = 0
 
         self._update_mean(x=x, old_mu=self.mu, old_n=self.n)
@@ -341,7 +341,7 @@ class ZIPoisson(Poisson):
         ----------
         handle_negatives : str
             How to handle negative numbers (e.g., numeric versions of NaN).
-            One of: {"raise", "warn_truncate", "truncate"}.
+            One of: {"raise", "warn_clip", "clip"}.
         max_num_negatives : int or `None`
             How many negative numbers to allow when
             `handle_negatives` is not `"raise"`.

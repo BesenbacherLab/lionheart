@@ -110,12 +110,12 @@ def test_normmega_stride_smaller_than_mbin():
 
 
 # ---------------------------------------------------------------------------
-# truncate_above_quantile clamps outliers before stats
+# clip_above_quantile clamps outliers before stats
 # ---------------------------------------------------------------------------
-def test_normmega_truncation():
+def test_normmega_clipping():
     df = _toy_df([1, 2, 100])  # extreme outlier
     _, agg = normalize_megabins(
-        df, 3, 3, center=None, scale="mean", truncate_above_quantile=0.66
+        df, 3, 3, center=None, scale="mean", clip_above_quantile=0.66
     )
     naive_mean = np.mean([1, 2, 100])
     assert (agg["mbin_overall_mean"] < naive_mean).all()

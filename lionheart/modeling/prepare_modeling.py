@@ -363,7 +363,7 @@ def prepare_modeling(
 
     # Convert to an array
     # By setting the dtype to `object`, we don't need to worry
-    # about the string size being truncated when setting some
+    # about the string size being clipped when setting some
     # labels to the train only string
     dataset_ids = np.array([x[0] for x in dataset_ids], dtype=object)
 

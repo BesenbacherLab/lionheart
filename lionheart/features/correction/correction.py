@@ -79,7 +79,7 @@ def correct_bias(
     bin_indices: Optional[np.ndarray] = None,
     bin_edges: Optional[np.ndarray] = None,
     normalize_correct_factors: bool = True,
-    truncate_negative_coverages: bool = True,
+    clip_negative_coverages: bool = True,
 ) -> np.ndarray:
     """
     Correct `coverages` by binned correction factors.
@@ -109,8 +109,8 @@ def correct_bias(
         Only one of {`bias_scores`, `bin_indices`} should be specified.
     bin_edges
         The values in `bias_scores` that the bins are split at.
-    truncate_negative_coverages
-        Whether to truncate `coverages < 0` to 0.
+    clip_negative_coverages
+        Whether to clip `coverages < 0` to 0.
         The current correction style works best for non-negative numbers.
 
     Returns
@@ -121,22 +121,22 @@ def correct_bias(
     assert isinstance(coverages, np.ndarray)
     assert isinstance(correct_factors, np.ndarray)
 
-    assert (
-        sum([bin_indices is not None, bias_scores is not None]) == 1
-    ), "Exactly one of `bin_indices` and `bias_scores` should be specified."
+    assert sum([bin_indices is not None, bias_scores is not None]) == 1, (
+        "Exactly one of `bin_indices` and `bias_scores` should be specified."
+    )
     if bias_scores is not None:
         assert bin_edges is not None and isinstance(bin_edges, np.ndarray)
         assert isinstance(bias_scores, np.ndarray)
     else:
         assert isinstance(bin_indices, np.ndarray)
-        assert (
-            bin_edges is None
-        ), "`bin_edges` should only be specified along with `bias_scores`."
+        assert bin_edges is None, (
+            "`bin_edges` should only be specified along with `bias_scores`."
+        )
 
     if bias_scores is not None:
         bin_indices = np.digitize(bias_scores, bins=bin_edges, right=False) - 1
 
-        # Truncate bin indices
+        # Clip bin indices
         bin_indices[bin_indices < 0] = 0
         bin_indices[bin_indices > (len(bin_edges) - 2)] = len(bin_edges) - 2
 
@@ -158,8 +158,8 @@ def correct_bias(
     # Avoid zero-division
     corrections[corrections == 0] = np.nan
 
-    # Truncate negative coverages
-    if truncate_negative_coverages:
+    # Clip negative coverages
+    if clip_negative_coverages:
         coverages[coverages < 0] = 0.0
 
     # Apply correction
@@ -235,9 +235,9 @@ def average_bins(
     assert isinstance(bin_edges, np.ndarray)
     assert x.ndim == 1, f"`x` must have exactly one dimension. Had {x.ndim}."
     assert y.ndim == 1, f"`y` must have exactly one dimension. Had {y.ndim}."
-    assert (
-        bin_edges.ndim == 1
-    ), f"`bin_edges` must have exactly one dimension. Had {bin_edges.ndim}."
+    assert bin_edges.ndim == 1, (
+        f"`bin_edges` must have exactly one dimension. Had {bin_edges.ndim}."
+    )
     assert isinstance(nan_extremes, (str, bool))
     if isinstance(nan_extremes, str) and nan_extremes not in ["min", "max"]:
         raise ValueError(
