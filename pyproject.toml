@@ -1,6 +1,6 @@
 [project]
 name = "lionheart"
-version = "2.0.0"
+version = "2.0.2"
 description = "LIONHEART is a method for detecting cancer from whole genome sequenced plasma cell-free DNA. Check the README for additional installation steps."
 authors = [{name = "Ludvig", email = "<mail@ludvigolsen.dk>"}]
 readme = "README.md"
@@ -18,7 +18,7 @@ include = ["CHANGELOG.md"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-generalize = "^0.2.3"
+generalize = "^0.3.0"
 utipy = "^1.0.5"
 scikit-learn = "1.0.2"
 pandas = "1.5.3"
