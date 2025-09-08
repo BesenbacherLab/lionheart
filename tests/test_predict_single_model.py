@@ -81,7 +81,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_three_samples.loc[:, "P(Cancer)"].tolist(),
-        [0.993221] * 3 * len(threshold_names),
+        [0.9481] * 3 * len(threshold_names),
         decimal=4,
     )
 

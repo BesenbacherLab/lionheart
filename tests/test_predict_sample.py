@@ -132,6 +132,6 @@ def test_predict_with_custom_model_and_roc(
     # Exp. accuracy differs between probability density files
     npt.assert_almost_equal(
         prediction.loc[[0, 6], "Exp. Accuracy for Class at Probability"].tolist(),
-        [0.990602, 0.999808],
+        [0.9542, 0.9597],
         decimal=4,
     )

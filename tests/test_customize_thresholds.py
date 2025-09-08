@@ -37,7 +37,7 @@ def test_customize_thresholds_shared_resources(
 
     roc = ROCCurves.load(tmp_path / output_subdir / "ROC_curves.json").get("Custom ROC")
 
-    npt.assert_almost_equal(roc.auc, 0.8837, decimal=4)
+    npt.assert_almost_equal(roc.auc, 0.90221, decimal=4)
 
 
 def test_customize_thresholds_single_dataset_custom_model(

@@ -82,7 +82,7 @@ def test_validate_model_custom_dataset(
     ]
     npt.assert_almost_equal(
         eval_scores.loc[:, "Threshold"],
-        [0.476824, 0.273344, 0.179274, 0.602376, 0.712597, 0.500000],
+        [0.4888, 0.2077, 0.0817, 0.6281, 0.8051, 0.5],
         decimal=4,
     )
     # We must have 50/50 with the 50/50 labels for the same features
@@ -124,14 +124,13 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
 
     assert len(prediction) == 894
 
-    # Note: loc includes the end index for some reason...
-    assert prediction.loc[:2, "Prediction"].tolist() == ["No Cancer"] * 3
+    assert prediction.loc[:2, "Prediction"].tolist() == ["No Cancer"] * 2 + ["Cancer"]
     npt.assert_almost_equal(
         prediction.loc[:2, "P(Cancer)"],
         [
-            0.371896,
-            0.348255,
-            0.363712,
+            0.156104,
+            0.478454,
+            0.716203,
         ],
         decimal=4,
     )
@@ -150,7 +149,7 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
     ]
     npt.assert_almost_equal(
         eval_scores.loc[:, "Threshold"],
-        [0.476824, 0.273344, 0.179274, 0.602376, 0.712597, 0.500000],
+        [0.4888, 0.2077, 0.0817, 0.6281, 0.8051, 0.5],
         decimal=4,
     )
     assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8588] * 6
