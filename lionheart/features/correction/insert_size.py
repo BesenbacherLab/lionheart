@@ -34,7 +34,7 @@ def calculate_insert_size_correction_factors(
     insert_sizes = insert_sizes.copy()
     bin_edges = bin_edges.copy()
 
-    # Truncate any negative coverages (from prior corrections)
+    # Clip any negative coverages (from prior corrections)
     coverages[coverages < 0] = 0
 
     assert isinstance(nan_extremes, (str, bool))
@@ -197,7 +197,7 @@ def _calculate_composite_distribution(
         "kernel_std": 1.0,
     },
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, List[float]]:
-    # Find upper and lower bounds for the truncated distribution
+    # Find upper and lower bounds for the clipped distribution
     lower_bound, upper_bound = min(bin_edges), max(bin_edges)
 
     # Calculate observed bias distribution
@@ -284,11 +284,11 @@ def _calculate_mixture_distribution(
                 skewness=skewness,
             )
 
-            # Truncate the distribution manually
+            # Clip the distribution manually
             distribution[bin_midpoints_ < lower_bound] = 0
             distribution[bin_midpoints_ > upper_bound] = 0
 
-            # Normalize the distribution for the truncated range
+            # Normalize the distribution for the clipped range
             distribution /= t_scale_factor * depth_sigma
 
             # Weight the distribution by its probability and add to the composite

@@ -26,5 +26,5 @@ dependencies:
     - scikit-learn==1.0.2
     - utipy==1.0.5
     - poetry==1.8.2
-    - generalize==0.2.3
+    - generalize==0.3.0
     - pyarrow

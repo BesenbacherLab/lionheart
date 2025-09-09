@@ -328,13 +328,13 @@ def create_dataset_for_inference(
 
     # Initialize Poisson distribution
     # In very rare cases with NaNs (like -9223372036854775808)
-    # we might just want to truncate them,
+    # we might just want to clip them,
     # but we will ask for a warning, so we could potentially
     # see the size of the problem
     # Also, we only allow very few negatives in total,
     # so we don't miss systematic errors
     messenger("Preparing outlier detector")
-    poiss = ZIPoisson(handle_negatives="warn_truncate", max_num_negatives=50)
+    poiss = ZIPoisson(handle_negatives="warn_clip", max_num_negatives=50)
 
     megabin_offset_combination_averages_collection = {}
     gc_correction_factors_collection = {}
@@ -458,25 +458,25 @@ def create_dataset_for_inference(
                     # When the tail probability P(X > val) is below the threshold
                     # we grab the current value
                     if tail_prob < THRESHOLD:
-                        truncation_val = val
+                        clipping_val = val
                         break
 
                 messenger(
                     (
-                        f"Truncating {np.count_nonzero(sample_cov > truncation_val)} "
-                        f"bins to a max. of {truncation_val}"
+                        f"Clipping {np.count_nonzero(sample_cov > clipping_val)} "
+                        f"bins to a max. of {clipping_val}"
                     ),
                 )
 
-                # Truncate outliers
-                sample_cov[sample_cov > truncation_val] = truncation_val
+                # Clip outliers
+                sample_cov[sample_cov > clipping_val] = clipping_val
 
                 # We will use this in the insert size correction model building
                 # where the estimation of central limit theorem depends on having
                 # the correct coverage counts. But we don't want the extreme
                 # outliers in that context, so we set them to NaN (instead of
-                # truncating them)
-                sample_cov_raw_counts[sample_cov_raw_counts > truncation_val] = np.nan
+                # clipping them)
+                sample_cov_raw_counts[sample_cov_raw_counts > clipping_val] = np.nan
 
                 # Calculate and apply GC correction factor for current chromosome
                 with timer.time_step(indent=4):

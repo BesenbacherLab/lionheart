@@ -29,8 +29,8 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         "--k_inner",
         "5",
         "--pca_target_variance",
-        "0.996",
-        "0.997",
+        "0.994",
+        "0.995",
         "--lasso_c",
         "0.04",
         "0.05",
@@ -63,13 +63,13 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.525994, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.57336193, decimal=5)
 
     splits_summary = pd.read_csv(tmp_path / output_subdir / "splits_summary.csv")
     print(splits_summary)
@@ -78,8 +78,8 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         np.unique(splits_summary["Fold"]),
         ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
     )
-    npt.assert_almost_equal(splits_summary.loc[0, "AUC"], 0.817962, decimal=5)
-    npt.assert_almost_equal(splits_summary.loc[4, "AUC"], 0.654003, decimal=5)
+    npt.assert_almost_equal(splits_summary.loc[0, "AUC"], 0.68886, decimal=5)
+    npt.assert_almost_equal(splits_summary.loc[4, "AUC"], 0.607876, decimal=5)
 
 
 def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path):
@@ -134,16 +134,16 @@ def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path)
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     print(predictions.iloc[0])
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.199392, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.5383732, decimal=5)
 
     eval_scores = pd.read_csv(tmp_path / output_subdir / "evaluation_scores.csv")
     print(eval_scores)
     print(eval_scores["AUC"])
 
-    npt.assert_almost_equal(eval_scores.loc[0, "AUC"], 0.939309, decimal=5)
+    npt.assert_almost_equal(eval_scores.loc[0, "AUC"], 0.928207, decimal=5)

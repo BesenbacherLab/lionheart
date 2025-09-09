@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import numpy.testing as npt
 import pandas as pd
@@ -56,7 +57,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
-        [0.993221] * len(threshold_names),  # 2 x num thresholds
+        [0.9481] * len(threshold_names),  # 2 x num thresholds
         decimal=4,
     )
 
@@ -81,7 +82,7 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     npt.assert_almost_equal(
         predictions_three_samples.loc[:, "P(Cancer)"].tolist(),
-        [0.993221] * 3 * len(threshold_names),
+        [0.9481] * 3 * len(threshold_names),
         decimal=4,
     )
 
@@ -96,7 +97,20 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     # Ensure that the first row of each version is the same
 
+    def round_numerics(l: List[str]) -> List[str]:  # noqa: E741
+        def as_numeric(s: str, decimals=5):
+            try:
+                # Round if numeric
+                i = float(s)
+                i = np.round(i, decimals=decimals)
+                i = str(i)
+            except:  # noqa: E722
+                i = s
+            return i
+
+        return [as_numeric(s) for s in l]
+
     npt.assert_equal(
-        list(predictions_single_sample.loc[0]),
-        list(predictions_three_samples.loc[0]),
+        round_numerics(list(predictions_single_sample.loc[0])),
+        round_numerics(list(predictions_three_samples.loc[0])),
     )

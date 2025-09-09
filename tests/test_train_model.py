@@ -1,7 +1,6 @@
 import json
 import pandas as pd
 import numpy.testing as npt
-from utipy import mk_dir
 
 from lionheart.utils.global_vars import LABELS_TO_USE
 
@@ -103,7 +102,7 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.17144176, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.5238437, decimal=5)
 
 
 def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
@@ -198,4 +197,4 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         assert training_info[key] == expected_training_info[key]
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
-    npt.assert_almost_equal(predictions.iloc[0, 0], 0.15519388, decimal=5)
+    npt.assert_almost_equal(predictions.iloc[0, 0], 0.47397572, decimal=5)

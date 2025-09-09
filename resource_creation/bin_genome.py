@@ -460,9 +460,9 @@ def _extract_gc_contents(
             gc_bins_df["start"] -= slop_left
             gc_bins_df["end"] += slop_right
 
-            # Truncate to [0, size] where size is for the specific chromosome
-            messenger("Truncating coordinates to [0, chromosome size]", indent=4)
-            with timer.time_step(indent=6, message="Zero-truncation took:"):
+            # Clip to [0, size] where size is for the specific chromosome
+            messenger("Clipping coordinates to [0, chromosome size]", indent=4)
+            with timer.time_step(indent=6, message="Zero-clipping took:"):
                 gc_bins_df.loc[gc_bins_df["start"] < 0, "start"] = 0
                 gc_bins_df["end"] = np.minimum(
                     gc_bins_df["end"], gc_bins_df["chromosome"].map(chrom_sizes_map)

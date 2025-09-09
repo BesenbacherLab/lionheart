@@ -92,16 +92,16 @@ def test_poisson_negative_handling():
     with pytest.raises(ValueError):
         p.fit(bad)
 
-    # warn_truncate
-    p = Poisson(handle_negatives="warn_truncate", max_num_negatives=10)
+    # warn_clip
+    p = Poisson(handle_negatives="warn_clip", max_num_negatives=10)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         p.fit(bad.copy())
         assert any("negative numbers" in str(wi.message) for wi in w)
     assert (p.pmf(0) > 0).all()
 
-    # truncate silently
-    p = Poisson(handle_negatives="truncate").fit(bad.copy())
+    # Clip silently
+    p = Poisson(handle_negatives="clip").fit(bad.copy())
     assert p.mu >= 0
 
 
@@ -171,11 +171,11 @@ def test_scalar_helpers_match_vectorised(samp_small):
         assert math.isclose(zp.cdf_one(k), zp.cdf(k)[0])
 
 
-# ---------- tail-probability truncation logic ------------------------
+# ---------- tail-probability clipping logic ------------------------
 
 
 def test_tail_probability_cutoff(samp_small):
-    """Replicates user-side truncation loop logic."""
+    """Replicates user-side clipping loop logic."""
     zp = ZIPoisson().fit(samp_small)
 
     THRESHOLD = 1.0 / 1000  # arbitrary

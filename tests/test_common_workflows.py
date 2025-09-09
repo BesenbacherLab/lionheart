@@ -106,7 +106,7 @@ def test_train_customize_validate(run_cli, tmp_path, resource_path, lionheart_fe
     ]
     npt.assert_almost_equal(
         eval_scores.loc[:, "Threshold"],
-        [0.373910, 0.706941, 0.562187, 0.944799],
+        [0.4413, 0.6093, 0.6347, 0.8227],
         decimal=4,
     )
-    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8364] * 4
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8711] * 4

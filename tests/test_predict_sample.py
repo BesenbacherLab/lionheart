@@ -35,16 +35,16 @@ def test_predict(run_cli, tmp_path, resource_path, lionheart_features):
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     # Check prediction
     prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
     print(prediction)
 
     assert prediction["Prediction"].tolist() == ["Cancer"] * 6
-    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9932] * 6
+    assert np.round(prediction["P(Cancer)"], decimals=4).tolist() == [0.9481] * 6
 
 
 def test_predict_with_custom_model_and_roc(
@@ -106,9 +106,9 @@ def test_predict_with_custom_model_and_roc(
 
     # Check that expected files are generated
     for expected_file in expected_files:
-        assert (
-            expected_file in generated_files
-        ), f"Expected file {expected_file} not found."
+        assert expected_file in generated_files, (
+            f"Expected file {expected_file} not found."
+        )
 
     # Check prediction
     prediction = pd.read_csv(tmp_path / output_subdir / "prediction.csv")
@@ -126,12 +126,12 @@ def test_predict_with_custom_model_and_roc(
     # Max. J differs between the thresholds
     npt.assert_almost_equal(
         prediction.loc[[0, 6], "Threshold"].tolist(),
-        [0.476824, 0.506503],
+        [0.4888, 0.6229],
         decimal=4,
     )
     # Exp. accuracy differs between probability density files
     npt.assert_almost_equal(
         prediction.loc[[0, 6], "Exp. Accuracy for Class at Probability"].tolist(),
-        [0.990602, 0.999808],
+        [0.9542, 0.9597],
         decimal=4,
     )

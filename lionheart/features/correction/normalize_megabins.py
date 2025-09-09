@@ -18,7 +18,7 @@ def normalize_megabins(
     center: Optional[str] = None,
     scale: Optional[str] = None,
     copy: bool = True,
-    truncate_above_quantile: Optional[float] = None,
+    clip_above_quantile: Optional[float] = None,
     return_coverage: bool = False,
 ) -> Union[Tuple[pd.DataFrame, pd.DataFrame], Tuple[np.ndarray, pd.DataFrame]]:
     """
@@ -32,7 +32,7 @@ def normalize_megabins(
 
     The statistical descriptors are calculated
     in megabins with a series of offsets (`stride`).
-    NOTE: The statistical descriptors are of the <=0.99 quantile data (truncated to remove big outliers)
+    NOTE: The statistical descriptors are of the <=0.99 quantile data (clipped to remove big outliers)
 
     NOTE: When both center and scale are `None`, the coverage is not touched.
     I this case, you can use this function to just get the stride-sized bin measures.
@@ -95,7 +95,7 @@ def normalize_megabins(
         mbin_size=mbin_size,
         stride=stride,
         old_col=old_col,
-        truncate_above_quantile=truncate_above_quantile,
+        clip_above_quantile=clip_above_quantile,
         measures=measures,
         copy=False,
     )
@@ -135,7 +135,7 @@ def describe_megabins(
     mbin_size: int,
     stride: Optional[int] = None,
     old_col: str = "coverage",
-    truncate_above_quantile: Optional[float] = None,
+    clip_above_quantile: Optional[float] = None,
     measures: Optional[List[str]] = None,
     copy: bool = True,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -165,7 +165,7 @@ def describe_megabins(
             mbin_size=mbin_size,
             stride=stride,
             measures=measures,
-            truncate_above_quantile=truncate_above_quantile,
+            clip_above_quantile=clip_above_quantile,
             old_col=old_col,
         )
         .reset_index(drop=True)
@@ -219,7 +219,7 @@ def _calculate_mbin_parameters_for_chr(
     stride: int,
     old_col: str,
     measures: List[str],
-    truncate_above_quantile: Optional[float] = None,
+    clip_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
     # Extract range of start coordinates
     min_start = int(df_for_chr["start"].min())
@@ -241,7 +241,7 @@ def _calculate_mbin_parameters_for_chr(
             stride_id=striding,
             old_col=old_col,
             measures=measures,
-            truncate_above_quantile=truncate_above_quantile,
+            clip_above_quantile=clip_above_quantile,
         )
 
     return df_for_chr
@@ -255,7 +255,7 @@ def _bin_with_current_stride_start(
     stride_id: int,
     old_col: str,
     measures: List[str],
-    truncate_above_quantile: Optional[float] = None,
+    clip_above_quantile: Optional[float] = None,
 ) -> pd.DataFrame:
     # NOTE: `first_start` can be negative if we
     # have "padding" to have the same resolution
@@ -276,12 +276,12 @@ def _bin_with_current_stride_start(
     # Find the megabin each bin (start coordinate) belongs to
     df_for_chr.loc[:, idx_col_name] = np.digitize(df_for_chr["start"], mbin_edges)
 
-    # Prepare a small factory to get a trunc+nan-aware function
+    # Prepare a small factory to get a clip+nan-aware function
     def _mk(fn):
         def _f(x):
             arr = x.to_numpy().astype(float)
-            if truncate_above_quantile is not None:
-                uq = np.nanquantile(arr, truncate_above_quantile)
+            if clip_above_quantile is not None:
+                uq = np.nanquantile(arr, clip_above_quantile)
                 arr[arr > uq] = uq
             return fn(arr)
 
@@ -316,4 +316,4 @@ _measure_to_fn = {
 # Perhaps remove outliers by removing >=0.99 quantile before
 # fitting the distribution, as we want the general tendency in the mbin
 # See: Statistical Analysis of Zero-Inflated Nonnegative Continuous Data
-# def zero_inflated_mean(arr, truncate_above_quantile=0.99):
+# def zero_inflated_mean(arr, clip_above_quantile=0.99):
