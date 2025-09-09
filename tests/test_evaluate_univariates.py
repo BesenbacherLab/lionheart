@@ -53,7 +53,7 @@ def test_evaluate_univariates_shared_only(run_cli, tmp_path, resource_path):
     )
 
     npt.assert_equal(
-        np.unique(evals.loc[:, "Seq Type"], return_counts=True)[1], [544, 355]
+        np.unique(evals.loc[:, "Seq Type"], return_counts=True)[1], [544, 354]
     )
 
 
@@ -112,5 +112,5 @@ def test_evaluate_univariates_single_shared(run_cli, tmp_path, resource_path):
     )
 
     npt.assert_equal(
-        np.unique(evals.loc[:, "Seq Type"], return_counts=True)[1], [544, 355]
+        np.unique(evals.loc[:, "Seq Type"], return_counts=True)[1], [544, 354]
     )

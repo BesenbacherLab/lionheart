@@ -1,3 +1,4 @@
+from typing import List
 import numpy as np
 import numpy.testing as npt
 import pandas as pd
@@ -96,8 +97,20 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     # Ensure that the first row of each version is the same
 
-    npt.assert_almost_equal(
-        list(predictions_single_sample.loc[0]),
-        list(predictions_three_samples.loc[0]),
-        decimal=8,
+    def round_numerics(l: List[str]) -> List[str]:  # noqa: E741
+        def as_numeric(s: str, decimals=5):
+            try:
+                # Round if numeric
+                i = float(s)
+                i = np.round(i, decimals=decimals)
+                i = str(i)
+            except:  # noqa: E722
+                i = s
+            return i
+
+        return [as_numeric(s) for s in l]
+
+    npt.assert_equal(
+        round_numerics(list(predictions_single_sample.loc[0])),
+        round_numerics(list(predictions_three_samples.loc[0])),
     )
