@@ -4,6 +4,7 @@
 
  - Replaces the use of "truncate" / "truncation" with "clip" / "clipping". The functionality stays the same, but this is more precise terminology. By clipping, we mean "replacing a value beyond a threshold with the value at that threshold".
  - Now requires `generalize` v0.3.0 or above.
+ - Fixes unit/regression tests for v2.
 
 ## 2.0.0
 
