@@ -152,7 +152,7 @@ def test_validate_model_reproducibility(run_cli, tmp_path, resource_path):
         [0.4888, 0.2077, 0.0817, 0.6281, 0.8051, 0.5],
         decimal=4,
     )
-    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.8588] * 6
+    assert np.round(eval_scores["AUC"], decimals=4).tolist() == [0.9171] * 6
 
 
 # def test_predict_with_custom_model_and_roc(

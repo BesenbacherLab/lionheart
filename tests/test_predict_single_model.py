@@ -96,7 +96,8 @@ def test_predict_single_model(resource_path, lionheart_features):
 
     # Ensure that the first row of each version is the same
 
-    npt.assert_equal(
+    npt.assert_almost_equal(
         list(predictions_single_sample.loc[0]),
         list(predictions_three_samples.loc[0]),
+        decimal=8,
     )

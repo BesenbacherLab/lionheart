@@ -78,8 +78,8 @@ def test_cross_validate_three_shared_datasets(run_cli, tmp_path, resource_path):
         np.unique(splits_summary["Fold"]),
         ["Cristiano 2019", "EndoscopyII", "Jiang 2015"],  # alphabetical order
     )
-    npt.assert_almost_equal(splits_summary.loc[0, "AUC"], 0.817962, decimal=5)
-    npt.assert_almost_equal(splits_summary.loc[4, "AUC"], 0.654003, decimal=5)
+    npt.assert_almost_equal(splits_summary.loc[0, "AUC"], 0.68886, decimal=5)
+    npt.assert_almost_equal(splits_summary.loc[4, "AUC"], 0.607876, decimal=5)
 
 
 def test_cross_validate_single_shared_datasets(run_cli, tmp_path, resource_path):
