@@ -903,11 +903,12 @@ def create_dataset_for_inference(
             output_paths.megabin_normalization_offset_combinations, index=False
         )
 
+    # NOTE: The first feature is first standardized in the `extract_features.py` command
     if output_paths.feature_readme is not None:
         with open(output_paths.feature_readme, "w") as f:
             f.write(
                 """The features in the dataset are as follows:
-        0) Pearson's R
+        0) Standardized Pearson's R (LIONHEART score)
         1) and its p-value
         2) The normalized dot product (i.e. within-mask fraction)
         3) Cosine Similarity
