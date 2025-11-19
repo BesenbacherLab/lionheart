@@ -22,7 +22,7 @@ def _toy_df(covers):
 
 
 # ---------------------------------------------------------------------------
-# No centre/scale → should raise (API forbids no-op)
+# No centre/scale -> should raise (API forbids no-op)
 # ---------------------------------------------------------------------------
 def test_noop_raises():
     df = _toy_df([1, 2, 3, 4, 5, 6])
@@ -104,7 +104,7 @@ def test_normmega_stride_smaller_than_mbin():
     out, _ = normalize_megabins(  # mbin_size=4, stride=2
         df, mbin_size=4, stride=2, center=None, scale="mean"
     )
-    # With two offsets the divisor for row-0 is (2.5 + 1.5)/2 = 2.0 → 1/2 = 0.5
+    # With two offsets the divisor for row-0 is (2.5 + 1.5)/2 = 2.0 -> 1/2 = 0.5
     first_val = out["coverage"].iloc[0]
     assert np.isclose(first_val, 0.5)
 
