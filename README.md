@@ -8,7 +8,7 @@ All you need is a **BAM file** with whole genome sequenced cell-free DNA.
 
 Developed for hg38. See the `remap` directory for the applied remapping pipeline.
 
-Preprint: https://www.medrxiv.org/content/10.1101/2024.11.26.24317971v2
+Article (open access): https://www.nature.com/articles/s41467-025-66503-3
 
 The code was developed and implemented by [@ludvigolsen](https://github.com/LudvigOlsen).
 
