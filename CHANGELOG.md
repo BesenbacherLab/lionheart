@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.0
+
+ - Updates custom mosdepth to v/0.3.12. Requires reinstalling it with something like: `rm -rf mosdepth_installation; mkdir mosdepth_installation; NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOlsen/mosdepth --mm:refc`. Remember to update the mosdepth path passed to `lionheart extract_features`.
+ - Improves `feature_description.txt`.
+
+### Single-end support [EXPERIMENTAL]
+
+ - Adds experimental support for single-end data where each read spans exactly its full fragment (e.g. Nanopore). This adds the `--single_end_mode` flag in `lionheart extract_features`.
+ 
+**NOTE!**: This requires reinstalling the custom version of mosdepth.
+
+**NOTE!**: We do not expect the model to generalize to such data. It was only trained on paired-end. The features may be interesting on their own or you can retrain the model on such data.
+
 ## 2.0.2
 
  - Replaces the use of "truncate" / "truncation" with "clip" / "clipping". The functionality stays the same, but this is more precise terminology. By clipping, we mean "replacing a value beyond a threshold with the value at that threshold".

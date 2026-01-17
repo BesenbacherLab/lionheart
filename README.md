@@ -65,7 +65,7 @@ Now that nim is installed, we can install the custom mosdepth. To not override a
 $ mkdir mosdepth_installation
 
 # Install modified mosdepth
-$ NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOlsen/mosdepth
+$ NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOlsen/mosdepth --mm:refc
 
 # Get path to mosdepth binary to use in the software
 $ find mosdepth_installation/pkgs/ -name "mosdepth*"

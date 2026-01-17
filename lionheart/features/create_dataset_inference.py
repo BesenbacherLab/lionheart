@@ -907,17 +907,23 @@ def create_dataset_for_inference(
     if output_paths.feature_readme is not None:
         with open(output_paths.feature_readme, "w") as f:
             f.write(
-                """The features in the dataset are as follows:
-        0) Standardized Pearson's R (LIONHEART score)
+                """The `feature_dataset.npy` array contains the main features. 
+    There are 10 feature sets of which we only use the first (index=0).
+    The other feature sets are included to allow experimentation.
+    
+    Feature sets:
+        0) LIONHEART score
+           (Sample-standardized Pearson correlation coefficient (r))
         1) and its p-value
         2) The normalized dot product (i.e. within-mask fraction)
         3) Cosine Similarity
-        And the terms used:
+        
+        And the terms used to calculate them:
+           Where x=fragment coverage, y=open chromatin site overlap fraction.
         4) x_sum
         5) y_sum
         6) x_squared_sum
         7) y_squared_sum
         8) xy_sum
-        9) n
-                """
+        9) Number of included bins"""
             )

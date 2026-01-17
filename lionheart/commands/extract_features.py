@@ -54,6 +54,7 @@ def run_mosdepth(
     out_dir: pathlib.Path,
     chrom_to_files_out: Dict[str, pathlib.Path],
     insert_size_mode: bool,
+    single_end_mode: bool,
     chrom_to_num_chrom_bins: Dict[str, int],
     n_jobs: int,
     length_limits: Tuple[int, int],
@@ -81,7 +82,8 @@ def run_mosdepth(
             "20",
             f"--min-frag-len {length_limits[0]}",
             f"--max-frag-len {length_limits[1]}"
-            + (" --insert-size-mode" if insert_size_mode else ""),
+            + (" --insert-size-mode" if insert_size_mode else "")
+            + (" --single-end-length" if single_end_mode else ""),
             "--no-per-base",
             f"{out_dir / coverage_type}",  # Output prefix
             str(in_file),
@@ -98,6 +100,7 @@ def run_mosdepth(
     # Get number of lines (bins) in output
     messenger(f"{coverage_type}: Getting number of lines in file")
     coverage_num_lines = get_file_num_lines(in_file=coverage_out_file)
+    messenger(f"{coverage_type}:   Found {coverage_num_lines} lines in file")
 
     messenger(f"{coverage_type}: Splitting output by chromosome")
     df_splits_path = out_dir / f"df_{coverage_type}_by_chromosome"
@@ -287,6 +290,14 @@ def setup_parser(parser):
         ),
     )
     parser.add_argument(
+        "--single_end_mode",
+        action="store_true",
+        help=(
+            "[<b>Experimental!</b>] Whether the `--bam_file` contains single-end data where each <i>read spans exactly its full fragment</i> (e.g. Nanopore). "
+            "\n<b>NOTE</b>: Do not expect the model to generalize to single-end data. It was only trained on paired-end."
+        ),
+    )
+    parser.add_argument(
         "--n_jobs", type=int, default=1, help="Number of cores to utilize."
     )
     parser.set_defaults(func=main)
@@ -347,6 +358,14 @@ def main(args):
     messenger = Messenger(verbose=True, indent=0, msg_fn=logging.info)
     messenger("Running inference feature extraction on a single sample")
     messenger.now()
+
+    if args.single_end_mode:
+        messenger(
+            "NOTE: Experimental single-end-mode enabled. "
+            "Do not expect the model to generalize to these features. "
+            "It was only trained on paired-end data.",
+            add_msg_fn=warnings.warn,
+        )
 
     # Init timestamp handler
     # Note: Does not handle nested timing!
@@ -528,6 +547,9 @@ def main(args):
                     "n_jobs": mosdepth_threads,
                     "mosdepth_paths": mosdepth_paths,
                     "insert_size_mode": coverage_type == "insert_sizes",
+                    # The custom single-end-mode only affects the
+                    # insert-size-mode in mosdepth
+                    "single_end_mode": args.single_end_mode,
                     "clean_intermediates": not args.keep_intermediates,
                     "messenger": messenger,
                 }
