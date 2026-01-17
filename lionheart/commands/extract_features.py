@@ -100,6 +100,7 @@ def run_mosdepth(
     # Get number of lines (bins) in output
     messenger(f"{coverage_type}: Getting number of lines in file")
     coverage_num_lines = get_file_num_lines(in_file=coverage_out_file)
+    messenger(f"{coverage_type}:   Found {coverage_num_lines} lines in file")
 
     messenger(f"{coverage_type}: Splitting output by chromosome")
     df_splits_path = out_dir / f"df_{coverage_type}_by_chromosome"
