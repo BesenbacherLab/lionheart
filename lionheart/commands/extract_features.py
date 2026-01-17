@@ -83,7 +83,7 @@ def run_mosdepth(
             f"--min-frag-len {length_limits[0]}",
             f"--max-frag-len {length_limits[1]}"
             + (" --insert-size-mode" if insert_size_mode else "")
-            + (" --single-end-length" if insert_size_mode and single_end_mode else ""),
+            + (" --single-end-length" if single_end_mode else ""),
             "--no-per-base",
             f"{out_dir / coverage_type}",  # Output prefix
             str(in_file),
