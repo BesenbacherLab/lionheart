@@ -169,6 +169,32 @@ While technically correct due to Python's precedence rules, the mixing of `or` a
 
 ---
 
+### 8b. Copy-paste comment error — `normalize_megabins.py:123`
+
+```python
+elif scale == "median":
+    # Scale column by interquartile range    <-- WRONG: copied from IQR block above
+    df[new_col] /= df_aggregates["mbin_overall_median"]
+```
+
+Comment says "interquartile range" but the code divides by the median. Copied from the `elif scale == "iqr"` block above it.
+
+---
+
+### 8c. `handle_zero_division='raise'` doesn't raise — `gc_content.py:106-113`
+
+```python
+if denominator == 0 and not isinstance(handle_zero_division, str):
+    if not isinstance(handle_zero_division, float):
+        raise TypeError(...)
+    return handle_zero_division
+return (base_contents["G"] + base_contents["C"]) / denominator  # ZeroDivisionError!
+```
+
+When `handle_zero_division='raise'` (a string) and `denominator == 0`, the guard clause is skipped because `not isinstance('raise', str)` is `False`. The code falls through to line 113 and raises a raw `ZeroDivisionError` instead of a clear, intentional error. The "raise" case was never implemented — only the float fallback case is handled.
+
+---
+
 ## LOW: Code Quality / Robustness Concerns
 
 ### 11. Bare `except:` clauses — multiple files
@@ -221,5 +247,5 @@ smooth_x[np.isnan(smooth_x)] = x[np.isnan(smooth_x)]
 |----------|-------|------------|
 | Critical | 4 | Broken assertion (global_vars), undefined variable (validate), wrong formula (Youden's J), wrong term (sens/spec) |
 | High | 3 | Typo in error msg, inverted ellipsis logic, regression crash |
-| Medium | 3 | Wrong docstrings, ambiguous precedence |
+| Medium | 5 | Wrong docstrings, ambiguous precedence, wrong comment in normalize_megabins, gc_content zero-division not raised |
 | Low | 5 | Bare excepts, mutable defaults, edge cases, NaN handling |
