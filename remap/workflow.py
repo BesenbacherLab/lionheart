@@ -8,6 +8,7 @@ import os
 import gwf
 import pysam
 import pathlib
+from collections.abc import Sequence
 from utipy import mk_dir
 from gwf import AnonymousTarget
 
@@ -33,6 +34,21 @@ bam_files = {}
 # "<sample_id_1>": ("path/to/x_r1.fq.gz", "path/to/x_r2.fq.gz")
 fastq_files = {}
 
+# Optional per-sample read-group metadata override.
+# Use this for files whose headers do not follow the Illumina format expected below
+# (for example some SRA FASTQ or BAM files). Values map:
+#   sample_id -> {"instrument": "...", "flowcell": "...", "lane": "..."}
+# If one or more fields are genuinely unknown, set them explicitly to "unknown"
+# instead of inventing values. These fields are written into the BAM read group
+# `ID` and `PU`, so they may matter for provenance or tools that distinguish data
+# by read group or platform unit.
+# "<sample_id_1>": {
+#     "instrument": "unknown",
+#     "flowcell": "unknown",
+#     "lane": "unknown",
+# }
+read_group_overrides = {}
+
 # Whether to run some additional metric collections
 # These are not required for cancer detection
 COLLECT_INSERT_SIZES = False
@@ -49,23 +65,203 @@ if bam_files and not isinstance(bam_files, dict):
     raise TypeError("When not empty, `bam_files` must be a dictionary.")
 if fastq_files and not isinstance(fastq_files, dict):
     raise TypeError("When not empty, `fastq_files` must be a dictionary.")
+if read_group_overrides and not isinstance(read_group_overrides, dict):
+    raise TypeError("When not empty, `read_group_overrides` must be a dictionary.")
 
 
-# Check no overlap between BAM and FASTQ
-files = {"BAM": bam_files, "FASTQ": fastq_files}
-if set(bam_files.keys()).intersection(fastq_files):
-    raise ValueError("`bam_files` and `fastq_files` can't have overlapping sample IDs.")
+SHELL_SAFE_PATH_PATTERN = re.compile(r"^[A-Za-z0-9._/@%+=:,-]+$")
+SHELL_SAFE_NAME_PATTERN = re.compile(r"^[A-Za-z0-9._@%+=:,-]+$")
+
+
+def resolve_path(path) -> pathlib.Path:
+    return pathlib.Path(path).expanduser().resolve()
 
 
 def has_read_permission(filepath):
     return os.access(str(filepath), os.R_OK)
 
 
-if not has_read_permission(GENOME_FASTA):
-    # Check read permissions for fasta file
-    # as the downstream error is difficult to interpret otherwise
-    raise PermissionError(
-        f"Lacks read permissions for `GENOME_FASTA` file: {GENOME_FASTA}"
+def validate_shell_safe_path(filepath: pathlib.Path, label: str) -> pathlib.Path:
+    filepath = pathlib.Path(filepath)
+    if not SHELL_SAFE_PATH_PATTERN.fullmatch(str(filepath)):
+        raise ValueError(
+            f"`{label}` contains characters that are unsafe in unquoted shell commands: "
+            f"{filepath}"
+        )
+    return filepath
+
+
+def validate_sample_id(sample_id) -> str:
+    if not isinstance(sample_id, str):
+        raise TypeError(
+            f"Sample IDs must be strings. Got {type(sample_id).__name__}: {sample_id!r}"
+        )
+    if not sample_id:
+        raise ValueError("Sample IDs cannot be empty.")
+
+    sample_path = pathlib.PurePath(sample_id)
+    if (
+        sample_path.is_absolute()
+        or sample_id in {".", ".."}
+        or len(sample_path.parts) != 1
+    ):
+        raise ValueError(
+            f"Sample IDs must be plain names, not paths. Got: {sample_id!r}"
+        )
+    if not SHELL_SAFE_NAME_PATTERN.fullmatch(sample_id):
+        raise ValueError(
+            f"Sample ID contains characters that are unsafe in output paths or shell "
+            f"commands: {sample_id!r}"
+        )
+
+    return sample_id
+
+
+def validate_readable_file(filepath, label: str) -> pathlib.Path:
+    filepath = resolve_path(filepath)
+    if not filepath.exists():
+        raise FileNotFoundError(f"`{label}` does not exist: {filepath}")
+    if not filepath.is_file():
+        raise FileNotFoundError(f"`{label}` is not a file: {filepath}")
+    if not has_read_permission(filepath):
+        raise PermissionError(f"Lacks read permissions for `{label}`: {filepath}")
+    return validate_shell_safe_path(filepath, label=label)
+
+
+def validate_bam_path(filepath, sample_id: str) -> pathlib.Path:
+    filepath = validate_readable_file(
+        filepath, label=f"BAM file for sample {sample_id}"
+    )
+    if filepath.suffix.lower() != ".bam":
+        raise ValueError(
+            f"BAM file for sample {sample_id} must end with `.bam`, got: {filepath}"
+        )
+    return filepath
+
+
+def validate_fastq_paths(paths, sample_id: str) -> tuple[pathlib.Path, pathlib.Path]:
+    if isinstance(paths, (str, bytes, os.PathLike)) or not isinstance(paths, Sequence):
+        raise TypeError(
+            f"FASTQ files for sample {sample_id} must be a 2-item sequence of paths."
+        )
+    if len(paths) != 2:
+        raise ValueError(
+            f"FASTQ files for sample {sample_id} must contain exactly 2 paths, got "
+            f"{len(paths)}."
+        )
+
+    fq1_path = validate_readable_file(
+        paths[0], label=f"FASTQ R1 file for sample {sample_id}"
+    )
+    fq2_path = validate_readable_file(
+        paths[1], label=f"FASTQ R2 file for sample {sample_id}"
+    )
+    return fq1_path, fq2_path
+
+
+def validate_bam_files(bam_files: dict) -> dict[str, pathlib.Path]:
+    validated_bam_files = {}
+    for sample_id, bam_path in bam_files.items():
+        sample_id = validate_sample_id(sample_id)
+        validated_bam_files[sample_id] = validate_bam_path(
+            bam_path, sample_id=sample_id
+        )
+    return validated_bam_files
+
+
+def validate_fastq_files(
+    fastq_files: dict,
+) -> dict[str, tuple[pathlib.Path, pathlib.Path]]:
+    validated_fastq_files = {}
+    for sample_id, fastq_paths in fastq_files.items():
+        sample_id = validate_sample_id(sample_id)
+        validated_fastq_files[sample_id] = validate_fastq_paths(
+            fastq_paths, sample_id=sample_id
+        )
+    return validated_fastq_files
+
+
+def validate_read_group_value(value, field_name: str, sample_id: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(
+            f"Read-group field `{field_name}` for sample {sample_id} must be a string."
+        )
+    if not value:
+        raise ValueError(
+            f"Read-group field `{field_name}` for sample {sample_id} cannot be empty."
+        )
+    if not SHELL_SAFE_NAME_PATTERN.fullmatch(value):
+        raise ValueError(
+            f"Read-group field `{field_name}` for sample {sample_id} contains "
+            f"characters that are unsafe in shell commands: {value!r}"
+        )
+    return value
+
+
+def validate_read_group_override(override: dict, sample_id: str) -> dict[str, str]:
+    if not isinstance(override, dict):
+        raise TypeError(f"`read_group_overrides[{sample_id!r}]` must be a dictionary.")
+
+    required_fields = {"instrument", "flowcell", "lane"}
+    provided_fields = set(override)
+    missing_fields = required_fields - provided_fields
+    extra_fields = provided_fields - required_fields
+    if missing_fields or extra_fields:
+        problems = []
+        if missing_fields:
+            problems.append(f"missing {sorted(missing_fields)}")
+        if extra_fields:
+            problems.append(f"unexpected {sorted(extra_fields)}")
+        raise ValueError(
+            f"`read_group_overrides[{sample_id!r}]` must contain exactly the keys "
+            f"`instrument`, `flowcell`, and `lane` ({', '.join(problems)})."
+        )
+
+    return {
+        field_name: validate_read_group_value(
+            override[field_name], field_name=field_name, sample_id=sample_id
+        )
+        for field_name in ("instrument", "flowcell", "lane")
+    }
+
+
+def validate_read_group_overrides(
+    read_group_overrides: dict,
+) -> dict[str, dict[str, str]]:
+    validated_overrides = {}
+    for sample_id, override in read_group_overrides.items():
+        sample_id = validate_sample_id(sample_id)
+        validated_overrides[sample_id] = validate_read_group_override(
+            override, sample_id=sample_id
+        )
+    return validated_overrides
+
+
+def validate_output_data_dir(output_data_dir) -> pathlib.Path:
+    return validate_shell_safe_path(
+        resolve_path(output_data_dir), label="output_data_dir"
+    )
+
+
+output_data_dir = validate_output_data_dir(output_data_dir)
+GENOME_FASTA = validate_readable_file(GENOME_FASTA, label="GENOME_FASTA")
+bam_files = validate_bam_files(bam_files)
+fastq_files = validate_fastq_files(fastq_files)
+read_group_overrides = validate_read_group_overrides(read_group_overrides)
+
+# Check no overlap between BAM and FASTQ
+files = {"BAM": bam_files, "FASTQ": fastq_files}
+if set(bam_files.keys()).intersection(fastq_files):
+    raise ValueError("`bam_files` and `fastq_files` can't have overlapping sample IDs.")
+
+undefined_override_samples = (
+    set(read_group_overrides) - set(bam_files) - set(fastq_files)
+)
+if undefined_override_samples:
+    raise ValueError(
+        "`read_group_overrides` contains sample IDs that are not present in "
+        "`bam_files` or `fastq_files`: "
+        f"{sorted(undefined_override_samples)}"
     )
 
 
@@ -93,23 +289,71 @@ def legalize_target_name(target_name):
     return result
 
 
+def parse_illumina_read_header(header: str, source: str) -> tuple[str, str, str]:
+    header = header.strip()
+    if not header:
+        raise ValueError(
+            f"`{source}` is empty, so read-group information cannot be inferred."
+        )
+    if not header.startswith("@"):
+        raise ValueError(
+            f"`{source}` does not start with a FASTQ header line (`@...`). "
+            f"First line: {header!r}"
+        )
+
+    parts = header[1:].split(":")
+    if len(parts) < 4:
+        raise ValueError(
+            f"`{source}` has an unsupported read header format. Expected at least 4 "
+            f"colon-separated fields after `@`, but got {len(parts)} in: {header!r}"
+        )
+
+    instrument, _, flowcell, lane = parts[:4]
+    return instrument, flowcell, lane
+
+
 def fastq_info(filename):
     with gzip.open(filename, "rt") as handle:
         first_line = handle.readline()
 
-    # This is standard for FASTQ files from Illumina sequencers.
-    instrument, _, flowcell, lane = first_line[1:].split(":")[:4]
-
-    return instrument, flowcell, lane
+    return parse_illumina_read_header(first_line, source=str(filename))
 
 
 def get_read_info(filename):
-    bamfile = pysam.AlignmentFile(filename, "rb")
+    bamfile = pysam.AlignmentFile(str(filename), "rb")
     for alignment in bamfile.fetch(until_eof=True):
-        instrument, _, flowcell, lane = alignment.query_name.split(":")[:4]
-        break
+        query_name = alignment.query_name
+        parts = query_name.split(":")
+        if len(parts) < 4:
+            raise ValueError(
+                f"`{filename}` has an unsupported BAM read name format. Expected at least "
+                f"4 colon-separated fields in query name, but got {len(parts)} in: "
+                f"{query_name!r}"
+            )
+        instrument, _, flowcell, lane = parts[:4]
+        return instrument, flowcell, lane
 
-    return instrument, flowcell, lane
+    raise ValueError(
+        f"`{filename}` contains no reads, so read-group information cannot be inferred."
+    )
+
+
+def get_read_group_info(
+    sample_id: str, source, infer_read_group_info
+) -> tuple[str, str, str]:
+    override = read_group_overrides.get(sample_id)
+    if override is not None:
+        return override["instrument"], override["flowcell"], override["lane"]
+
+    try:
+        return infer_read_group_info(source)
+    except ValueError as exc:
+        raise ValueError(
+            f"Could not infer read-group metadata for sample {sample_id} from "
+            f"{source!s}. {exc} If this file does not use the expected Illumina "
+            "header format, set `read_group_overrides` for this sample. If one or "
+            'more fields are genuinely unknown, set them explicitly to `"unknown"`.'
+        ) from exc
 
 
 def trim_and_map(
@@ -150,14 +394,14 @@ def trim_and_map(
 
     tmp_dir=$(mktemp -d --tmpdir=${{SCRATCH_FOLDER}})
 
-    scratch_bam_file=${{SCRATCH_FOLDER}}/$(basename {outputs['bam_file']})
-    scratch_cutadapt_report=${{SCRATCH_FOLDER}}/$(basename {outputs['cutadapt_report']})
+    scratch_bam_file=${{SCRATCH_FOLDER}}/$(basename {outputs["bam_file"]})
+    scratch_cutadapt_report=${{SCRATCH_FOLDER}}/$(basename {outputs["cutadapt_report"]})
 
     adapter=$(guessadapt -n 1000000 {r1_file} | head -n1 | cut -f1)
 
     seqtk mergepe <(zcat {r1_file}) <(zcat {r2_file}) \
     | \
-    cutadapt --cores={options['cores']} \
+    cutadapt --cores={options["cores"]} \
              --interleaved \
              --minimum-length=20 \
              --error-rate=0.1 \
@@ -167,12 +411,12 @@ def trim_and_map(
              -A ${{adapter}} \
              - 2> ${{scratch_cutadapt_report}} \
     | \
-    bwa mem -p -Y -K 100000000 -t {options['cores']} -R "{read_group}" {GENOME_FASTA} - \
+    bwa mem -p -Y -K 100000000 -t {options["cores"]} -R "{read_group}" {GENOME_FASTA} - \
     | \
     samtools sort -o ${{scratch_bam_file}} -
 
-    mv ${{scratch_bam_file}} {outputs['bam_file']}
-    mv ${{scratch_cutadapt_report}} {outputs['cutadapt_report']}
+    mv ${{scratch_bam_file}} {outputs["bam_file"]}
+    mv ${{scratch_cutadapt_report}} {outputs["cutadapt_report"]}
 
     """
 
@@ -203,10 +447,10 @@ def mark_duplicates(
 
     tmp_dir=$(mktemp -d --tmpdir=${{SCRATCH_FOLDER}})
 
-    scratch_markdup_bam_file=${{SCRATCH_FOLDER}}/$(basename {outputs['bam_file']})
-    scratch_markdup_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs['metrics_file']})
+    scratch_markdup_bam_file=${{SCRATCH_FOLDER}}/$(basename {outputs["bam_file"]})
+    scratch_markdup_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs["metrics_file"]})
 
-    picard -Xmx{int(options['memory'][:-1]) - 8}g -Djava.io.tmpdir=${{tmp_dir}} \
+    picard -Xmx{int(options["memory"][:-1]) - 8}g -Djava.io.tmpdir=${{tmp_dir}} \
         MarkDuplicates \
         {input_string} \
         --OUTPUT ${{scratch_markdup_bam_file}} \
@@ -215,8 +459,8 @@ def mark_duplicates(
         --VALIDATION_STRINGENCY SILENT \
         --ASSUME_SORTED true
 
-    mv ${{scratch_markdup_bam_file}} {outputs['bam_file']}
-    mv ${{scratch_markdup_metrics_file}} {outputs['metrics_file']}
+    mv ${{scratch_markdup_bam_file}} {outputs["bam_file"]}
+    mv ${{scratch_markdup_metrics_file}} {outputs["metrics_file"]}
 
     """
 
@@ -262,10 +506,10 @@ def collect_insert_size_metrics(
 
     tmp_dir=$(mktemp -d --tmpdir=${{SCRATCH_FOLDER}})
 
-    scratch_insert_size_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs['metrics']})
-    scratch_insert_size_metrics_plot=${{SCRATCH_FOLDER}}/$(basename {outputs['plot']})
+    scratch_insert_size_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs["metrics"]})
+    scratch_insert_size_metrics_plot=${{SCRATCH_FOLDER}}/$(basename {outputs["plot"]})
 
-    picard -Xmx{options['memory']} -Djava.io.tmpdir=${{tmp_dir}} \
+    picard -Xmx{options["memory"]} -Djava.io.tmpdir=${{tmp_dir}} \
            CollectInsertSizeMetrics \
            --VALIDATION_STRINGENCY SILENT \
            --INPUT {bam_file} \
@@ -273,8 +517,8 @@ def collect_insert_size_metrics(
            --Histogram_FILE ${{scratch_insert_size_metrics_plot}} \
            --REFERENCE_SEQUENCE {GENOME_FASTA}
 
-    mv ${{scratch_insert_size_metrics_file}} {outputs['metrics']}
-    mv ${{scratch_insert_size_metrics_plot}} {outputs['plot']}
+    mv ${{scratch_insert_size_metrics_file}} {outputs["metrics"]}
+    mv ${{scratch_insert_size_metrics_plot}} {outputs["plot"]}
 
     """
 
@@ -300,15 +544,15 @@ def collect_wgs_metrics(
 
     tmp_dir=$(mktemp -d --tmpdir=${{SCRATCH_FOLDER}})
 
-    scratch_wgs_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs['metrics']})
+    scratch_wgs_metrics_file=${{SCRATCH_FOLDER}}/$(basename {outputs["metrics"]})
 
-    picard -Xmx{options['memory']} -Djava.io.tmpdir=${{tmp_dir}} \
+    picard -Xmx{options["memory"]} -Djava.io.tmpdir=${{tmp_dir}} \
            CollectWgsMetrics \
            --INPUT {bam_file} \
            --OUTPUT ${{scratch_wgs_metrics_file}} \
            --REFERENCE_SEQUENCE {GENOME_FASTA}
 
-    mv ${{scratch_wgs_metrics_file}} {outputs['metrics']}
+    mv ${{scratch_wgs_metrics_file}} {outputs["metrics"]}
 
     """
 
@@ -319,7 +563,7 @@ def collect_wgs_metrics(
 main_defaults = {
     "cores": 1,
     "memory": "32g",
-    "walltime": "01:00:00",
+    "walltime": "11:00:00",
 }
 if ACCOUNT:
     main_defaults["account"] = ACCOUNT
@@ -329,7 +573,7 @@ gwf = gwf.Workflow(defaults=main_defaults)
 
 for file_type, file_collection in files.items():
     for sample_id, path_s in file_collection.items():
-        sample_output_dir = pathlib.Path(output_data_dir) / sample_id
+        sample_output_dir = output_data_dir / sample_id
         tmp_dir = sample_output_dir / "tmp"
         # Create output directory
         mk_dir(sample_output_dir, f"output directory for {sample_id}", messenger=None)
@@ -338,11 +582,17 @@ for file_type, file_collection in files.items():
         if file_type == "BAM":
             bam_path = path_s
             # Name without .bam extension
-            bam_prefix: str = pathlib.Path(bam_path).name[:-4]
+            bam_prefix: str = bam_path.stem
 
             tmp_prefix = str(tmp_dir / bam_prefix)
-            instrument, flowcell, lane = get_read_info(
-                bam_path
+            (
+                instrument,
+                flowcell,
+                lane,
+            ) = get_read_group_info(
+                sample_id=sample_id,
+                source=bam_path,
+                infer_read_group_info=get_read_info,
             )  # Currently issues a warning if the BAM file is not indexed (harmless)
 
             fq0_path = str(sample_output_dir / (bam_prefix + "_R0.fq.gz"))
@@ -360,9 +610,13 @@ for file_type, file_collection in files.items():
             """
             )
         elif file_type == "FASTQ":
-            fq1_path = path_s[0]
-            fq2_path = path_s[1]
-            instrument, flowcell, lane = fastq_info(fq1_path)
+            fq1_path = str(path_s[0])
+            fq2_path = str(path_s[1])
+            instrument, flowcell, lane = get_read_group_info(
+                sample_id=sample_id,
+                source=fq1_path,
+                infer_read_group_info=fastq_info,
+            )
         else:
             raise ValueError(f"Unknown file type: {file_type}.")
 
