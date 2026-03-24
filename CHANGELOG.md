@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.9000
+
+ - Generalizes remapping workflow for better path validation and error handling.
+
 ## 2.1.0
 
  - Updates custom mosdepth to v/0.3.12. Requires reinstalling it with something like: `rm -rf mosdepth_installation; mkdir mosdepth_installation; NIMBLE_DIR=mosdepth_installation nimble install -y https://github.com/LudvigOlsen/mosdepth --mm:refc`. Remember to update the mosdepth path passed to `lionheart extract_features`.
