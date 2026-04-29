@@ -55,11 +55,11 @@ def test_get_category_indices_include_and_exclude(tmp_path):
         "2\tLung\tRespiratory System\n"
     )
 
-    args = argparse.Namespace(feature_categories=["Blood/Immune", "Digestive System"])
+    args = argparse.Namespace(feature_categories=["blood/immune", "digestive system"])
     assert get_category_indices(args, category_path) == [0, 1]
 
     args = argparse.Namespace(
-        feature_categories=["exclude", "Blood/Immune", "Digestive System"]
+        feature_categories=["EXCLUDE", "blood/immune", "digestive system"]
     )
     assert get_category_indices(args, category_path) == [2]
 

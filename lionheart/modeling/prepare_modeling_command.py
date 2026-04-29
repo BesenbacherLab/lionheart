@@ -175,6 +175,11 @@ def prepare_modeling_command(
                 include_indices = get_category_indices(
                     args, feature_name_to_feature_group_path
                 )
+                messenger(
+                    "Feature category selection kept "
+                    f"{len(include_indices)} feature(s). "
+                    "Note: This selection is applied after row-wise scaling."
+                )
             transformers_fn = prepare_transformers_fn(
                 pca_target_variance=args.pca_target_variance,
                 min_var_thresh=[0.0] if not args.feature_categories else [],
