@@ -80,6 +80,10 @@ def test_train_model_two_shared_datasets(run_cli, tmp_path, resource_path):
         },
         "Data": {
             "Shape": [586, 898],
+            "Feature Counts": {
+                "Input": 898,
+                "After Variance Filtering": 898,
+            },
             "Target counts": {"0": 282, "1": 304},
             "Datasets": {
                 "Names": [
@@ -177,6 +181,10 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
         },
         "Data": {
             "Shape": [474, 898],
+            "Feature Counts": {
+                "Input": 898,
+                "After Variance Filtering": 898,
+            },
             "Target counts": {"0": 244, "1": 230},
             "Datasets": {
                 "Names": [
@@ -198,3 +206,43 @@ def test_train_model_one_shared_dataset(run_cli, tmp_path, resource_path):
 
     predictions = pd.read_csv(tmp_path / output_subdir / "predictions.csv")
     npt.assert_almost_equal(predictions.iloc[0, 0], 0.47397572, decimal=5)
+
+
+def test_train_model_feature_category_selection_records_used_feature_count(
+    run_cli, tmp_path, resource_path
+):
+    output_subdir = "model_output_feature_categories"
+
+    command_args = [
+        "lionheart",
+        "train_model",
+        "--dataset_paths",
+        resource_path / "shared_features" / "Cristiano" / "feature_dataset.npy",
+        "--meta_data_paths",
+        resource_path / "shared_features" / "Cristiano" / "meta_data.csv",
+        "--dataset_names",
+        "Cristiano 2019",
+        "--resources_dir",
+        resource_path,
+        "--feature_categories",
+        "exclude",
+        "Blood/Immune",
+        "Digestive System",
+        "--pca_target_variance",
+        "0.996",
+        "--lasso_c",
+        "0.04",
+    ]
+    run_cli(
+        command_args=command_args,
+        tmp_path=tmp_path,
+        output_subdir=output_subdir,
+    )
+
+    with open(tmp_path / output_subdir / "training_info.json") as f:
+        training_info = json.load(f)
+
+    assert training_info["Data"]["Feature Counts"] == {
+        "Input": 898,
+        "After Row Scaling Selection": 529,
+    }
