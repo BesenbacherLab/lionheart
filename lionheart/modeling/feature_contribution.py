@@ -46,20 +46,27 @@ class FeatureContributionAnalyzer:
         """
         Run the calculations of feature contributions and effects on the probability.
         """
+        feature_names, groups = (
+            FeatureContributionAnalyzer._get_pre_pca_feature_metadata(
+                pipeline=self.pipeline,
+                feature_names=self.feature_names,
+                groups=self.groups,
+            )
+        )
         self.feature_contributions = (
             FeatureContributionAnalyzer._calculate_feature_contributions(
                 lasso_coefficients=self.get_coefs_fn(self.pipeline),
                 pca_components=self.get_components_fn(self.pipeline),
                 scaling_factors=self.get_scaling_factors_fn(self.pipeline),
-                feature_names=self.feature_names,
-                groups=self.groups,
+                feature_names=feature_names,
+                groups=groups,
             )
         )
         self.feature_effects = FeatureContributionAnalyzer._analyze_feature_effects(
             pipeline=self.pipeline,
             X=self.X,
-            feature_names=self.feature_names,
-            groups=self.groups,
+            feature_names=feature_names,
+            groups=groups,
         )
         return self
 
@@ -206,6 +213,50 @@ class FeatureContributionAnalyzer:
         return feature_contribution_df
 
     @staticmethod
+    def _get_pre_pca_feature_metadata(
+        pipeline: Pipeline,
+        feature_names: Union[List[str], np.ndarray],
+        groups: Union[List[str], np.ndarray],
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Apply post-scaling feature selection to feature metadata.
+
+        Feature contributions and feature effects are reported in the feature
+        space PCA sees. When category selection is used, that is the feature
+        space after `select_features_post_scaling`.
+        """
+        feature_names = np.asarray(feature_names)
+        groups = np.asarray(groups)
+
+        selector = pipeline.named_steps.get("select_features_post_scaling")
+        if selector is None:
+            return feature_names, groups
+
+        support_indices = FeatureContributionAnalyzer._get_support_indices(selector)
+        if support_indices is None:
+            raise ValueError(
+                "`select_features_post_scaling` did not expose selected feature "
+                "indices."
+            )
+
+        return feature_names[support_indices], groups[support_indices]
+
+    @staticmethod
+    def _get_support_indices(transformer) -> Optional[np.ndarray]:
+        """
+        Get selected feature indices from fitted selectors, including selectors
+        wrapped in generalize's DimTransformerWrapper.
+        """
+        if hasattr(transformer, "get_support"):
+            return transformer.get_support(indices=True)
+
+        wrapped_estimator = getattr(transformer, "estimator_", None)
+        if wrapped_estimator is not None and hasattr(wrapped_estimator, "get_support"):
+            return wrapped_estimator.get_support(indices=True)
+
+        return None
+
+    @staticmethod
     def _plot_feature_contributions(
         contributions: pd.DataFrame,
         group_summarizer: Optional[str],
@@ -337,23 +388,21 @@ class FeatureContributionAnalyzer:
         pandas.DataFrame
             DataFrame containing feature effects, feature names, and group labels.
         """
-        n_samples, n_features = X.shape
-
         # Base probabilities for the positive class
         original_probas = pipeline.predict_proba(X)[:, class_index]
         feature_effects = []
 
         first_pipeline, second_pipeline = FeatureContributionAnalyzer._split_pipeline(
             pipeline,
-            first_part_steps=[
-                "near_zero_variance",
-                "row_standardize",
-                "pre_pca_standardize",
-            ],
-            second_part_steps=["pca", "standardize", "model"],
+            second_part_first_step="pca",
         )
 
-        X = first_pipeline.transform(X.copy())
+        X = (
+            first_pipeline.transform(X.copy())
+            if first_pipeline is not None
+            else X.copy()
+        )
+        _, n_features = X.shape
 
         # Vary each feature and calculate the effect on predict_proba
         # Variation range is based on the features being standardized
@@ -392,33 +441,36 @@ class FeatureContributionAnalyzer:
 
     @staticmethod
     def _split_pipeline(
-        pipeline: Pipeline, first_part_steps: list, second_part_steps: list
+        pipeline: Pipeline, second_part_first_step: str
     ) -> tuple:
         """
-        Split the pipeline into two parts: first part up to and including the first standardization,
-        and second part for the rest of the pipeline.
+        Split the pipeline into two parts around a named step.
 
         Parameters
         ------------
         pipeline : Pipeline
-        The complete scikit-learn pipeline.
-        first_part_steps : list
-        The list of step names for the first part of the pipeline.
-        second_part_steps : list
-        The list of step names for the second part of the pipeline.
+            The complete scikit-learn pipeline.
+        second_part_first_step : str
+            The first step to include in the second pipeline.
 
         Returns
         --------
         tuple
-        The first part and second part of the split pipeline as two separate Pipeline objects.
+            The first part and second part of the split pipeline.
         """
         pipeline = deepcopy(pipeline)
-        first_part = Pipeline(
-            [(name, pipeline.named_steps[name]) for name in first_part_steps]
-        )
-        second_part = Pipeline(
-            [(name, pipeline.named_steps[name]) for name in second_part_steps]
-        )
+        step_names = [name for name, _ in pipeline.steps]
+        if second_part_first_step not in step_names:
+            raise ValueError(
+                f"`{second_part_first_step}` was not a step in the pipeline."
+            )
+
+        split_idx = step_names.index(second_part_first_step)
+        first_part_steps = pipeline.steps[:split_idx]
+        second_part_steps = pipeline.steps[split_idx:]
+
+        first_part = Pipeline(first_part_steps) if first_part_steps else None
+        second_part = Pipeline(second_part_steps)
 
         return first_part, second_part
 
