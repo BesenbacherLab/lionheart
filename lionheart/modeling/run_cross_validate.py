@@ -17,6 +17,7 @@ from lionheart.modeling.prepare_modeling import prepare_modeling
 # TODO: Implement non-nested cross-validation.
 # TODO: Add requirements for dataset shape in dataset_paths arg
 
+
 def run_nested_cross_validation(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
@@ -35,7 +36,7 @@ def run_nested_cross_validation(
     k_inner: Optional[int] = 10,
     reps: int = 1,
     transformers: Optional[Union[List[tuple], Callable]] = None,
-    train_test_transformers: List[str] = [],
+    train_test_transformers: Optional[List[str]] = None,
     aggregate_by_groups: bool = False,
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
@@ -45,7 +46,7 @@ def run_nested_cross_validation(
     num_jobs: int = 1,
     seed: Optional[int] = 1,
     exp_name: str = "",
-    timer: StepTimer = None,
+    timer: Optional[StepTimer] = None,
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ) -> None:
     """
@@ -166,6 +167,9 @@ def run_nested_cross_validation(
         The messenger determines the messaging function (e.g., `print`)
         and potential indentation.
     """
+    # Set defaults for mutable types
+    if train_test_transformers is None:
+        train_test_transformers = []
 
     # Check messenger (always returns Messenger instance)
     messenger = check_messenger(messenger)

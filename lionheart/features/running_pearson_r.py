@@ -54,11 +54,11 @@ class RunningPearsonR:
         """
         Add data. The length and a set of sums
         are added to the existing `n` and sums.
+
+        `x` must contain at least 2 data points.
         """
         # `._check_data` removes NaNs when specified
         x, y, n = self._check_data(x, y)
-        if n == 0:
-            return
         self.n += n
         self.x_sum += x.sum(dtype=self.dtype)
         self.y_sum += y.sum(dtype=self.dtype)
@@ -150,6 +150,12 @@ class RunningPearsonR:
             y = y[not_nan_mask]
 
         n = len(x)
+        if n < 2:
+            raise ValueError(
+                ".add_data() requires 2 or more data points. "
+                f"`x` had {len(x)} data points"
+                + (" after removing potential NaNs." if self.ignore_nans else ".")
+            )
         if n != len(y):
             raise ValueError("x and y must have the same length.")
 

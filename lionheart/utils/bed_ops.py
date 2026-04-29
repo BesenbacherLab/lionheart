@@ -3,13 +3,17 @@ import warnings
 from typing import Callable, List, Optional, Union
 import numpy as np
 import pandas as pd
-from utipy import Messenger
+from utipy import Messenger, check_messenger
 from lionheart.utils.subprocess import call_subprocess, check_paths_for_subprocess
+
+
+def default_col_names():
+    return ["chromosome", "start", "end"]
 
 
 def read_bed_as_df(
     path: Union[str, pathlib.Path],
-    col_names: List[str] = ["chromosome", "start", "end"],
+    col_names: Optional[List[str]] = None,
     when_empty: str = "warn_empty",
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ):
@@ -40,6 +44,12 @@ def read_bed_as_df(
     `pandas.DataFrame`
         The information from the BED file.
     """
+    # Set defaults for mutable types
+    if col_names is None:
+        col_names = default_col_names()
+
+    # Check messenger (always returns Messenger instance)
+    messenger = check_messenger(messenger)
 
     # Get number of columns from first row
     num_cols = get_file_num_columns(path)

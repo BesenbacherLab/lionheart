@@ -16,6 +16,7 @@ from lionheart.utils.utils import load_json
 
 # TODO: Add requirements for dataset shape to dataset_paths arg
 
+
 def run_customize_thresholds(
     dataset_paths: Union[Dict[str, Union[str, pathlib.Path]], str, pathlib.Path],
     out_path: Union[str, pathlib.Path],
@@ -27,7 +28,7 @@ def run_customize_thresholds(
     aggregate_by_groups: bool = False,
     expected_shape: Optional[Dict[int, int]] = None,
     exp_name: str = "",
-    timer: StepTimer = None,
+    timer: Optional[StepTimer] = None,
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ) -> None:
     """
@@ -102,6 +103,7 @@ def run_customize_thresholds(
         messenger=messenger,
     )
 
+    model_dir = pathlib.Path(model_dir)
     paths = prepared_modeling_dict["paths"]
     paths.set_paths(
         {

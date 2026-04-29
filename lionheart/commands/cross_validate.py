@@ -114,9 +114,21 @@ def setup_parser(parser, show_advanced: bool):
     parser.add_argument(
         "--use_included_features",
         action="store_true",
-        help="Whether to use the included features in the cross-validation."
+        help="Whether to use the included features (our datasets) in the cross-validation."
         "\nWhen specified, the --resources_dir must also be specified. "
         "\nWhen NOT specified, only the manually specified datasets are used.",
+    )
+    parser.add_argument(
+        "--feature_categories",
+        type=str,
+        nargs="+",
+        default=[],
+        help="Cell type categories to use or exclude. See the categories in "
+        "`<resources_dir>/feature_names_and_grouping.csv`. "
+        "\nSpecify categories to use, e.g. `--feature_categories 'Blood/Immune' 'Digestive System'`. "
+        "\nTo exclude categories, place `exclude` first, e.g. "
+        "`--feature_categories exclude 'Blood/Immune' 'Digestive System'`. "
+        "\nUse quotes around category names that contain whitespace.",
     )
     parser.add_argument(
         "--k_outer",
@@ -213,16 +225,6 @@ def setup_parser(parser, show_advanced: bool):
     if show_advanced:
         adv = parser.add_argument_group("Advanced options")
         adv.add_argument(
-            "--feature_categories",
-            type=str,
-            nargs="*",
-            help="Cell type category to use / exclude. See the categories in "
-            "`<resources_dir>/feature_names_and_grouping.csv`. "
-            "\nSpecify either a set of categories to use (e.g. `--feature_categories=Blood/Immune`) "
-            "or a set of categories to exclude (e.g. `--feature_categories=-Blood/Immune`). "
-            "When excluding, be sure to use `=-` so the value is not interpreted as an argument.",
-        )
-        adv.add_argument(
             "--feature_type",
             type=str,
             default="LIONHEART",
@@ -251,7 +253,6 @@ def setup_parser(parser, show_advanced: bool):
         # can be used without existence checks
         parser.set_defaults(
             feature_type="LIONHEART",
-            feature_categories=[],
             loco=False,
             loco_train_only_classes=False,
         )
@@ -327,6 +328,10 @@ confusion_matrices.json : dict
     The confusion matrices from each train/test split in the outer cross-validation.
     Can be loaded with `ConfusionMatrices.load()` from `generalize` or just as a json file.
     To get the total (sum) confusion matrix, see `total_confusion_matrices.json`.
+
+Note: Probability thresholds are selected from the outer-loop out-of-sample predictions, not from training predictions. 
+When results are evaluated by split/dataset, the threshold is chosen separately within each split.
+They are reasonable cutoff choices, but not independently calibrated.
 
 """
 )
@@ -405,7 +410,9 @@ def main(args):
     )
 
     # TODO: Take merge_datasets into account here?
-    if args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4 and not args.loco:
+    if (
+        args.k_inner < 0 or len(dataset_paths) - len(train_only) >= 4
+    ) and not args.loco:
         args.k_inner = None
         messenger(
             "Overriding --k_inner: Inner loop will use leave-one-dataset-out cross-validation "

@@ -198,9 +198,9 @@ class Poisson:
         Format negative numbers message.
         """
         negative_indices = np.argwhere(x < 0)
-        example_negs = x[x < 0].flatten()[:5]
-        dots = ", ..." if len(example_negs) < 5 else ""
-        examples_str = ", ".join([str(n) for n in example_negs]) + dots
+        example_negs = x[x < 0].flatten()
+        dots = ", ..." if len(example_negs) > 5 else ""
+        examples_str = ", ".join([str(n) for n in example_negs[:5]]) + dots
         return (
             f"`x` contained {len(negative_indices)} negative numbers: "
             f"{examples_str} at indices: {negative_indices[:5]}{dots}"

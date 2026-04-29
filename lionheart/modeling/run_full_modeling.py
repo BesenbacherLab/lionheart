@@ -38,7 +38,7 @@ def run_full_model_training(
     merge_datasets: Optional[Dict[str, List[str]]] = None,
     k: int = 10,
     transformers: Optional[Union[List[tuple], Callable]] = None,
-    train_test_transformers: List[str] = [],
+    train_test_transformers: Optional[List[str]] = None,
     aggregate_by_groups: bool = False,
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
@@ -78,6 +78,9 @@ def run_full_model_training(
         combination from `cv_results_` in grid search.
 
     """
+    # Set defaults for mutable types
+    if train_test_transformers is None:
+        train_test_transformers = []
 
     # Check messenger (always returns Messenger instance)
     messenger = check_messenger(messenger)

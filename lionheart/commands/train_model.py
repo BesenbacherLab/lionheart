@@ -107,9 +107,21 @@ def setup_parser(parser):
     parser.add_argument(
         "--use_included_features",
         action="store_true",
-        help="Whether to use the included features in the model training."
+        help="Whether to use the included features (our datasets) in the model training."
         "\nWhen specified, the --resources_dir must also be specified. "
         "\nWhen NOT specified, only the manually specified datasets are used.",
+    )
+    parser.add_argument(
+        "--feature_categories",
+        type=str,
+        nargs="+",
+        default=[],
+        help="Cell type categories to use or exclude. See the categories in "
+        "`<resources_dir>/feature_names_and_grouping.csv`. "
+        "\nSpecify categories to use, e.g. `--feature_categories 'Blood/Immune' 'Digestive System'`. "
+        "\nTo exclude categories, place `exclude` first, e.g. "
+        "`--feature_categories exclude 'Blood/Immune' 'Digestive System'`. "
+        "\nUse quotes around category names that contain whitespace.",
     )
     if ENABLE_SUBTYPING:
         parser.add_argument(
@@ -234,7 +246,6 @@ def setup_parser(parser):
     # Declare defaults for cv-only args to allow sharing preparation function
     parser.set_defaults(
         feature_type="LIONHEART",
-        feature_categories=[],
         loco=False,
         loco_train_only_classes=False,
     )
@@ -296,7 +307,7 @@ def main(args):
         args.required_lionheart_version
     ) > version.parse(lionheart_version):
         raise RuntimeError(
-            "`--required_lionheart_version` was never than "
+            "`--required_lionheart_version` was newer than "
             "the currently installed version of LIONHEART."
         )
 

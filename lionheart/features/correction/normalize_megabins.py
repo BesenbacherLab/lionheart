@@ -120,7 +120,7 @@ def normalize_megabins(
             # Scale column by average value
             df[new_col] /= df_aggregates["mbin_overall_mean"]
         elif scale == "median":
-            # Scale column by interquartile range
+            # Scale column by median value
             df[new_col] /= df_aggregates["mbin_overall_median"]
 
     # If specified, we return the coverage as a numpy array
