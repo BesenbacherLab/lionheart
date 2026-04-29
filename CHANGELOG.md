@@ -10,7 +10,7 @@
  - Improves validation and error messages for train-only dataset indices.
  - Bumps `generalize` dependency to `0.3.1`.
  - Bumps `utipy` dependency to `1.1.0`.
- - Bumps `nattrs` dependency to `0.2.3`.s
+ - Bumps `nattrs` dependency to `0.2.3`.
 
 ## 2.1.0
 
