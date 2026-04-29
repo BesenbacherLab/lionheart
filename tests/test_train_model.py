@@ -230,6 +230,7 @@ def test_train_model_feature_category_selection_records_used_feature_count(
         "Digestive System",
         "--pca_target_variance",
         "0.996",
+        "0.997",
         "--lasso_c",
         "0.04",
     ]
