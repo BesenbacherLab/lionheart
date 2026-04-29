@@ -3,6 +3,7 @@ import numpy as np
 import numpy.testing as npt
 import pandas as pd
 from utipy import IOPaths, Messenger, StepTimer
+from generalize.evaluate.roc_curves import ROCCurves
 from lionheart.modeling.run_predict_single_model import run_predict_single_model
 from lionheart.utils.cli_utils import parse_thresholds
 from lionheart.utils.global_vars import INCLUDED_MODELS
@@ -32,7 +33,7 @@ def test_predict_single_model(resource_path, lionheart_features):
         model_name: load_json(paths[f"training_info_{model_name}"])
     }
 
-    threshold_names = ["max_j", "spec_0.99"]
+    threshold_names = ["max_j", "spec_0.99", "0.5"]
     thresholds_to_calculate = parse_thresholds(threshold_names)
 
     # Single sample
@@ -59,6 +60,33 @@ def test_predict_single_model(resource_path, lionheart_features):
         predictions_single_sample.loc[:, "P(Cancer)"].tolist(),
         [0.9481] * len(threshold_names),  # 2 x num thresholds
         decimal=4,
+    )
+
+    training_roc = ROCCurves.load(paths[f"roc_curve_{model_name}"]).get("Average")
+    numeric_threshold = 0.5
+    expected_fpr = np.interp(
+        numeric_threshold,
+        training_roc.thresholds[::-1],
+        training_roc.fpr[::-1],
+    )
+    expected_sensitivity = np.interp(
+        numeric_threshold,
+        training_roc.thresholds[::-1],
+        training_roc.tpr[::-1],
+    )
+    numeric_threshold_row = predictions_single_sample.loc[
+        predictions_single_sample["Threshold Name"] == "Threshold ~0.5"
+    ].iloc[0]
+
+    npt.assert_almost_equal(
+        numeric_threshold_row["Exp. Specificity"],
+        1 - expected_fpr,
+        decimal=6,
+    )
+    npt.assert_almost_equal(
+        numeric_threshold_row["Exp. Sensitivity"],
+        expected_sensitivity,
+        decimal=6,
     )
 
     # Three samples

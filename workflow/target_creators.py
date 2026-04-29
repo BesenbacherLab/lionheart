@@ -173,7 +173,7 @@ def predict_sample(
         classifications.
         See note* below for why these thresholds should be taken with a grain of salt.
         `'max_j'`:
-            The threshold at the max. Youden's J (`sensitivity + specificity + 1`).
+            The threshold at the max. Youden's J (`sensitivity + specificity - 1`).
         `'spec_xx'`:
             Prefix a specificity-based threshold with 'spec_' (e.g., 'spec_0.95').
             The first threshold that should lead to a specificity above this level is chosen.

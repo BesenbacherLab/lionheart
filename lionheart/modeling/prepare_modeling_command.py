@@ -81,11 +81,13 @@ def prepare_modeling_command(
                 "At least one dataset cannot be mentioned in `train_only`."
             )
         for idx in args.train_only:
-            if idx > len(dataset_paths):
+            if idx >= len(dataset_paths):
                 raise ValueError(
                     "A dataset index in `--train_only` was greater "
                     f"than the number of specified datasets: {idx}"
                 )
+            if idx < 0:
+                raise ValueError(f"A dataset index in `--train_only` was < 0: {idx}")
         if args.dataset_names is not None:
             train_only = [
                 args.dataset_names[train_only_idx] for train_only_idx in args.train_only
@@ -173,6 +175,11 @@ def prepare_modeling_command(
                 include_indices = get_category_indices(
                     args, feature_name_to_feature_group_path
                 )
+                messenger(
+                    "Feature category selection kept "
+                    f"{len(include_indices)} feature(s). "
+                    "Note: This selection is applied after row-wise scaling."
+                )
             transformers_fn = prepare_transformers_fn(
                 pca_target_variance=args.pca_target_variance,
                 min_var_thresh=[0.0] if not args.feature_categories else [],
@@ -207,13 +214,29 @@ def get_category_indices(args, feature_name_to_feature_group_path) -> List[int]:
     """
     Get indices of categories to include in the analysis.
     """
-    category_signs = [cat[0] == "-" for cat in args.feature_categories]
-    if not all(x == category_signs[0] for x in category_signs):
+    feature_categories = args.feature_categories
+    exclude = (
+        len(feature_categories) > 0 and feature_categories[0].lower() == "exclude"
+    )
+    if exclude:
+        feature_categories = feature_categories[1:]
+        if not feature_categories:
+            raise ValueError(
+                "`--feature_categories exclude` must be followed by at least "
+                "one category to exclude."
+            )
+    elif any(cat.lower() == "exclude" for cat in feature_categories):
         raise ValueError(
-            "`--feature_categories`: All listed categories must have "
-            "the same sign ('-' or no '-' prefix)."
+            "`exclude` is a reserved keyword for `--feature_categories` and "
+            "must be the first value when used: "
+            "`--feature_categories exclude Category1 Category2`."
         )
-    exclude = category_signs[0]
+    if any(cat.startswith("-") for cat in feature_categories):
+        raise ValueError(
+            "`--feature_categories` no longer accepts '-' prefixes. "
+            "Use `--feature_categories exclude Category1 Category2` "
+            "to exclude categories."
+        )
 
     # Load feature to category mapping
     feature_idx_name_category = pd.read_csv(
@@ -223,9 +246,7 @@ def get_category_indices(args, feature_name_to_feature_group_path) -> List[int]:
     feature_idx_name_category["category"] = [
         str(cat).lower() for cat in feature_idx_name_category["category"]
     ]
-    user_categories = [
-        cat[1:].lower() if exclude else cat.lower() for cat in args.feature_categories
-    ]
+    user_categories = [cat.lower() for cat in feature_categories]
     unique_categories = feature_idx_name_category.category.unique()
     unknown_categories = set(user_categories).difference(set(unique_categories))
     if unknown_categories:
@@ -235,9 +256,15 @@ def get_category_indices(args, feature_name_to_feature_group_path) -> List[int]:
         )
     if exclude:
         # Return indices where the category should not be excluded
-        return feature_idx_name_category.loc[
+        included_indices = feature_idx_name_category.loc[
             ~feature_idx_name_category.category.isin(user_categories)
         ].idx.to_list()
+        if not included_indices:
+            raise ValueError(
+                "`--feature_categories` excluded all feature categories. "
+                "Leave at least one category available for modeling."
+            )
+        return included_indices
 
     # Return indices in the specified categories
     return feature_idx_name_category.loc[

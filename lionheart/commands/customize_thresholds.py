@@ -1,5 +1,5 @@
 """
-Script that validates a model on one or more specified validation datasets.
+Script that customizes thresholds.
 
 """
 

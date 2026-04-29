@@ -1,13 +1,11 @@
-
 from numbers import Number
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 import numpy as np
 
 # TODO perhaps add() is more standard than add_data() ?
 
 
-class RunningStats():
-
+class RunningStats:
     def __init__(self, ignore_nans: bool = True) -> None:
         """
         Running statistics about chunks of arrays.
@@ -40,7 +38,7 @@ class RunningStats():
             "mean": self.mean,
             "std": self.std,
             "min": self.min,
-            "max": self.max
+            "max": self.max,
         }
 
     def add_data(self, x: np.ndarray) -> None:
@@ -48,12 +46,11 @@ class RunningStats():
         Update statistics with more data. Only summary statistics are saved in the object.
 
         :param x: 1D `numpy.ndarray` with numbers to add to the running summarization.
+                  Must contain at least 2 data points.
         """
         # Check input data
         x = self._check_data(x)
         new_n = len(x)
-        if new_n == 0:
-            return
         if self.n == 0:
             self.n = new_n
             self.mean, self.var, self.min, self.max = self._compute_stats(x=x)
@@ -100,6 +97,12 @@ class RunningStats():
         # Remove elements that are NaN in either array
         if self.ignore_nans:
             x = x[~np.isnan(x)]
+
+        if len(x) < 2:
+            raise ValueError(
+                ".add_data() requires 2 or more data points. "
+                f"`x` had {len(x)} data points."
+            )
 
         # dtype is the data type for the calculations.  This expression ensures
         # that the data type is at least 64 bit floating point.  It might have

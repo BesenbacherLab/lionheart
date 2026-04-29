@@ -103,8 +103,17 @@ def _get_interval_gc_content(
         denominator = sum(base_contents.values())
 
     # Handle zero-division
-    if denominator == 0 and not isinstance(handle_zero_division, str):
-        if not isinstance(handle_zero_division, float):
+    if denominator == 0:
+        if isinstance(handle_zero_division, str):
+            if not handle_zero_division == "raise":
+                raise TypeError(
+                    "`handle_zero_division` must be either a string ('raise')"
+                    f" or a float. Had type: {type(handle_zero_division)}, "
+                    "but value: {handle_zero_division}."
+                )
+            else:
+                raise ZeroDivisionError("GC content denominator was 0")
+        elif not isinstance(handle_zero_division, float):
             raise TypeError(
                 "`handle_zero_division` must be either a string ('raise')"
                 f" or a float. Had type: {type(handle_zero_division)}."

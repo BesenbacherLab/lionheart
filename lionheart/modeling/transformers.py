@@ -6,14 +6,28 @@ from generalize.model.transformers import PCAByExplainedVariance
 from generalize.model.pipeline.pipeline_designer import PipelineDesigner
 
 
+def default_min_var_thresh():
+    return [0.0]
+
+
+def default_scale_rows():
+    return ["mean", "std"]
+
+
 def prepare_transformers_fn(
     pca_target_variance: List[float],
-    min_var_thresh: List[float] = [0.0],
-    scale_rows: List[str] = ["mean", "std"],
+    min_var_thresh: Optional[List[float]] = None,
+    scale_rows: Optional[List[str]] = None,
     post_scale_feature_indices: Optional[List[int]] = None,
     standardize: bool = True,
     add_dim_transformer_wrappers: bool = False,
 ):
+    # Set defaults for mutable types
+    if min_var_thresh is None:
+        min_var_thresh = default_min_var_thresh()
+    if scale_rows is None:
+        scale_rows = default_scale_rows()
+
     def transformers_fn(
         model_dict: dict,
     ) -> Tuple[List[Tuple[str, BaseEstimator]], dict]:
@@ -121,10 +135,14 @@ def prepare_transformers_fn(
 def prepare_benchmark_transformers_fn(
     feature_type: str,
     pca_target_variance: List[float],
-    min_var_thresh: List[float] = [0.0],
+    min_var_thresh: Optional[List[float]] = None,
     standardize: bool = True,
     add_dim_transformer_wrappers: bool = False,
 ):
+    # Set defaults for mutable types
+    if min_var_thresh is None:
+        min_var_thresh = default_min_var_thresh()
+
     def transformers_fn(
         model_dict: dict,
     ) -> Tuple[List[Tuple[str, BaseEstimator]], dict]:

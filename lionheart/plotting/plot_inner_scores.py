@@ -7,11 +7,15 @@ import seaborn as sns
 from utipy import Messenger, StepTimer, check_messenger, mk_dir
 
 
+def default_catplot_kwargs():
+    return {"height": 5, "aspect": 1.5, "kind": "strip"}
+
+
 def plot_inner_scores(
     inner_results: pd.DataFrame,
-    catplot_kwargs: dict = {"height": 5, "aspect": 1.5, "kind": "strip"},
+    catplot_kwargs: Optional[dict] = None,
     metric_name="Balanced Accuracy",
-    save_dir: Union[str, pathlib.Path] = None,
+    save_dir: Optional[Union[str, pathlib.Path]] = None,
     messenger: Optional[Callable] = Messenger(verbose=True, indent=0, msg_fn=print),
 ):
     """
@@ -25,6 +29,9 @@ def plot_inner_scores(
         The messenger determines the messaging function (e.g., `print` or `log.info`)
         and potential indentation.
     """
+    # Set defaults for mutable types
+    if catplot_kwargs is None:
+        catplot_kwargs = default_catplot_kwargs()
 
     # Check messenger (always returns Messenger instance)
     messenger = check_messenger(messenger)

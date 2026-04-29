@@ -131,13 +131,13 @@ def setup_parser(parser):
         default=threshold_defaults,
         help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity + 1`)."
+        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity - 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "
-        "that should lead to a specificity above this level is chosen. "
-        "\nWhen passing specific float thresholds, the nearest threshold "
-        "in the ROC curve is used. "
+        "that should lead to a sensitivity above this level is chosen. "
+        "\nWhen passing specific float thresholds, the *expected* sensitivity and specificity "
+        "values in the prediction output are interpolated from the ROC curve."
         "\n<b>NOTE</b>: The thresholds are extracted from the included ROC curve,"
         "\nwhich was fitted to the <b>training</b> data during model training.",
     )
@@ -227,6 +227,8 @@ def main(args):
             "Exactly one of {`--model_name`, `--custom_model_dir`} "
             "should be specified at a time."
         )
+
+    resources_dir = None
     if args.model_name is not None:
         if args.resources_dir is None:
             raise ValueError(
@@ -312,7 +314,8 @@ def main(args):
     paths = prepared_modeling_dict["paths"]
     paths.set_path("prediction_path", out_path / "predictions.csv", "out_files")
     paths.set_path("evaluation_path", out_path / "evaluation_scores.csv", "out_files")
-    paths.set_path("resources_dir", resources_dir, "in_dirs")
+    if resources_dir is not None:
+        paths.set_path("resources_dir", resources_dir, "in_dirs")
 
     # NOTE: These names must match what's used in
     # predict_sample (since they both use run_predict_single_model())

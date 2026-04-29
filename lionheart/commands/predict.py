@@ -1,5 +1,5 @@
 """
-Script that applies the model to the features of a singe sample and returns the probability of cancer.
+Script that applies the model to the features of a single sample and returns the probability of cancer.
 
 """
 
@@ -133,13 +133,12 @@ def setup_parser(parser):
         default=threshold_defaults,
         help="The probability thresholds to use in cancer detection."
         f"\nDefaults to these {len(threshold_defaults)} thresholds:\n  {', '.join(threshold_defaults)}"
-        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity + 1`)."
+        "\n'max_j' is the threshold at the max. of Youden's J (`sensitivity + specificity - 1`)."
         "\nPrefix a specificity-based threshold with <b>'spec_'</b>. \n  The first threshold "
         "that should lead to a specificity above this level is chosen. "
         "\nPrefix a sensitivity-based threshold with <b>'sens_'</b>. \n  The first threshold "
-        "that should lead to a specificity above this level is chosen. "
-        "\nWhen passing specific float thresholds, the nearest threshold "
-        "in the ROC curve is used. "
+        "that should lead to a sensitivity above this level is chosen. "
+        "\nWhen passing specific float thresholds, the expected sensitivity and specificity are interpolated from the ROC curve."
         "\n<b>NOTE</b>: The thresholds are extracted from each of the specified ROC curves,"
         "namely the ROC curve fitted on the model's training data and those in --custom_threshold_dirs."
         + ("\n<b>NOTE></b>: Ignored for subtyping models." if ENABLE_SUBTYPING else ""),

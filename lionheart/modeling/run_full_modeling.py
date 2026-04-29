@@ -38,7 +38,7 @@ def run_full_model_training(
     merge_datasets: Optional[Dict[str, List[str]]] = None,
     k: int = 10,
     transformers: Optional[Union[List[tuple], Callable]] = None,
-    train_test_transformers: List[str] = [],
+    train_test_transformers: Optional[List[str]] = None,
     aggregate_by_groups: bool = False,
     weight_loss_by_groups: bool = False,
     weight_per_dataset: bool = False,
@@ -78,6 +78,9 @@ def run_full_model_training(
         combination from `cv_results_` in grid search.
 
     """
+    # Set defaults for mutable types
+    if train_test_transformers is None:
+        train_test_transformers = []
 
     # Check messenger (always returns Messenger instance)
     messenger = check_messenger(messenger)
@@ -227,6 +230,7 @@ def run_full_model_training(
             messenger(key, ": ", train_out["Estimator"].get_params()[key], indent=8)
 
     messenger("Gathering training info:", add_indent=4)
+    input_feature_count = int(prepared_modeling_dict["dataset"].shape[-1])
     training_info = {
         "Task": "Cancer Detection"
         if prepared_modeling_dict["task"] == "binary_classification"
@@ -253,6 +257,10 @@ def run_full_model_training(
         },
         "Data": {
             "Shape": prepared_modeling_dict["dataset"].shape,
+            "Feature Counts": _get_feature_counts(
+                pipeline=train_out["Estimator"],
+                input_feature_count=input_feature_count,
+            ),
             "Target counts": prepared_modeling_dict["label_counts"],
         },
     }
@@ -401,6 +409,38 @@ def run_full_model_training(
             feature_contrib_analyser.plot_effects(
                 save_path=paths["plot_feature_effects_path"]
             )
+
+
+def _get_feature_counts(pipeline, input_feature_count: int) -> dict:
+    feature_counts = {"Input": int(input_feature_count)}
+    named_steps = getattr(pipeline, "named_steps", {})
+
+    variance_filter = named_steps.get("near_zero_variance")
+    if variance_filter is not None:
+        support_indices = _get_support_indices(variance_filter)
+        if support_indices is not None:
+            feature_counts["After Variance Filtering"] = int(len(support_indices))
+
+    selector = named_steps.get("select_features_post_scaling")
+    if selector is not None:
+        support_indices = _get_support_indices(selector)
+        if support_indices is not None:
+            feature_counts["After Row Scaling Selection"] = int(
+                len(support_indices)
+            )
+
+    return feature_counts
+
+
+def _get_support_indices(transformer) -> Optional[np.ndarray]:
+    if hasattr(transformer, "get_support"):
+        return transformer.get_support(indices=True)
+
+    wrapped_estimator = getattr(transformer, "estimator_", None)
+    if wrapped_estimator is not None and hasattr(wrapped_estimator, "get_support"):
+        return wrapped_estimator.get_support(indices=True)
+
+    return None
 
 
 def plot_roc_curves(roc_curves: ROCCurves, plot_path: pathlib.Path) -> None:

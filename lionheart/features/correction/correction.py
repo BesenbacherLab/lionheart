@@ -1,6 +1,14 @@
-from typing import Optional, Tuple, Union
+from typing import Dict, Optional, Tuple, Union
 import numpy as np
 from scipy.stats import binned_statistic
+
+
+def default_smoothing_settings():
+    return {
+        "kernel_size": 5,
+        "kernel_type": "gaussian",
+        "kernel_std": 1.0,
+    }
 
 
 def calculate_correction_factors(
@@ -10,11 +18,7 @@ def calculate_correction_factors(
     nan_extremes: Union[str, bool] = True,
     div_by_mean: bool = True,
     smoothe_factors: bool = True,
-    smoothing_settings: dict = {
-        "kernel_size": 5,
-        "kernel_type": "gaussian",
-        "kernel_std": 1.0,
-    },
+    smoothing_settings: Optional[Dict[str, Union[int, str, float]]] = None,
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate a correction factor for each bias score bin
@@ -41,9 +45,9 @@ def calculate_correction_factors(
     smoothing_settings
         Dict with smoothing settings. Should contain the
         following settings:
-            kernel_size : int
-            kernel_type : str (one of {"gaussian", "uniform"})
-            kernel_std : float (when `kernel_type="gaussian"`)
+            kernel_size : int (default: 5)
+            kernel_type : str (one of {"gaussian", "uniform"}) (default: "gaussian")
+            kernel_std : float (when `kernel_type="gaussian"`)  (default: 1.0)
 
     Returns
     -------
@@ -61,6 +65,9 @@ def calculate_correction_factors(
         nan_zeroes=True,
         nan_extremes=nan_extremes,
     )
+
+    if smoothing_settings is None:
+        smoothing_settings = default_smoothing_settings()
 
     # Apply smoothing to the correction factor
     if smoothe_factors:

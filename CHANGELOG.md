@@ -1,8 +1,16 @@
 # Changelog
 
-## 2.1.9000
+## 2.2.0
 
  - Generalizes remapping workflow for better path validation and error handling.
+ - Fixes *expected sensitivity* for numerically specified probability thresholds in the `predict` and `validate` commands.
+ - Fixes multiple typos and minor bugs. These did not affect the CLI tool.
+ - Adds `--feature_categories` to `cross_validate` and `train_model` for including or excluding LIONHEART cell type categories in custom modeling. Thanks @jingpingQ for the request in #5.
+ - Updates feature category exclusion syntax to `--feature_categories exclude <category> ...` and adds validation for invalid or empty selections.
+ - Improves validation and error messages for train-only dataset indices.
+ - Bumps `generalize` dependency to `0.3.1`.
+ - Bumps `utipy` dependency to `1.1.0`.
+ - Bumps `nattrs` dependency to `0.2.3`.s
 
 ## 2.1.0
 
