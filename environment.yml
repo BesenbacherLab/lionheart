@@ -21,10 +21,10 @@ dependencies:
   - matplotlib=3.9.1
   - conda-forge::pigz
   - pip:
-    - nattrs==0.2.2
+    - nattrs==0.2.3
     - pytest==7.1.2
     - scikit-learn==1.0.2
-    - utipy==1.0.5
+    - utipy==1.1.0
     - poetry==1.8.2
     - generalize==0.3.1
     - pyarrow
