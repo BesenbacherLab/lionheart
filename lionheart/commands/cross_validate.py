@@ -437,13 +437,14 @@ def main(args):
         labels_to_use = None
 
     expected_shapes = {
-        "LIONHEART": {1: 10, 2: 898},  # 10 feature sets, 898 cell type features
+        # "LIONHEART": {1: 10, 2: 898},  # 10 feature sets, 898 cell type features
+        "LIONHEART": {1: 1, 2: 2409},  # 10 feature sets, 898 cell type features
         "length_ratios": {1: 2689},
         "bin_depths": {1: 2689},
         "lengths": {1: 321},
     }
     feature_sets = {
-        "LIONHEART": [0],
+        "LIONHEART": [0], # list(range(0,9)), #[24],
         "length_ratios": None,
         "bin_depths": None,
         "lengths": None,
